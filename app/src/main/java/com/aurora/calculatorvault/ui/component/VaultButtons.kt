@@ -46,9 +46,11 @@ fun VaultSecondaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     OutlinedButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.fillMaxWidth().height(AppDimensions.Button),
         shape = AppShapes.Medium,
         border = BorderStroke(1.dp, AppColors.BorderSubtle),

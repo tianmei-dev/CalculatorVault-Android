@@ -61,6 +61,18 @@ object AppTextStyles {
         fontSize = 52.sp,
         lineHeight = 60.sp,
     )
+    val NumericMedium = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Light,
+        fontSize = 44.sp,
+        lineHeight = 52.sp,
+    )
+    val NumericCompact = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 34.sp,
+        lineHeight = 42.sp,
+    )
 }
 
 val VaultTypography = Typography(

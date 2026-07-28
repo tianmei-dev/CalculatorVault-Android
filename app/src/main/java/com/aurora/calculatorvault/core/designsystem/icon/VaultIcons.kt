@@ -2,6 +2,7 @@ package com.aurora.calculatorvault.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.rounded.WbSunny
 object VaultIcons {
     val Add = Icons.Rounded.Add
     val Apps = Icons.Rounded.Apps
+    val Backspace = Icons.AutoMirrored.Rounded.Backspace
     val Back = Icons.AutoMirrored.Rounded.ArrowBack
     val Calculator = Icons.Rounded.Calculate
     val Chevron = Icons.Rounded.ChevronRight

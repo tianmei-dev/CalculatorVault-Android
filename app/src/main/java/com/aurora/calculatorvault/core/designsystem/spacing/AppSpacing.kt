@@ -21,5 +21,6 @@ object AppDimensions {
     val BottomNavigation = 72.dp
     val TopAppBar = 64.dp
     val IconButton = 44.dp
+    val CalculatorKey = 60.dp
+    val OnboardingCreateTopPadding = 60.dp
 }
-

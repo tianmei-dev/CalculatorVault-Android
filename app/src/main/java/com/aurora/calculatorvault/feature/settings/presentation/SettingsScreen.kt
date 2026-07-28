@@ -17,10 +17,12 @@ import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
-import com.aurora.calculatorvault.ui.component.VaultSwitchSettingItem
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onChangePassword: () -> Unit,
+    onForgotPassword: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AppSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
@@ -30,44 +32,56 @@ fun SettingsScreen() {
             description = stringResource(R.string.settings_description),
         )
         SettingsGroup(title = stringResource(R.string.security_group)) {
-            VaultSwitchSettingItem(
-                title = stringResource(R.string.auto_lock),
-                subtitle = stringResource(R.string.setting_placeholder),
-                checked = false,
-                onCheckedChange = {},
+            VaultSettingItem(
+                title = stringResource(R.string.change_password),
+                icon = VaultIcons.Lock,
+                onClick = onChangePassword,
             )
-            VaultSwitchSettingItem(
-                title = stringResource(R.string.secure_screen),
-                subtitle = stringResource(R.string.setting_placeholder),
-                checked = false,
-                onCheckedChange = {},
+            VaultSettingItem(
+                title = stringResource(R.string.forgot_password),
+                icon = VaultIcons.Help,
+                onClick = onForgotPassword,
+            )
+            VaultSettingItem(
+                title = stringResource(R.string.auto_lock),
+                subtitle = stringResource(R.string.auto_lock_enabled),
+                icon = VaultIcons.Timer,
+                onClick = {},
+                enabled = false,
+                showDivider = false,
             )
         }
         SettingsGroup(title = stringResource(R.string.data_group)) {
             VaultSettingItem(
                 title = stringResource(R.string.storage_overview),
-                subtitle = stringResource(R.string.data_not_configured),
+                subtitle = stringResource(R.string.coming_soon),
                 icon = VaultIcons.Storage,
                 onClick = {},
+                enabled = false,
             )
             VaultSettingItem(
-                title = stringResource(R.string.data_backup),
-                subtitle = stringResource(R.string.setting_placeholder),
+                title = stringResource(R.string.clear_cache),
+                subtitle = stringResource(R.string.coming_soon),
                 icon = VaultIcons.Files,
                 onClick = {},
+                enabled = false,
+            )
+            VaultSettingItem(
+                title = stringResource(R.string.clear_recent_history),
+                subtitle = stringResource(R.string.coming_soon),
+                icon = VaultIcons.Timer,
+                onClick = {},
+                enabled = false,
                 showDivider = false,
             )
         }
         SettingsGroup(title = stringResource(R.string.help_group)) {
             VaultSettingItem(
                 title = stringResource(R.string.help_center),
+                subtitle = stringResource(R.string.coming_soon),
                 icon = VaultIcons.Help,
                 onClick = {},
-            )
-            VaultSettingItem(
-                title = stringResource(R.string.privacy_policy),
-                icon = VaultIcons.Privacy,
-                onClick = {},
+                enabled = false,
                 showDivider = false,
             )
         }
@@ -77,6 +91,7 @@ fun SettingsScreen() {
                 subtitle = stringResource(R.string.version),
                 icon = VaultIcons.Info,
                 onClick = {},
+                enabled = false,
                 showDivider = false,
             )
         }

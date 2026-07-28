@@ -77,21 +77,33 @@ fun VaultSettingItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
+    enabled: Boolean = true,
+    showChevron: Boolean = enabled,
 ) {
-    Column(modifier = modifier.clickable(onClick = onClick)) {
+    Column(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDimensions.SettingItem),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {
-                Icon(it, contentDescription = null, tint = AppColors.TextSecondary)
+                Icon(
+                    it,
+                    contentDescription = null,
+                    tint = if (enabled) AppColors.TextSecondary else AppColors.TextDisabled,
+                )
                 Spacer(Modifier.width(AppSpacing.sm))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = AppTextStyles.CardTitle, color = AppColors.TextPrimary)
+                Text(
+                    title,
+                    style = AppTextStyles.CardTitle,
+                    color = if (enabled) AppColors.TextPrimary else AppColors.TextSecondary,
+                )
                 subtitle?.let { Text(it, style = AppTextStyles.Caption, color = AppColors.TextTertiary) }
             }
-            Icon(VaultIcons.Chevron, contentDescription = null, tint = AppColors.TextTertiary)
+            if (showChevron) {
+                Icon(VaultIcons.Chevron, contentDescription = null, tint = AppColors.TextTertiary)
+            }
         }
         if (showDivider) HorizontalDivider(color = AppColors.Divider)
     }
@@ -173,4 +185,3 @@ fun VaultLoadingIndicator(modifier: Modifier = Modifier) {
         )
     }
 }
-
