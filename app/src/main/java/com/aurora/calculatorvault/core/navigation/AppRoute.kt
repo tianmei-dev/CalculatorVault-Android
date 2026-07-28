@@ -18,6 +18,7 @@ sealed interface VaultTabRoute {
 
     data object Disguise : VaultTabRoute { override val path = "vault/disguise" }
     data object HiddenApp : VaultTabRoute { override val path = "vault/hidden_app" }
+    data object HiddenAppPicker : VaultTabRoute { override val path = "vault/hidden_app/picker" }
     data object PrivateMedia : VaultTabRoute { override val path = "vault/private_media" }
     data object Settings : VaultTabRoute { override val path = "vault/settings" }
     data object ChangePassword : VaultTabRoute { override val path = "vault/settings/change_password" }

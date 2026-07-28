@@ -30,6 +30,9 @@ import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.navigation.VaultTabRoute
 import com.aurora.calculatorvault.feature.disguise.presentation.DisguiseScreen
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppScreen
+import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerScreen
+import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerViewModel
+import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModel
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaScreen
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordScreen
@@ -106,7 +109,41 @@ fun VaultMainScreen(
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(VaultTabRoute.Disguise.path) { DisguiseScreen() }
-            composable(VaultTabRoute.HiddenApp.path) { HiddenAppScreen() }
+            composable(VaultTabRoute.HiddenApp.path) {
+                val hiddenAppViewModel: HiddenAppViewModel = viewModel(
+                    factory = HiddenAppViewModel.Factory(application.hiddenAppRepository),
+                )
+                HiddenAppScreen(
+                    viewModel = hiddenAppViewModel,
+                    iconProvider = application.appIconProvider,
+                    onAddApps = {
+                        navController.navigate(VaultTabRoute.HiddenAppPicker.path) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onMessage = { message ->
+                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                    },
+                )
+            }
+            composable(VaultTabRoute.HiddenAppPicker.path) {
+                val pickerViewModel: HiddenAppPickerViewModel = viewModel(
+                    factory = HiddenAppPickerViewModel.Factory(application.hiddenAppRepository),
+                )
+                HiddenAppPickerScreen(
+                    viewModel = pickerViewModel,
+                    iconProvider = application.appIconProvider,
+                    onBack = navController::popBackStack,
+                    onCompleted = { count ->
+                        navController.popBackStack()
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                context.getString(R.string.hidden_app_added_success, count),
+                            )
+                        }
+                    },
+                )
+            }
             composable(VaultTabRoute.PrivateMedia.path) { PrivateMediaScreen() }
             composable(VaultTabRoute.Settings.path) {
                 SettingsScreen(
