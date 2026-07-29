@@ -35,6 +35,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPicker
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModel
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaScreen
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
+import com.aurora.calculatorvault.feature.settings.presentation.RecentHistoryViewModel
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordScreen
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordStep
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordViewModel
@@ -111,7 +112,11 @@ fun VaultMainScreen(
             composable(VaultTabRoute.Disguise.path) { DisguiseScreen() }
             composable(VaultTabRoute.HiddenApp.path) {
                 val hiddenAppViewModel: HiddenAppViewModel = viewModel(
-                    factory = HiddenAppViewModel.Factory(application.hiddenAppRepository),
+                    factory = HiddenAppViewModel.Factory(
+                        application.hiddenAppRepository,
+                        application.launchHiddenAppUseCase,
+                        application.hiddenAppPreferences,
+                    ),
                 )
                 HiddenAppScreen(
                     viewModel = hiddenAppViewModel,
@@ -146,7 +151,17 @@ fun VaultMainScreen(
             }
             composable(VaultTabRoute.PrivateMedia.path) { PrivateMediaScreen() }
             composable(VaultTabRoute.Settings.path) {
+                val recentHistoryViewModel: RecentHistoryViewModel = viewModel(
+                    factory = RecentHistoryViewModel.Factory(application.hiddenAppRepository),
+                )
+                val recentClearedMessage = stringResource(R.string.hidden_app_recent_cleared)
+                LaunchedEffect(recentHistoryViewModel) {
+                    recentHistoryViewModel.cleared.collect {
+                        snackbarHostState.showSnackbar(recentClearedMessage)
+                    }
+                }
                 SettingsScreen(
+                    recentHistoryViewModel = recentHistoryViewModel,
                     onChangePassword = {
                         navController.navigate(VaultTabRoute.ChangePassword.path)
                     },

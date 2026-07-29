@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -21,6 +22,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.Image
 import androidx.core.graphics.drawable.toBitmap
 import com.aurora.calculatorvault.R
@@ -39,6 +43,7 @@ fun HiddenAppSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    onClear: () -> Unit = {},
 ) {
     BasicTextField(
         value = query,
@@ -51,6 +56,8 @@ fun HiddenAppSearchField(
         enabled = enabled,
         singleLine = true,
         textStyle = AppTextStyles.Body.copy(color = AppColors.TextPrimary),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = {}),
         cursorBrush = SolidColor(AppColors.AccentPrimary),
         decorationBox = { innerField ->
             Row(
@@ -69,6 +76,15 @@ fun HiddenAppSearchField(
                     }
                     innerField()
                 }
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = onClear, enabled = enabled) {
+                        Icon(
+                            VaultIcons.Close,
+                            contentDescription = stringResource(R.string.hidden_app_clear_search),
+                            tint = AppColors.TextSecondary,
+                        )
+                    }
+                }
             }
         },
     )
@@ -79,7 +95,7 @@ fun VaultInstalledAppIcon(
     packageName: String,
     appName: String,
     iconProvider: AppIconProvider,
-    modifier: Modifier = Modifier.size(AppIconDefaultSize),
+    modifier: Modifier = Modifier,
 ) {
     val drawable by produceState<android.graphics.drawable.Drawable?>(
         initialValue = null,
@@ -95,11 +111,13 @@ fun VaultInstalledAppIcon(
         Image(
             bitmap = image,
             contentDescription = stringResource(R.string.hidden_app_icon_description, appName),
-            modifier = modifier.clip(AppShapes.Medium),
+            modifier = modifier.size(AppIconDefaultSize).clip(AppShapes.Medium),
         )
     } else {
         Box(
-            modifier = modifier.background(AppColors.SurfaceSecondary, AppShapes.Medium),
+            modifier = modifier
+                .size(AppIconDefaultSize)
+                .background(AppColors.SurfaceSecondary, AppShapes.Medium),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

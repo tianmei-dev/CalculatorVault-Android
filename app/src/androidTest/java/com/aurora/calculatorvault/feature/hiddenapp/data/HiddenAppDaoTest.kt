@@ -65,6 +65,73 @@ class HiddenAppDaoTest {
         )
     }
 
+    @Test
+    fun markOpenedIncrementsCountAndRecentQueryOrdersByNewest() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("a", "A", 1, 0),
+                entity("b", "B", 2, 1),
+            ),
+        )
+
+        assertEquals(1, dao.markOpened("a", 10))
+        assertEquals(1, dao.markOpened("b", 20))
+        assertEquals(1, dao.markOpened("a", 30))
+
+        val recent = dao.observeRecentlyOpened(10).first()
+        assertEquals(listOf("a", "b"), recent.map(HiddenAppEntity::packageName))
+        assertEquals(2, recent.first().openCount)
+    }
+
+    @Test
+    fun clearRecentKeepsHiddenRowsAndResetsOnlyHistoryFields() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("a", "A", 1, 0).copy(lastOpenedAt = 10, openCount = 2),
+                entity("b", "B", 2, 1),
+            ),
+        )
+
+        assertEquals(1, dao.clearRecentHistory())
+
+        val rows = dao.observeAll().first()
+        assertEquals(2, rows.size)
+        assertEquals(emptyList<HiddenAppEntity>(), dao.observeRecentlyOpened(10).first())
+        assertEquals(listOf(0, 0), rows.map(HiddenAppEntity::openCount))
+    }
+
+    @Test
+    fun batchDeleteRemovesOnlyRequestedRows() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("a", "A", 1, 0),
+                entity("b", "B", 2, 1),
+                entity("c", "C", 3, 2),
+            ),
+        )
+
+        assertEquals(2, dao.deleteByPackageNames(listOf("a", "c")))
+        assertEquals(listOf("b"), dao.observeAll().first().map(HiddenAppEntity::packageName))
+    }
+
+    @Test
+    fun roomStoreUpdatesManualOrderTransactionallyWithoutChangingHistory() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("a", "A", 1, 0).copy(lastOpenedAt = 10, openCount = 2),
+                entity("b", "B", 2, 1),
+                entity("c", "C", 3, 2),
+            ),
+        )
+        val store = RoomHiddenAppStore(database)
+
+        assertEquals(true, store.updateManualOrder(listOf("c", "a", "b")))
+        val rows = dao.observeAll().first()
+        assertEquals(listOf("c", "a", "b"), rows.map(HiddenAppEntity::packageName))
+        assertEquals(10L, rows.first { it.packageName == "a" }.lastOpenedAt)
+        assertEquals(2, rows.first { it.packageName == "a" }.openCount)
+    }
+
     private fun entity(
         packageName: String = "same.package",
         name: String,

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.aurora.calculatorvault.R
@@ -17,12 +19,15 @@ import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
+import com.aurora.calculatorvault.ui.component.VaultDialog
 
 @Composable
 fun SettingsScreen(
+    recentHistoryViewModel: RecentHistoryViewModel,
     onChangePassword: () -> Unit,
     onForgotPassword: () -> Unit,
 ) {
+    val recentState by recentHistoryViewModel.uiState.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AppSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
@@ -68,10 +73,16 @@ fun SettingsScreen(
             )
             VaultSettingItem(
                 title = stringResource(R.string.clear_recent_history),
-                subtitle = stringResource(R.string.coming_soon),
+                subtitle = stringResource(
+                    if (recentState.hasHistory) {
+                        R.string.clear_recent_history_description
+                    } else {
+                        R.string.no_recent_history
+                    },
+                ),
                 icon = VaultIcons.Timer,
-                onClick = {},
-                enabled = false,
+                onClick = recentHistoryViewModel::requestClear,
+                enabled = recentState.hasHistory && !recentState.isClearing,
                 showDivider = false,
             )
         }
@@ -95,6 +106,23 @@ fun SettingsScreen(
                 showDivider = false,
             )
         }
+        if (recentState.clearFailed) {
+            androidx.compose.material3.Text(
+                text = stringResource(R.string.hidden_app_clear_recent_failed),
+                color = com.aurora.calculatorvault.core.designsystem.color.AppColors.Error,
+                style = com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles.Caption,
+            )
+        }
+    }
+    if (recentState.showConfirmation) {
+        VaultDialog(
+            title = stringResource(R.string.hidden_app_clear_recent_title),
+            message = stringResource(R.string.hidden_app_clear_recent_message),
+            confirmText = stringResource(R.string.clear_action),
+            dismissText = stringResource(R.string.cancel),
+            onConfirm = recentHistoryViewModel::confirmClear,
+            onDismiss = recentHistoryViewModel::cancelClear,
+        )
     }
 }
 

@@ -13,9 +13,12 @@ import com.aurora.calculatorvault.feature.calculator.domain.StoredVaultPasswordV
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
 import com.aurora.calculatorvault.feature.hiddenapp.data.CachedPackageManagerIconProvider
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppRepository
+import com.aurora.calculatorvault.feature.hiddenapp.data.DataStoreHiddenAppPreferences
 import com.aurora.calculatorvault.feature.hiddenapp.data.RoomHiddenAppStore
 import com.aurora.calculatorvault.feature.hiddenapp.domain.AndroidLauncherAppSource
+import com.aurora.calculatorvault.feature.hiddenapp.domain.AndroidHiddenAppRuntime
 import com.aurora.calculatorvault.feature.hiddenapp.domain.FilteringInstalledAppScanner
+import com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCase
 import com.aurora.calculatorvault.feature.onboarding.data.OnboardingRepository
 import com.aurora.calculatorvault.feature.settings.data.ChangePasswordRepository
 
@@ -33,7 +36,7 @@ class CalculatorVaultApp : Application() {
             applicationContext,
             CalculatorVaultDatabase::class.java,
             DATABASE_NAME,
-        ).build()
+        ).addMigrations(CalculatorVaultDatabase.MIGRATION_1_2).build()
     }
 
     private val installedAppScanner by lazy {
@@ -43,10 +46,30 @@ class CalculatorVaultApp : Application() {
         )
     }
 
+    private val hiddenAppRuntime by lazy {
+        AndroidHiddenAppRuntime(
+            context = applicationContext,
+            packageManager = packageManager,
+            ownPackageName = packageName,
+        )
+    }
+
     val hiddenAppRepository by lazy {
         HiddenAppRepository(
             scanner = installedAppScanner,
+            runtime = hiddenAppRuntime,
             store = RoomHiddenAppStore(database),
+        )
+    }
+
+    val hiddenAppPreferences by lazy {
+        DataStoreHiddenAppPreferences(vaultPreferencesDataStore)
+    }
+
+    val launchHiddenAppUseCase by lazy {
+        LaunchHiddenAppUseCase(
+            runtime = hiddenAppRuntime,
+            repository = hiddenAppRepository,
         )
     }
 

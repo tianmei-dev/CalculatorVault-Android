@@ -25,6 +25,13 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.material.icons.automirrored.rounded.ViewList
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
 
 object VaultIcons {
     val Add = Icons.Rounded.Add
@@ -51,4 +58,11 @@ object VaultIcons {
     val Timer = Icons.Rounded.Timer
     val Video = Icons.Rounded.PlayCircleOutline
     val Weather = Icons.Rounded.WbSunny
+    val List = Icons.AutoMirrored.Rounded.ViewList
+    val Sort = Icons.AutoMirrored.Rounded.Sort
+    val Selected = Icons.Rounded.CheckCircle
+    val Unselected = Icons.Rounded.RadioButtonUnchecked
+    val Drag = Icons.Rounded.DragHandle
+    val Close = Icons.Rounded.Close
+    val Refresh = Icons.Rounded.Refresh
 }

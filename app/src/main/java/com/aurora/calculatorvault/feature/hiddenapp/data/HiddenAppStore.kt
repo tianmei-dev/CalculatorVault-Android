@@ -8,9 +8,15 @@ import kotlinx.coroutines.flow.map
 
 interface HiddenAppStore {
     fun observeAll(): Flow<List<HiddenAppEntity>>
+    fun observeRecent(limit: Int): Flow<List<HiddenAppEntity>>
     fun observePackageNames(): Flow<Set<String>>
     suspend fun addUnique(apps: List<InstalledApp>, addedAt: Long): Int
     suspend fun remove(packageName: String): Boolean
+    suspend fun removeMany(packageNames: List<String>): Int =
+        packageNames.distinct().count { remove(it) }
+    suspend fun updateManualOrder(packageNames: List<String>): Boolean = false
+    suspend fun markOpened(packageName: String, openedAt: Long): Boolean
+    suspend fun clearRecentHistory(): Int
 }
 
 class RoomHiddenAppStore(
@@ -19,6 +25,9 @@ class RoomHiddenAppStore(
     private val dao = database.hiddenAppDao()
 
     override fun observeAll(): Flow<List<HiddenAppEntity>> = dao.observeAll()
+
+    override fun observeRecent(limit: Int): Flow<List<HiddenAppEntity>> =
+        dao.observeRecentlyOpened(limit)
 
     override fun observePackageNames(): Flow<Set<String>> =
         dao.observeAllPackageNames().map(List<String>::toSet)
@@ -46,6 +55,28 @@ class RoomHiddenAppStore(
 
     override suspend fun remove(packageName: String): Boolean =
         dao.deleteByPackageName(packageName) > 0
+
+    override suspend fun removeMany(packageNames: List<String>): Int {
+        val unique = packageNames.distinct()
+        if (unique.isEmpty()) return 0
+        return database.withTransaction { dao.deleteByPackageNames(unique) }
+    }
+
+    override suspend fun updateManualOrder(packageNames: List<String>): Boolean {
+        val unique = packageNames.distinct()
+        if (unique.isEmpty()) return true
+        return database.withTransaction {
+            unique.forEachIndexed { index, packageName ->
+                check(dao.updateSortOrder(packageName, index) == 1)
+            }
+            true
+        }
+    }
+
+    override suspend fun markOpened(packageName: String, openedAt: Long): Boolean =
+        dao.markOpened(packageName, openedAt) > 0
+
+    override suspend fun clearRecentHistory(): Int = dao.clearRecentHistory()
 
     private companion object {
         const val INSERT_IGNORED = -1L

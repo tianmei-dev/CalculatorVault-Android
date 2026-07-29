@@ -139,6 +139,7 @@ class HiddenAppPickerViewModelTest {
         )
 
         override fun observeHiddenApps(): Flow<List<HiddenApp>> = emptyFlow()
+        override fun observeRecentApps(limit: Int): Flow<List<HiddenApp>> = emptyFlow()
         override fun observeAddedPackageNames(): Flow<Set<String>> = addedPackages
 
         override suspend fun scanInstalledApps(): List<InstalledApp> {
@@ -154,5 +155,8 @@ class HiddenAppPickerViewModelTest {
         }
 
         override suspend fun removeApp(packageName: String): Boolean = false
+        override suspend fun markAppOpened(packageName: String, openedAt: Long): Boolean = false
+        override suspend fun clearRecentHistory(): Int = 0
+        override fun refreshAppAvailability() = Unit
     }
 }

@@ -20,4 +20,8 @@ data class HiddenAppEntity(
     val addedAt: Long,
     @ColumnInfo(name = "sort_order")
     val sortOrder: Int,
+    @ColumnInfo(name = "last_opened_at")
+    val lastOpenedAt: Long? = null,
+    @ColumnInfo(name = "open_count")
+    val openCount: Int = 0,
 )
