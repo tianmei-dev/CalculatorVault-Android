@@ -7,6 +7,8 @@ import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
@@ -14,8 +16,10 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MailOutline
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayCircleOutline
 import androidx.compose.material.icons.rounded.PrivacyTip
@@ -39,6 +43,10 @@ object VaultIcons {
     val Backspace = Icons.AutoMirrored.Rounded.Backspace
     val Back = Icons.AutoMirrored.Rounded.ArrowBack
     val Calculator = Icons.Rounded.Calculate
+    val Calendar = Icons.Rounded.CalendarMonth
+    val Browser = Icons.Rounded.Language
+    val Tools = Icons.Rounded.Build
+    val Music = Icons.Rounded.MusicNote
     val Chevron = Icons.Rounded.ChevronRight
     val Disguise = Icons.Rounded.GridView
     val Files = Icons.Rounded.Folder

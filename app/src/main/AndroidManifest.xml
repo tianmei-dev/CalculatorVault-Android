@@ -23,5 +23,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".feature.disguise.shortcut.DisguiseShortcutEntryActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CalculatorVault.ShortcutEntry" />
+        <receiver
+            android:name=".feature.disguise.shortcut.ShortcutPinnedReceiver"
+            android:exported="false" />
     </application>
 </manifest>

@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -74,6 +75,7 @@ fun HiddenAppScreen(
     viewModel: HiddenAppViewModel,
     iconProvider: AppIconProvider,
     onAddApps: () -> Unit,
+    onBack: () -> Unit,
     onMessage: (String) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -121,6 +123,7 @@ fun HiddenAppScreen(
         iconProvider = iconProvider,
         viewModel = viewModel,
         onAddApps = onAddApps,
+        onBack = onBack,
     )
     HiddenAppDialogs(state, viewModel, iconProvider)
 }
@@ -131,14 +134,16 @@ private fun HiddenAppContent(
     iconProvider: AppIconProvider,
     viewModel: HiddenAppViewModel,
     onAddApps: () -> Unit,
+    onBack: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .testTag("private_apps_screen")
             .padding(horizontal = AppSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        HiddenAppTopBar(state, viewModel)
+        HiddenAppTopBar(state, viewModel, onBack)
 
         when {
             state.isLoading -> VaultLoadingIndicator(Modifier.weight(1f))
@@ -272,13 +277,28 @@ private fun HiddenAppContent(
 }
 
 @Composable
-private fun HiddenAppTopBar(state: HiddenAppUiState, viewModel: HiddenAppViewModel) {
+private fun HiddenAppTopBar(
+    state: HiddenAppUiState,
+    viewModel: HiddenAppViewModel,
+    onBack: () -> Unit,
+) {
     var moreExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (state.isBatchMode || state.isManualSortMode) {
+        if (!state.isBatchMode && !state.isManualSortMode) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.testTag("private_apps_back"),
+            ) {
+                Icon(
+                    VaultIcons.Back,
+                    contentDescription = stringResource(R.string.private_apps_back),
+                    tint = AppColors.TextSecondary,
+                )
+            }
+        } else {
             TextButton(
                 onClick = if (state.isBatchMode) viewModel::exitBatchMode
                 else viewModel::requestCancelManualSort,

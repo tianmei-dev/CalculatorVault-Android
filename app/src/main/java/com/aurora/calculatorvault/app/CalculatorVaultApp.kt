@@ -11,6 +11,10 @@ import com.aurora.calculatorvault.core.security.session.AppLifecycleObserver
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.feature.calculator.domain.StoredVaultPasswordVerifier
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
+import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryRepository
+import com.aurora.calculatorvault.feature.disguise.shortcut.AndroidPinnedShortcutCreator
+import com.aurora.calculatorvault.feature.disguise.shortcut.RequestPinShortcutUseCase
+import com.aurora.calculatorvault.feature.disguise.shortcut.ResourceDisguiseShortcutIconFactory
 import com.aurora.calculatorvault.feature.hiddenapp.data.CachedPackageManagerIconProvider
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppRepository
 import com.aurora.calculatorvault.feature.hiddenapp.data.DataStoreHiddenAppPreferences
@@ -36,7 +40,11 @@ class CalculatorVaultApp : Application() {
             applicationContext,
             CalculatorVaultDatabase::class.java,
             DATABASE_NAME,
-        ).addMigrations(CalculatorVaultDatabase.MIGRATION_1_2).build()
+        ).addMigrations(
+            CalculatorVaultDatabase.MIGRATION_1_2,
+            CalculatorVaultDatabase.MIGRATION_2_3,
+            CalculatorVaultDatabase.MIGRATION_3_4,
+        ).build()
     }
 
     private val installedAppScanner by lazy {
@@ -59,6 +67,27 @@ class CalculatorVaultApp : Application() {
             scanner = installedAppScanner,
             runtime = hiddenAppRuntime,
             store = RoomHiddenAppStore(database),
+        )
+    }
+
+    val disguiseEntryRepository by lazy {
+        DisguiseEntryRepository(
+            database = database,
+            scanner = installedAppScanner,
+        )
+    }
+
+    private val pinnedShortcutCreator by lazy {
+        AndroidPinnedShortcutCreator(
+            context = applicationContext,
+            iconFactory = ResourceDisguiseShortcutIconFactory(applicationContext),
+        )
+    }
+
+    val requestPinShortcutUseCase by lazy {
+        RequestPinShortcutUseCase(
+            repository = disguiseEntryRepository,
+            creator = pinnedShortcutCreator,
         )
     }
 

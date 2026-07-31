@@ -16,7 +16,10 @@ sealed interface AppRoute {
 sealed interface VaultTabRoute {
     val path: String
 
-    data object Disguise : VaultTabRoute { override val path = "vault/disguise" }
+    data object AppManagement : VaultTabRoute { override val path = "vault/app_management" }
+    data object AppLock : VaultTabRoute { override val path = "vault/app_lock" }
+    data object AppDisguise : VaultTabRoute { override val path = "vault/app_management/disguise" }
+    // 保留原路径作为私密应用二级页，避免破坏现有内部导航引用。
     data object HiddenApp : VaultTabRoute { override val path = "vault/hidden_app" }
     data object HiddenAppPicker : VaultTabRoute { override val path = "vault/hidden_app/picker" }
     data object PrivateMedia : VaultTabRoute { override val path = "vault/private_media" }

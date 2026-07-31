@@ -26,9 +26,12 @@ import androidx.navigation.compose.rememberNavController
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
-import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.navigation.VaultTabRoute
-import com.aurora.calculatorvault.feature.disguise.presentation.DisguiseScreen
+import com.aurora.calculatorvault.feature.applock.presentation.AppLockScreen
+import com.aurora.calculatorvault.feature.appmanagement.presentation.AppManagementScreen
+import com.aurora.calculatorvault.feature.appmanagement.presentation.AppManagementViewModel
+import com.aurora.calculatorvault.feature.disguise.presentation.AppDisguiseScreen
+import com.aurora.calculatorvault.feature.disguise.presentation.AppDisguiseViewModel
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppScreen
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerScreen
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerViewModel
@@ -56,13 +59,8 @@ fun VaultMainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val passwordChangedMessage = stringResource(R.string.password_change_success)
-    val tabs = listOf(
-        Triple(VaultTabRoute.Disguise, stringResource(R.string.tab_disguise), VaultIcons.Disguise),
-        Triple(VaultTabRoute.HiddenApp, stringResource(R.string.tab_hidden_app), VaultIcons.Hidden),
-        Triple(VaultTabRoute.PrivateMedia, stringResource(R.string.tab_private_media), VaultIcons.Photos),
-        Triple(VaultTabRoute.Settings, stringResource(R.string.tab_settings), VaultIcons.Settings),
-    )
-    val tabRoutes = tabs.map { it.first.path }.toSet()
+    val tabs = VaultMainTab.entries
+    val tabRoutes = tabs.map { it.route.path }.toSet()
 
     BackHandler(enabled = currentRoute in tabRoutes) {
         onExitVault()
@@ -84,13 +82,14 @@ fun VaultMainScreen(
         bottomBar = {
             if (currentRoute in tabRoutes) {
                 VaultBottomNavigation(
-                    items = tabs.map { (route, label, icon) ->
+                    items = tabs.map { tab ->
                         VaultNavigationItem(
-                            label = label,
-                            icon = icon,
-                            selected = currentRoute == route.path,
+                            label = stringResource(tab.titleRes),
+                            icon = tab.icon,
+                            selected = currentRoute == tab.route.path,
+                            testTag = tab.testTag,
                             onClick = {
-                                navController.navigate(route.path) {
+                                navController.navigate(tab.route.path) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -106,10 +105,47 @@ fun VaultMainScreen(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = VaultTabRoute.Disguise.path,
+            startDestination = VaultMainTab.default.route.path,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(VaultTabRoute.Disguise.path) { DisguiseScreen() }
+            composable(VaultTabRoute.AppManagement.path) {
+                val appManagementViewModel: AppManagementViewModel = viewModel(
+                    factory = AppManagementViewModel.Factory(
+                        application.hiddenAppRepository,
+                        application.disguiseEntryRepository,
+                    ),
+                )
+                AppManagementScreen(
+                    viewModel = appManagementViewModel,
+                    onOpenDisguise = {
+                        navController.navigate(VaultTabRoute.AppDisguise.path) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onOpenPrivateApps = {
+                        navController.navigate(VaultTabRoute.HiddenApp.path) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable(VaultTabRoute.AppDisguise.path) {
+                val appDisguiseViewModel: AppDisguiseViewModel = viewModel(
+                    factory = AppDisguiseViewModel.Factory(
+                        application.disguiseEntryRepository,
+                        application.requestPinShortcutUseCase,
+                    ),
+                )
+                AppDisguiseScreen(
+                    viewModel = appDisguiseViewModel,
+                    iconProvider = application.appIconProvider,
+                    onBackToManagement = navController::popBackStack,
+                    onMessage = { message ->
+                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                    },
+                )
+            }
+            composable(VaultTabRoute.AppLock.path) { AppLockScreen() }
             composable(VaultTabRoute.HiddenApp.path) {
                 val hiddenAppViewModel: HiddenAppViewModel = viewModel(
                     factory = HiddenAppViewModel.Factory(
@@ -126,6 +162,7 @@ fun VaultMainScreen(
                             launchSingleTop = true
                         }
                     },
+                    onBack = navController::popBackStack,
                     onMessage = { message ->
                         coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                     },
