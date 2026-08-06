@@ -27,11 +27,12 @@ import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun DisguiseScreen() {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AppSpacing.xl),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(appPagePadding()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
         PageHeader(
@@ -98,4 +99,3 @@ internal fun PageHeader(title: String, description: String) {
         Text(description, style = AppTextStyles.Body, color = AppColors.TextSecondary)
     }
 }
-

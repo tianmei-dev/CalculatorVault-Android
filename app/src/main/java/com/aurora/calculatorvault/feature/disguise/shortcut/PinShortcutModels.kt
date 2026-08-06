@@ -27,3 +27,12 @@ interface PinnedShortcutCreator {
     suspend fun requestPinShortcut(request: PinShortcutRequest): PinShortcutRequestResult
 }
 
+sealed interface ShortcutOperationResult {
+    data object Success : ShortcutOperationResult
+    data object Unsupported : ShortcutOperationResult
+    data object NotFound : ShortcutOperationResult
+    data object IconGenerationFailed : ShortcutOperationResult
+    data object SecurityBlocked : ShortcutOperationResult
+    data object ManualRemovalRequired : ShortcutOperationResult
+    data object Failed : ShortcutOperationResult
+}

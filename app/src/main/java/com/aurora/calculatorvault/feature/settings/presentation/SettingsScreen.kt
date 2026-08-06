@@ -20,6 +20,7 @@ import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
 import com.aurora.calculatorvault.ui.component.VaultDialog
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun SettingsScreen(
@@ -29,7 +30,10 @@ fun SettingsScreen(
 ) {
     val recentState by recentHistoryViewModel.uiState.collectAsState()
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AppSpacing.xl),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(appPagePadding()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
         PageHeader(

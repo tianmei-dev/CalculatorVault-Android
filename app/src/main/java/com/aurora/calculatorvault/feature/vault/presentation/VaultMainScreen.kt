@@ -2,17 +2,12 @@ package com.aurora.calculatorvault.feature.vault.presentation
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Snackbar
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,7 +40,7 @@ import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordVi
 import com.aurora.calculatorvault.feature.settings.presentation.ForgotPasswordScreen
 import com.aurora.calculatorvault.ui.component.VaultBottomNavigation
 import com.aurora.calculatorvault.ui.component.VaultNavigationItem
-import kotlinx.coroutines.launch
+import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 
 @Composable
 fun VaultMainScreen(
@@ -56,8 +51,7 @@ fun VaultMainScreen(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    val messageController = LocalAppMessageController.current
     val passwordChangedMessage = stringResource(R.string.password_change_success)
     val tabs = VaultMainTab.entries
     val tabRoutes = tabs.map { it.route.path }.toSet()
@@ -67,18 +61,8 @@ fun VaultMainScreen(
     }
 
     Scaffold(
-        modifier = Modifier.statusBarsPadding(),
         containerColor = AppColors.BackgroundPrimary,
-        contentWindowInsets = WindowInsets(0),
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = AppColors.SurfaceElevated,
-                    contentColor = AppColors.TextPrimary,
-                )
-            }
-        },
+        contentWindowInsets = WindowInsets.safeDrawing,
         bottomBar = {
             if (currentRoute in tabRoutes) {
                 VaultBottomNavigation(
@@ -134,15 +118,15 @@ fun VaultMainScreen(
                     factory = AppDisguiseViewModel.Factory(
                         application.disguiseEntryRepository,
                         application.requestPinShortcutUseCase,
+                        application.shortcutSyncManager,
+                        application.shortcutRepository,
                     ),
                 )
                 AppDisguiseScreen(
                     viewModel = appDisguiseViewModel,
                     iconProvider = application.appIconProvider,
                     onBackToManagement = navController::popBackStack,
-                    onMessage = { message ->
-                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                    },
+                    onMessage = messageController::show,
                 )
             }
             composable(VaultTabRoute.AppLock.path) { AppLockScreen() }
@@ -163,9 +147,7 @@ fun VaultMainScreen(
                         }
                     },
                     onBack = navController::popBackStack,
-                    onMessage = { message ->
-                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                    },
+                    onMessage = messageController::show,
                 )
             }
             composable(VaultTabRoute.HiddenAppPicker.path) {
@@ -178,11 +160,9 @@ fun VaultMainScreen(
                     onBack = navController::popBackStack,
                     onCompleted = { count ->
                         navController.popBackStack()
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                context.getString(R.string.hidden_app_added_success, count),
-                            )
-                        }
+                        messageController.showSuccess(
+                            context.getString(R.string.hidden_app_added_success, count),
+                        )
                     },
                 )
             }
@@ -194,7 +174,7 @@ fun VaultMainScreen(
                 val recentClearedMessage = stringResource(R.string.hidden_app_recent_cleared)
                 LaunchedEffect(recentHistoryViewModel) {
                     recentHistoryViewModel.cleared.collect {
-                        snackbarHostState.showSnackbar(recentClearedMessage)
+                        messageController.showSuccess(recentClearedMessage)
                     }
                 }
                 SettingsScreen(
@@ -221,9 +201,7 @@ fun VaultMainScreen(
                             route = VaultTabRoute.Settings.path,
                             inclusive = false,
                         )
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(passwordChangedMessage)
-                        }
+                        messageController.showSuccess(passwordChangedMessage)
                     }
                 }
                 ChangePasswordScreen(

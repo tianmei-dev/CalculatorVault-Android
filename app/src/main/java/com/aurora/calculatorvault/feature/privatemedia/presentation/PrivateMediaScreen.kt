@@ -28,11 +28,15 @@ import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun PrivateMediaScreen() {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AppSpacing.xl),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(appPagePadding()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
         PageHeader(
@@ -85,4 +89,3 @@ private fun MediaStat(
         Text(label, style = AppTextStyles.BodySecondary, color = AppColors.TextTertiary)
     }
 }
-

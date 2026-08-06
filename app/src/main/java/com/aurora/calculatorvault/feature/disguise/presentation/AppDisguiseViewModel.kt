@@ -9,8 +9,14 @@ import com.aurora.calculatorvault.feature.disguise.domain.DisguiseIconId
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseNamePolicy
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseSortMode
 import com.aurora.calculatorvault.feature.disguise.domain.ShortcutRequestState
+import com.aurora.calculatorvault.feature.disguise.domain.ShortcutStatus
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinShortcutRequestResult
 import com.aurora.calculatorvault.feature.disguise.shortcut.RequestPinShortcutUseCase
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutOperationResult
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutRepository
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutSyncManager
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutUpdateRequest
+import com.aurora.calculatorvault.feature.disguise.shortcut.SyncedDisguiseEntry
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +31,8 @@ import java.util.Locale
 class AppDisguiseViewModel(
     private val repository: DisguiseEntryRepositoryContract,
     private val requestPinShortcutUseCase: RequestPinShortcutUseCase? = null,
+    private val shortcutSyncManager: ShortcutSyncManager? = null,
+    private val shortcutRepository: ShortcutRepository? = null,
     private val collator: Collator = Collator.getInstance(Locale.getDefault()),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppDisguiseUiState())
@@ -42,10 +50,12 @@ class AppDisguiseViewModel(
                     }
                 }
                 .collect { entries ->
+                    val syncedEntries = syncEntries(entries)
                     _uiState.update { state ->
                         state.copy(
                             entries = entries,
-                            visibleEntries = filterAndSort(entries, state.query, state.sortMode),
+                            syncedEntries = syncedEntries,
+                            visibleEntries = filterAndSort(syncedEntries, state.query, state.sortMode),
                             isLoading = false,
                             selectedDetails = state.selectedDetails?.let { selected ->
                                 entries.firstOrNull { it.id == selected.id } ?: selected
@@ -64,7 +74,11 @@ class AppDisguiseViewModel(
         _uiState.update { state ->
             state.copy(
                 query = value,
-                visibleEntries = filterAndSort(state.entries, value, state.sortMode),
+                visibleEntries = filterAndSort(
+                    state.syncedEntries,
+                    value,
+                    state.sortMode,
+                ),
             )
         }
     }
@@ -73,8 +87,26 @@ class AppDisguiseViewModel(
         _uiState.update { state ->
             state.copy(
                 sortMode = mode,
-                visibleEntries = filterAndSort(state.entries, state.query, mode),
+                visibleEntries = filterAndSort(state.syncedEntries, state.query, mode),
             )
+        }
+    }
+
+    fun refreshShortcutStatus() {
+        val manager = shortcutSyncManager ?: return
+        if (_uiState.value.isSyncingShortcuts) return
+        _uiState.update { it.copy(isSyncingShortcuts = true) }
+        viewModelScope.launch {
+            val entries = _uiState.value.entries
+            val synced = runCatching { manager.sync(entries) }
+                .getOrElse { entries.map { SyncedDisguiseEntry(it, fallbackShortcutStatus(it)) } }
+            _uiState.update { state ->
+                state.copy(
+                    visibleEntries = filterAndSort(synced, state.query, state.sortMode),
+                    syncedEntries = synced,
+                    isSyncingShortcuts = false,
+                )
+            }
         }
     }
 
@@ -105,11 +137,15 @@ class AppDisguiseViewModel(
     fun retryScan() = scanApps()
 
     fun selectApp(app: com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledApp) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            state.copy(
                 page = AppDisguisePage.SetName,
                 selectedApp = app,
-                customName = DisguiseNamePolicy.normalize(app.appName),
+                customName = if (state.editingId == null) {
+                    DisguiseNamePolicy.normalize(app.appName)
+                } else {
+                    state.customName
+                },
                 error = null,
             )
         }
@@ -168,6 +204,7 @@ class AppDisguiseViewModel(
                     }
                     _effects.send(AppDisguiseEffect.Saved)
                 } else {
+                    val oldEntry = repository.findById(state.editingId)
                     val success = repository.update(
                         id = state.editingId,
                         packageName = app.packageName,
@@ -176,8 +213,27 @@ class AppDisguiseViewModel(
                         iconId = state.selectedIcon,
                     )
                     if (!success) error("entry not found")
+                    val shortcutUpdateResult = oldEntry?.shortcutId?.let { shortcutId ->
+                        shortcutRepository?.update(
+                            ShortcutUpdateRequest(
+                                shortcutId = shortcutId,
+                                displayName = state.customName.trim(),
+                                iconId = state.selectedIcon,
+                            ),
+                        )
+                    }
                     resetToList()
                     _effects.send(AppDisguiseEffect.Updated)
+                    if (
+                        shortcutUpdateResult != null &&
+                        shortcutUpdateResult != ShortcutOperationResult.Success &&
+                        shortcutUpdateResult != ShortcutOperationResult.NotFound
+                    ) {
+                        _effects.send(AppDisguiseEffect.ShortcutRequestFailed)
+                    } else if (shortcutUpdateResult == ShortcutOperationResult.Success) {
+                        _effects.send(AppDisguiseEffect.ShortcutUpdated)
+                    }
+                    refreshShortcutStatus()
                 }
             } catch (_: Exception) {
                 _uiState.update {
@@ -190,7 +246,7 @@ class AppDisguiseViewModel(
     fun edit(entry: DisguiseEntry) {
         _uiState.update {
             it.copy(
-                page = AppDisguisePage.SetName,
+                page = AppDisguisePage.SelectApp,
                 editingId = entry.id,
                 selectedApp = com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledApp(
                     packageName = entry.packageName,
@@ -201,6 +257,7 @@ class AppDisguiseViewModel(
                 error = null,
             )
         }
+        scanApps()
     }
 
     fun showDetails(entry: DisguiseEntry) {
@@ -221,9 +278,28 @@ class AppDisguiseViewModel(
         val entry = _uiState.value.pendingDelete ?: return
         viewModelScope.launch {
             try {
+                val shortcutId = entry.shortcutId
                 if (!repository.delete(entry.id)) error("entry not found")
+                val removeResult = shortcutId?.let { shortcutRepository?.remove(it) }
                 resetToList()
                 _effects.send(AppDisguiseEffect.Deleted)
+                when (removeResult) {
+                    ShortcutOperationResult.ManualRemovalRequired -> {
+                        _uiState.update { it.copy(showManualDeleteDialog = true) }
+                        _effects.send(AppDisguiseEffect.ManualShortcutRemovalRequired)
+                    }
+                    ShortcutOperationResult.SecurityBlocked,
+                    ShortcutOperationResult.Failed,
+                    -> _effects.send(AppDisguiseEffect.ShortcutRequestFailed)
+                    ShortcutOperationResult.Success,
+                    ShortcutOperationResult.NotFound,
+                    null,
+                    -> Unit
+                    ShortcutOperationResult.Unsupported,
+                    ShortcutOperationResult.IconGenerationFailed,
+                    -> Unit
+                }
+                refreshShortcutStatus()
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(pendingDelete = null, error = AppDisguiseError.DeleteFailed)
@@ -244,6 +320,19 @@ class AppDisguiseViewModel(
         }
     }
 
+    fun requestShortcut(entry: SyncedDisguiseEntry) {
+        if (entry.shortcutStatus == ShortcutStatus.TARGET_UNINSTALLED) {
+            requestDelete(entry.entry)
+            return
+        }
+        if (entry.shortcutStatus == ShortcutStatus.TARGET_DISABLED) return
+        if (entry.shortcutStatus == ShortcutStatus.CREATED) {
+            updateExistingShortcut(entry.entry)
+            return
+        }
+        requestShortcut(entry.entry)
+    }
+
     fun confirmDuplicateRequest() {
         val entry = _uiState.value.pendingDuplicateRequest ?: return
         _uiState.update { it.copy(pendingDuplicateRequest = null) }
@@ -260,6 +349,10 @@ class AppDisguiseViewModel(
 
     fun dismissRequestSubmittedDialog() {
         _uiState.update { it.copy(showRequestSubmittedDialog = false) }
+    }
+
+    fun dismissManualDeleteDialog() {
+        _uiState.update { it.copy(showManualDeleteDialog = false) }
     }
 
     fun finishSaved() = resetToList()
@@ -320,6 +413,7 @@ class AppDisguiseViewModel(
                 isSaving = false,
                 selectedDetails = null,
                 savedEntry = null,
+                pendingDelete = null,
                 error = null,
             )
         }
@@ -355,6 +449,23 @@ class AppDisguiseViewModel(
                     _effects.send(AppDisguiseEffect.ShortcutRequestFailed)
                 }
             }
+            refreshShortcutStatus()
+        }
+    }
+
+    private fun updateExistingShortcut(entry: DisguiseEntry) {
+        val shortcutId = entry.shortcutId ?: return
+        val shortcuts = shortcutRepository ?: return
+        viewModelScope.launch {
+            when (
+                shortcuts.update(
+                    ShortcutUpdateRequest(shortcutId, entry.customName, entry.iconId),
+                )
+            ) {
+                ShortcutOperationResult.Success -> _effects.send(AppDisguiseEffect.ShortcutUpdated)
+                ShortcutOperationResult.NotFound -> refreshShortcutStatus()
+                else -> _effects.send(AppDisguiseEffect.ShortcutRequestFailed)
+            }
         }
     }
 
@@ -366,33 +477,52 @@ class AppDisguiseViewModel(
     } ?: apps
 
     private fun filterAndSort(
-        entries: List<DisguiseEntry>,
+        entries: List<SyncedDisguiseEntry>,
         query: String,
         mode: DisguiseSortMode,
-    ): List<DisguiseEntry> {
+    ): List<SyncedDisguiseEntry> {
         val normalized = query.trim()
         val filtered = entries.filter {
             normalized.isEmpty() ||
-                it.customName.contains(normalized, ignoreCase = true) ||
-                it.targetAppName.contains(normalized, ignoreCase = true)
+                it.entry.customName.contains(normalized, ignoreCase = true) ||
+                it.entry.targetAppName.contains(normalized, ignoreCase = true)
         }
         return when (mode) {
-            DisguiseSortMode.CreatedNewest -> filtered.sortedByDescending(DisguiseEntry::createdAt)
-            DisguiseSortMode.UpdatedNewest -> filtered.sortedByDescending(DisguiseEntry::updatedAt)
+            DisguiseSortMode.CreatedNewest -> filtered.sortedByDescending { it.entry.createdAt }
+            DisguiseSortMode.UpdatedNewest -> filtered.sortedByDescending { it.entry.updatedAt }
             DisguiseSortMode.Name -> filtered.sortedWith { left, right ->
-                collator.compare(left.customName, right.customName)
+                collator.compare(left.entry.customName, right.entry.customName)
             }
         }
+    }
+
+    private suspend fun syncEntries(entries: List<DisguiseEntry>): List<SyncedDisguiseEntry> =
+        shortcutSyncManager?.sync(entries)
+            ?: entries.map { SyncedDisguiseEntry(it, fallbackShortcutStatus(it)) }
+
+    private fun fallbackShortcutStatus(entry: DisguiseEntry): ShortcutStatus = when {
+        entry.shortcutRequestState == ShortcutRequestState.LauncherAccepted ->
+            ShortcutStatus.CREATED
+        entry.shortcutRequestState == ShortcutRequestState.RequestSubmitted ->
+            ShortcutStatus.NEED_RECREATE
+        else -> ShortcutStatus.NOT_CREATED
     }
 
     class Factory(
         private val repository: DisguiseEntryRepositoryContract,
         private val requestPinShortcutUseCase: RequestPinShortcutUseCase? = null,
+        private val shortcutSyncManager: ShortcutSyncManager? = null,
+        private val shortcutRepository: ShortcutRepository? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(AppDisguiseViewModel::class.java))
-            return AppDisguiseViewModel(repository, requestPinShortcutUseCase) as T
+            return AppDisguiseViewModel(
+                repository,
+                requestPinShortcutUseCase,
+                shortcutSyncManager,
+                shortcutRepository,
+            ) as T
         }
     }
 }

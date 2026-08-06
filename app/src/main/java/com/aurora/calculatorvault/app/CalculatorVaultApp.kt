@@ -12,9 +12,14 @@ import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.feature.calculator.domain.StoredVaultPasswordVerifier
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryRepository
+import com.aurora.calculatorvault.feature.disguise.shortcut.AndroidShortcutRepository
 import com.aurora.calculatorvault.feature.disguise.shortcut.AndroidPinnedShortcutCreator
+import com.aurora.calculatorvault.feature.disguise.shortcut.LaunchDisguisedTargetUseCase
 import com.aurora.calculatorvault.feature.disguise.shortcut.RequestPinShortcutUseCase
+import com.aurora.calculatorvault.feature.disguise.shortcut.ResolveDisguiseShortcutUseCase
 import com.aurora.calculatorvault.feature.disguise.shortcut.ResourceDisguiseShortcutIconFactory
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutSyncManager
+import com.aurora.calculatorvault.feature.disguise.shortcut.VerifyVaultPasswordUseCase
 import com.aurora.calculatorvault.feature.hiddenapp.data.CachedPackageManagerIconProvider
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppRepository
 import com.aurora.calculatorvault.feature.hiddenapp.data.DataStoreHiddenAppPreferences
@@ -84,10 +89,24 @@ class CalculatorVaultApp : Application() {
         )
     }
 
+    val shortcutRepository by lazy {
+        AndroidShortcutRepository(
+            context = applicationContext,
+            iconFactory = ResourceDisguiseShortcutIconFactory(applicationContext),
+        )
+    }
+
     val requestPinShortcutUseCase by lazy {
         RequestPinShortcutUseCase(
             repository = disguiseEntryRepository,
             creator = pinnedShortcutCreator,
+        )
+    }
+
+    val shortcutSyncManager by lazy {
+        ShortcutSyncManager(
+            shortcutRepository = shortcutRepository,
+            runtime = hiddenAppRuntime,
         )
     }
 
@@ -99,6 +118,25 @@ class CalculatorVaultApp : Application() {
         LaunchHiddenAppUseCase(
             runtime = hiddenAppRuntime,
             repository = hiddenAppRepository,
+        )
+    }
+
+    val resolveDisguiseShortcutUseCase by lazy {
+        ResolveDisguiseShortcutUseCase(
+            repository = disguiseEntryRepository,
+            runtime = hiddenAppRuntime,
+        )
+    }
+
+    val verifyVaultPasswordUseCase by lazy {
+        VerifyVaultPasswordUseCase(vaultUnlockUseCase)
+    }
+
+    val launchDisguisedTargetUseCase by lazy {
+        LaunchDisguisedTargetUseCase(
+            repository = disguiseEntryRepository,
+            runtime = hiddenAppRuntime,
+            launchHiddenAppUseCase = launchHiddenAppUseCase,
         )
     }
 

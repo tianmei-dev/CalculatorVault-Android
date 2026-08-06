@@ -23,6 +23,15 @@ enum class ShortcutRequestState {
     Failed,
 }
 
+enum class ShortcutStatus {
+    NOT_CREATED,
+    CREATED,
+    NEED_RECREATE,
+    TARGET_UNINSTALLED,
+    TARGET_DISABLED,
+    CONFIG_INVALID,
+}
+
 enum class ShortcutRequestError {
     InvalidConfiguration,
     IconGenerationFailed,

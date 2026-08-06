@@ -27,8 +27,10 @@
             android:name=".feature.disguise.shortcut.DisguiseShortcutEntryActivity"
             android:excludeFromRecents="true"
             android:exported="true"
+            android:launchMode="singleTask"
             android:noHistory="true"
             android:screenOrientation="portrait"
+            android:taskAffinity="com.aurora.calculatorvault.disguise_entry"
             android:theme="@style/Theme.CalculatorVault.ShortcutEntry" />
         <receiver
             android:name=".feature.disguise.shortcut.ShortcutPinnedReceiver"

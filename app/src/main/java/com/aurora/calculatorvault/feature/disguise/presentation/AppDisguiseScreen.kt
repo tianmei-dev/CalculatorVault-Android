@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,7 +51,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.unit.dp
@@ -63,6 +68,8 @@ import com.aurora.calculatorvault.feature.disguise.domain.DisguiseEntry
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseIconId
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseSortMode
 import com.aurora.calculatorvault.feature.disguise.domain.ShortcutRequestState
+import com.aurora.calculatorvault.feature.disguise.domain.ShortcutStatus
+import com.aurora.calculatorvault.feature.disguise.shortcut.SyncedDisguiseEntry
 import com.aurora.calculatorvault.feature.hiddenapp.data.AppIconProvider
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppSearchField
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.VaultInstalledAppIcon
@@ -71,6 +78,12 @@ import com.aurora.calculatorvault.ui.component.VaultEmptyState
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
+import com.aurora.calculatorvault.ui.component.VaultSecondaryTopBar
+import com.aurora.calculatorvault.ui.message.AppMessage
+import com.aurora.calculatorvault.ui.message.AppMessageType
+import com.aurora.calculatorvault.ui.layout.AppLayout
+import com.aurora.calculatorvault.ui.layout.appFabScrollContentPadding
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.flow.collectLatest
@@ -80,7 +93,7 @@ fun AppDisguiseScreen(
     viewModel: AppDisguiseViewModel,
     iconProvider: AppIconProvider,
     onBackToManagement: () -> Unit,
-    onMessage: (String) -> Unit,
+    onMessage: (AppMessage) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val saved = stringResource(R.string.app_disguise_saved)
@@ -88,19 +101,29 @@ fun AppDisguiseScreen(
     val deleted = stringResource(R.string.app_disguise_deleted)
     val shortcutFailed = stringResource(R.string.app_disguise_request_failed)
     val stateSaveFailed = stringResource(R.string.app_disguise_state_save_failed)
+    val shortcutUpdated = stringResource(R.string.app_disguise_shortcut_update_success)
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collectLatest { effect ->
-            onMessage(
-                when (effect) {
-                    AppDisguiseEffect.Saved -> saved
-                    AppDisguiseEffect.Updated -> updated
-                    AppDisguiseEffect.Deleted -> deleted
-                    AppDisguiseEffect.ShortcutRequestFailed -> shortcutFailed
-                    AppDisguiseEffect.ShortcutRequestStateSaveFailed -> stateSaveFailed
-                },
-            )
+            val message = when (effect) {
+                    AppDisguiseEffect.Saved -> AppMessage(saved, AppMessageType.Success)
+                    AppDisguiseEffect.Updated -> AppMessage(updated, AppMessageType.Success)
+                    AppDisguiseEffect.Deleted -> AppMessage(deleted, AppMessageType.Success)
+                    AppDisguiseEffect.ShortcutRequestFailed -> AppMessage(shortcutFailed, AppMessageType.Error)
+                    AppDisguiseEffect.ShortcutRequestStateSaveFailed -> AppMessage(
+                        stateSaveFailed,
+                        AppMessageType.Warning,
+                    )
+                    AppDisguiseEffect.ShortcutUpdated -> AppMessage(shortcutUpdated, AppMessageType.Success)
+                    AppDisguiseEffect.ShortcutDeleted -> AppMessage(deleted, AppMessageType.Success)
+                    AppDisguiseEffect.ManualShortcutRemovalRequired -> null
+                }
+            message?.let(onMessage)
         }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.refreshShortcutStatus()
     }
 
     BackHandler {
@@ -176,6 +199,13 @@ fun AppDisguiseScreen(
             onDismiss = viewModel::dismissRequestSubmittedDialog,
         )
     }
+    if (state.showManualDeleteDialog) {
+        InfoDialog(
+            title = stringResource(R.string.app_disguise_shortcut_delete_notice_title),
+            message = stringResource(R.string.app_disguise_manual_delete_shortcut),
+            onDismiss = viewModel::dismissManualDeleteDialog,
+        )
+    }
 }
 
 @Composable
@@ -189,9 +219,11 @@ private fun DisguiseListPage(
     Scaffold(
         modifier = Modifier.fillMaxSize().testTag("app_disguise_screen"),
         containerColor = AppColors.BackgroundPrimary,
+        contentWindowInsets = WindowInsets.safeDrawing,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = viewModel::startCreate,
+                modifier = Modifier.padding(bottom = AppLayout.FabBottomSpacing),
                 containerColor = AppColors.AccentPrimary,
                 contentColor = AppColors.TextPrimary,
             ) {
@@ -200,10 +232,13 @@ private fun DisguiseListPage(
         },
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = AppSpacing.xl),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = AppLayout.PageHorizontalPadding),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            DisguiseHeader(
+            VaultSecondaryTopBar(
                 title = stringResource(R.string.app_disguise),
                 subtitle = stringResource(R.string.app_disguise_screen_description),
                 onBack = onBack,
@@ -276,11 +311,9 @@ private fun DisguiseListPage(
                 else -> LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        bottom = 96.dp,
-                    ),
+                    contentPadding = appFabScrollContentPadding(),
                 ) {
-                    items(state.visibleEntries, key = DisguiseEntry::id) { entry ->
+                    items(state.visibleEntries, key = { it.entry.id }) { entry ->
                         DisguiseEntryRow(entry, viewModel)
                     }
                 }
@@ -291,75 +324,105 @@ private fun DisguiseListPage(
 
 @Composable
 private fun DisguiseEntryRow(
-    entry: DisguiseEntry,
+    syncedEntry: SyncedDisguiseEntry,
     viewModel: AppDisguiseViewModel,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    VaultCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DisguiseIcon(entry.iconId, Modifier.size(52.dp))
-            Spacer(Modifier.width(AppSpacing.md))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(entry.customName, style = AppTextStyles.CardTitle, color = AppColors.TextPrimary)
-                Text(
-                    entry.targetAppName,
-                    style = AppTextStyles.Caption,
-                    color = AppColors.TextTertiary,
-                )
-                Text(
-                    shortcutStateLabel(entry.shortcutRequestState),
-                    style = AppTextStyles.Caption,
-                    color = AppColors.AccentPrimary,
-                )
-            }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(VaultIcons.More, stringResource(R.string.more_actions))
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    containerColor = AppColors.SurfaceElevated,
+    val entry = syncedEntry.entry
+    val status = syncedEntry.shortcutStatus
+    val statusLabel = shortcutStatusLabel(status)
+    val cardDescription = stringResource(
+        R.string.app_disguise_entry_card_description,
+        entry.customName,
+        entry.targetAppName,
+        statusLabel,
+    )
+    val primaryActionDescription = stringResource(shortcutPrimaryActionDescription(status))
+    val editDescription = stringResource(R.string.app_disguise_edit_content_description)
+    val deleteDescription = stringResource(R.string.app_disguise_delete_content_description)
+    VaultCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("disguise_entry_card_${entry.id}")
+            .semantics { contentDescription = cardDescription }
+            .clickable { viewModel.showDetails(entry) },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DisguiseIcon(entry.iconId, Modifier.size(52.dp))
+                Spacer(Modifier.width(AppSpacing.md))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                 ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(
-                                    if (
-                                        entry.shortcutRequestState ==
-                                        ShortcutRequestState.NotRequested
-                                    ) {
-                                        R.string.app_disguise_add_to_desktop
-                                    } else {
-                                        R.string.app_disguise_add_again
-                                    },
-                                ),
-                            )
+                    Text(
+                        entry.customName,
+                        style = AppTextStyles.CardTitle,
+                        color = AppColors.TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        entry.targetAppName,
+                        style = AppTextStyles.Caption,
+                        color = AppColors.TextTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        statusLabel,
+                        style = AppTextStyles.Caption,
+                        color = shortcutStatusColor(status),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                TextButton(
+                    modifier = Modifier
+                        .testTag("disguise_entry_primary_action_${entry.id}")
+                        .semantics {
+                            contentDescription = primaryActionDescription
                         },
-                        onClick = {
-                            menuExpanded = false
-                            viewModel.requestShortcut(entry)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.app_disguise_edit)) },
-                        onClick = { menuExpanded = false; viewModel.edit(entry) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.app_disguise_details)) },
-                        onClick = { menuExpanded = false; viewModel.showDetails(entry) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.app_disguise_delete)) },
-                        onClick = { menuExpanded = false; viewModel.requestDelete(entry) },
-                    )
+                    onClick = { viewModel.requestShortcut(syncedEntry) },
+                    enabled = status != ShortcutStatus.TARGET_DISABLED &&
+                        status != ShortcutStatus.CONFIG_INVALID,
+                ) {
+                    Text(stringResource(shortcutPrimaryAction(status)))
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    modifier = Modifier
+                        .testTag("disguise_entry_edit_${entry.id}")
+                        .semantics { contentDescription = editDescription },
+                    onClick = { viewModel.edit(entry) },
+                ) {
+                    Text(stringResource(R.string.app_disguise_edit))
+                }
+                TextButton(
+                    modifier = Modifier
+                        .testTag("disguise_entry_delete_${entry.id}")
+                        .semantics { contentDescription = deleteDescription },
+                    onClick = { viewModel.requestDelete(entry) },
+                ) {
+                    Text(stringResource(R.string.app_disguise_delete), color = AppColors.Error)
                 }
             }
         }
     }
+}
+
+@StringRes
+private fun shortcutPrimaryActionDescription(status: ShortcutStatus): Int = when (status) {
+    ShortcutStatus.NOT_CREATED -> R.string.app_disguise_create_shortcut_content_description
+    ShortcutStatus.CREATED -> R.string.app_disguise_update_shortcut_content_description
+    ShortcutStatus.NEED_RECREATE -> R.string.app_disguise_recreate_shortcut_content_description
+    ShortcutStatus.TARGET_UNINSTALLED -> R.string.app_disguise_remove_configuration
+    ShortcutStatus.TARGET_DISABLED -> R.string.app_disguise_disabled_action
+    ShortcutStatus.CONFIG_INVALID -> R.string.app_disguise_check_configuration
 }
 
 @Composable
@@ -701,6 +764,39 @@ private fun shortcutActionLabel(state: ShortcutRequestState): String = stringRes
     },
 )
 
+@StringRes
+private fun shortcutPrimaryAction(status: ShortcutStatus): Int = when (status) {
+    ShortcutStatus.NOT_CREATED -> R.string.app_disguise_create_shortcut
+    ShortcutStatus.CREATED -> R.string.app_disguise_update_shortcut
+    ShortcutStatus.NEED_RECREATE -> R.string.app_disguise_recreate_shortcut
+    ShortcutStatus.TARGET_UNINSTALLED -> R.string.app_disguise_remove_configuration
+    ShortcutStatus.TARGET_DISABLED -> R.string.app_disguise_disabled_action
+    ShortcutStatus.CONFIG_INVALID -> R.string.app_disguise_check_configuration
+}
+
+@Composable
+private fun shortcutStatusLabel(status: ShortcutStatus): String = stringResource(
+    when (status) {
+        ShortcutStatus.NOT_CREATED -> R.string.app_disguise_status_not_created
+        ShortcutStatus.CREATED -> R.string.app_disguise_status_created
+        ShortcutStatus.NEED_RECREATE -> R.string.app_disguise_status_need_recreate
+        ShortcutStatus.TARGET_UNINSTALLED -> R.string.app_disguise_status_target_uninstalled
+        ShortcutStatus.TARGET_DISABLED -> R.string.app_disguise_status_target_disabled
+        ShortcutStatus.CONFIG_INVALID -> R.string.app_disguise_status_config_invalid
+    },
+)
+
+private fun shortcutStatusColor(status: ShortcutStatus) = when (status) {
+    ShortcutStatus.CREATED -> AppColors.Success
+    ShortcutStatus.NOT_CREATED,
+    ShortcutStatus.NEED_RECREATE,
+    -> AppColors.Warning
+    ShortcutStatus.TARGET_UNINSTALLED,
+    ShortcutStatus.TARGET_DISABLED,
+    ShortcutStatus.CONFIG_INVALID,
+    -> AppColors.Error
+}
+
 @Composable
 private fun InfoDialog(
     title: String,
@@ -742,17 +838,17 @@ private fun WizardColumn(
             .fillMaxSize()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = AppSpacing.xl)
+            .padding(appPagePadding())
     } else {
         Modifier
             .fillMaxSize()
-            .padding(horizontal = AppSpacing.xl)
+            .padding(appPagePadding(bottom = AppLayout.BottomSafeSpace))
     }
     Column(
         modifier = columnModifier,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        DisguiseHeader(title, subtitle, onBack)
+        VaultSecondaryTopBar(title = title, subtitle = subtitle, onBack = onBack)
         if (step != null) {
             Text(
                 stringResource(R.string.app_disguise_step_progress, step),
@@ -761,23 +857,6 @@ private fun WizardColumn(
             )
         }
         content()
-    }
-}
-
-@Composable
-private fun DisguiseHeader(title: String, subtitle: String, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(88.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(VaultIcons.Back, stringResource(R.string.private_apps_back))
-        }
-        Spacer(Modifier.width(AppSpacing.xs))
-        Column {
-            Text(title, style = AppTextStyles.PageTitle, color = AppColors.TextPrimary)
-            Text(subtitle, style = AppTextStyles.BodySecondary, color = AppColors.TextTertiary)
-        }
     }
 }
 
@@ -806,6 +885,8 @@ private fun errorText(error: AppDisguiseError?) {
                 AppDisguiseError.ScanFailed -> R.string.app_disguise_scan_failed
                 AppDisguiseError.SaveFailed -> R.string.app_disguise_save_failed
                 AppDisguiseError.DeleteFailed -> R.string.app_disguise_delete_failed
+                AppDisguiseError.ShortcutUpdateFailed -> R.string.app_disguise_shortcut_update_failed
+                AppDisguiseError.ShortcutDeleteFailed -> R.string.app_disguise_shortcut_delete_failed
             },
         ),
         style = AppTextStyles.BodySecondary,

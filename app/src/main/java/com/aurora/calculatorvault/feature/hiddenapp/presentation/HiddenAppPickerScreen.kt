@@ -38,6 +38,8 @@ import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.layout.AppLayout
+import com.aurora.calculatorvault.ui.layout.appScrollContentPadding
 
 @Composable
 fun HiddenAppPickerScreen(
@@ -91,7 +93,10 @@ fun HiddenAppPickerScreen(
             },
         )
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = AppSpacing.xl),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = AppLayout.PageHorizontalPadding)
+                .padding(bottom = AppLayout.BottomSafeSpace),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             HiddenAppSearchField(
@@ -138,7 +143,7 @@ fun HiddenAppPickerScreen(
                     ),
                     onClick = viewModel::saveSelection,
                     enabled = state.canSave,
-                    modifier = Modifier.padding(bottom = AppSpacing.sm),
+                    modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
                 )
             }
         }
@@ -189,6 +194,7 @@ private fun ColumnScope.PickerBody(
             LazyColumn(
                 modifier = Modifier.weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                contentPadding = appScrollContentPadding(),
             ) {
                 items(state.visibleApps, key = InstalledApp::packageName) { app ->
                     PickerAppRow(

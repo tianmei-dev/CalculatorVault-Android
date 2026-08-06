@@ -8,13 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -41,6 +42,8 @@ import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.layout.AppLayout
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun SplashScreen(
@@ -48,7 +51,7 @@ fun SplashScreen(
     onRetry: () -> Unit,
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(AppSpacing.xl),
+        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(appPagePadding()),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -98,9 +101,8 @@ fun PrivacyConsentScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(AppSpacing.xl),
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(appPagePadding()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
@@ -236,13 +238,12 @@ private fun PasswordEntryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(
                 start = AppSpacing.xl,
                 top = topPadding,
                 end = AppSpacing.xl,
-                bottom = AppSpacing.sm,
+                bottom = AppLayout.BottomSafeSpace,
             ),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
@@ -375,7 +376,7 @@ private fun LegalDocumentScreen(
     onBack: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
+        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         VaultTopAppBar(
             title = stringResource(titleRes),
@@ -391,7 +392,7 @@ private fun LegalDocumentScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(AppSpacing.xl),
+                .padding(appPagePadding()),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
         ) {
             sections.forEach { (title, body) ->

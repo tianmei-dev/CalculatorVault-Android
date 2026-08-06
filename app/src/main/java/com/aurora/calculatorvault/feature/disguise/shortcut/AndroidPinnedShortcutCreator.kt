@@ -22,10 +22,7 @@ class AndroidPinnedShortcutCreator(
             ?: return PinShortcutRequestResult.IconGenerationFailed
 
         return try {
-            val entryIntent = Intent(context, DisguiseShortcutEntryActivity::class.java).apply {
-                action = DisguiseShortcutContract.ACTION_OPEN_DISGUISE_SHORTCUT
-                putExtra(DisguiseShortcutContract.EXTRA_SHORTCUT_ID, request.shortcutId)
-            }
+            val entryIntent = DisguiseShortcutContract.createEntryIntent(context, request.shortcutId)
             val shortcut = ShortcutInfoCompat.Builder(context, request.shortcutId)
                 .setShortLabel(label)
                 .setLongLabel(label)
@@ -62,4 +59,3 @@ class AndroidPinnedShortcutCreator(
         }
     }
 }
-

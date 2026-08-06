@@ -31,6 +31,7 @@ import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun AppLockScreen() {
@@ -39,7 +40,7 @@ fun AppLockScreen() {
             .fillMaxSize()
             .testTag("app_lock_screen")
             .verticalScroll(rememberScrollState())
-            .padding(AppSpacing.xl),
+            .padding(appPagePadding()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
         PageHeader(

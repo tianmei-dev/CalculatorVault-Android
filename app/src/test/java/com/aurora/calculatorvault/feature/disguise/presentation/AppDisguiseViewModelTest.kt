@@ -10,6 +10,9 @@ import com.aurora.calculatorvault.feature.disguise.shortcut.PinShortcutRequest
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinShortcutRequestResult
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinnedShortcutCreator
 import com.aurora.calculatorvault.feature.disguise.shortcut.RequestPinShortcutUseCase
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutOperationResult
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutRepository
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutUpdateRequest
 import com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,12 +72,12 @@ class AppDisguiseViewModelTest {
         advanceUntilIdle()
 
         viewModel.updateQuery("目标浏览器")
-        assertEquals(listOf("Browser"), viewModel.uiState.value.visibleEntries.map { it.customName })
+        assertEquals(listOf("Browser"), viewModel.uiState.value.visibleEntries.map { it.entry.customName })
         viewModel.updateQuery("")
         viewModel.setSortMode(DisguiseSortMode.CreatedNewest)
-        assertEquals(listOf(2L, 1L), viewModel.uiState.value.visibleEntries.map { it.id })
+        assertEquals(listOf(2L, 1L), viewModel.uiState.value.visibleEntries.map { it.entry.id })
         viewModel.setSortMode(DisguiseSortMode.UpdatedNewest)
-        assertEquals(listOf(1L, 2L), viewModel.uiState.value.visibleEntries.map { it.id })
+        assertEquals(listOf(1L, 2L), viewModel.uiState.value.visibleEntries.map { it.entry.id })
     }
 
     @Test
@@ -84,6 +87,8 @@ class AppDisguiseViewModelTest {
         advanceUntilIdle()
 
         viewModel.edit(repository.entries.value.single())
+        assertEquals(AppDisguisePage.SelectApp, viewModel.uiState.value.page)
+        viewModel.selectApp(repository.apps.single())
         viewModel.updateCustomName("New")
         viewModel.continueFromName()
         viewModel.selectIcon(DisguiseIconId.Tools)
@@ -98,6 +103,63 @@ class AppDisguiseViewModelTest {
         viewModel.confirmDelete()
         advanceUntilIdle()
         assertTrue(repository.entries.value.isEmpty())
+    }
+
+    @Test
+    fun `edit updates existing desktop shortcut when shortcut id exists`() = runTest(dispatcher) {
+        val existing = entry(7, "Old", "Target", 1, 1).copy(
+            shortcutId = "cv_disguise_existing",
+            shortcutRequestState = ShortcutRequestState.LauncherAccepted,
+        )
+        val repository = FakeRepository(initial = listOf(existing))
+        val shortcuts = FakeShortcutRepository()
+        val viewModel = AppDisguiseViewModel(
+            repository = repository,
+            shortcutRepository = shortcuts,
+        )
+        advanceUntilIdle()
+
+        viewModel.edit(existing)
+        advanceUntilIdle()
+        viewModel.selectApp(InstalledApp("new.target", "New Target"))
+        viewModel.updateCustomName("Fresh")
+        viewModel.continueFromName()
+        viewModel.selectIcon(DisguiseIconId.Tools)
+        viewModel.continueToPreview()
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals("new.target", repository.entries.value.single().packageName)
+        assertEquals("Fresh", shortcuts.lastUpdate?.displayName)
+        assertEquals(DisguiseIconId.Tools, shortcuts.lastUpdate?.iconId)
+    }
+
+    @Test
+    fun `delete removes room entry and surfaces manual desktop removal notice`() = runTest(dispatcher) {
+        val existing = entry(7, "Old", "Target", 1, 1).copy(
+            shortcutId = "cv_disguise_existing",
+            shortcutRequestState = ShortcutRequestState.LauncherAccepted,
+        )
+        val repository = FakeRepository(initial = listOf(existing))
+        val shortcuts = FakeShortcutRepository(removeResult = ShortcutOperationResult.ManualRemovalRequired)
+        val viewModel = AppDisguiseViewModel(
+            repository = repository,
+            shortcutRepository = shortcuts,
+        )
+        advanceUntilIdle()
+
+        viewModel.requestDelete(existing)
+        viewModel.confirmDelete()
+        advanceUntilIdle()
+
+        assertTrue(repository.entries.value.isEmpty())
+        assertEquals("cv_disguise_existing", shortcuts.removedId)
+        assertTrue(viewModel.uiState.value.showManualDeleteDialog)
+        assertEquals(null, viewModel.uiState.value.pendingDelete)
+
+        viewModel.dismissManualDeleteDialog()
+        assertFalse(viewModel.uiState.value.showManualDeleteDialog)
+        assertEquals(null, viewModel.uiState.value.pendingDelete)
     }
 
     @Test
@@ -242,6 +304,24 @@ class AppDisguiseViewModelTest {
         ): PinShortcutRequestResult {
             requestCount += 1
             return PinShortcutRequestResult.RequestSubmitted
+        }
+    }
+
+    private class FakeShortcutRepository(
+        private val removeResult: ShortcutOperationResult = ShortcutOperationResult.Success,
+    ) : ShortcutRepository {
+        var lastUpdate: ShortcutUpdateRequest? = null
+        var removedId: String? = null
+
+        override fun isPinRequestSupported() = true
+        override suspend fun isShortcutPresent(shortcutId: String) = true
+        override suspend fun update(request: ShortcutUpdateRequest): ShortcutOperationResult {
+            lastUpdate = request
+            return ShortcutOperationResult.Success
+        }
+        override suspend fun remove(shortcutId: String): ShortcutOperationResult {
+            removedId = shortcutId
+            return removeResult
         }
     }
 }

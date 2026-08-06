@@ -65,6 +65,11 @@ import com.aurora.calculatorvault.ui.component.VaultDialog
 import com.aurora.calculatorvault.ui.component.VaultEmptyState
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
+import com.aurora.calculatorvault.ui.component.VaultSecondaryTopBar
+import com.aurora.calculatorvault.ui.message.AppMessage
+import com.aurora.calculatorvault.ui.message.AppMessageType
+import com.aurora.calculatorvault.ui.layout.AppLayout
+import com.aurora.calculatorvault.ui.layout.appScrollContentPadding
 import kotlinx.coroutines.flow.collectLatest
 import java.text.DateFormat
 import java.util.Date
@@ -76,7 +81,7 @@ fun HiddenAppScreen(
     iconProvider: AppIconProvider,
     onAddApps: () -> Unit,
     onBack: () -> Unit,
-    onMessage: (String) -> Unit,
+    onMessage: (AppMessage) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val removedMessage = stringResource(R.string.hidden_app_removed_success)
@@ -93,16 +98,24 @@ fun HiddenAppScreen(
         viewModel.effects.collectLatest { effect ->
             onMessage(
                 when (effect) {
-                    HiddenAppEffect.Removed -> removedMessage
-                    HiddenAppEffect.RecentCleared -> clearedMessage
-                    HiddenAppEffect.NoInvalidApps -> noInvalidMessage
-                    HiddenAppEffect.PreferenceSaveFailed -> preferenceFailedMessage
-                    HiddenAppEffect.ManualOrderSaveFailed -> manualFailedMessage
-                    HiddenAppEffect.BatchRemoveFailed -> batchRemoveFailed
-                    HiddenAppEffect.RemoveFailed -> removeFailed
-                    HiddenAppEffect.ClearRecentFailed -> clearFailed
-                    is HiddenAppEffect.BatchRemoved ->
-                        String.format(batchRemovedTemplate, effect.count)
+                    HiddenAppEffect.Removed -> AppMessage(removedMessage, AppMessageType.Success)
+                    HiddenAppEffect.RecentCleared -> AppMessage(clearedMessage, AppMessageType.Success)
+                    HiddenAppEffect.NoInvalidApps -> AppMessage(noInvalidMessage, AppMessageType.Info)
+                    HiddenAppEffect.PreferenceSaveFailed -> AppMessage(
+                        preferenceFailedMessage,
+                        AppMessageType.Warning,
+                    )
+                    HiddenAppEffect.ManualOrderSaveFailed -> AppMessage(
+                        manualFailedMessage,
+                        AppMessageType.Warning,
+                    )
+                    HiddenAppEffect.BatchRemoveFailed -> AppMessage(batchRemoveFailed, AppMessageType.Error)
+                    HiddenAppEffect.RemoveFailed -> AppMessage(removeFailed, AppMessageType.Error)
+                    HiddenAppEffect.ClearRecentFailed -> AppMessage(clearFailed, AppMessageType.Error)
+                    is HiddenAppEffect.BatchRemoved -> AppMessage(
+                        String.format(batchRemovedTemplate, effect.count),
+                        AppMessageType.Success,
+                    )
                 },
             )
         }
@@ -268,7 +281,7 @@ private fun HiddenAppContent(
                         text = stringResource(R.string.add_app),
                         onClick = onAddApps,
                         enabled = state.launchingPackageName == null,
-                        modifier = Modifier.padding(bottom = AppSpacing.sm),
+                        modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
                     )
                 }
             }
@@ -283,73 +296,15 @@ private fun HiddenAppTopBar(
     onBack: () -> Unit,
 ) {
     var moreExpanded by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (!state.isBatchMode && !state.isManualSortMode) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.testTag("private_apps_back"),
-            ) {
-                Icon(
-                    VaultIcons.Back,
-                    contentDescription = stringResource(R.string.private_apps_back),
-                    tint = AppColors.TextSecondary,
-                )
-            }
-        } else {
-            TextButton(
-                onClick = if (state.isBatchMode) viewModel::exitBatchMode
-                else viewModel::requestCancelManualSort,
-            ) {
-                Text(stringResource(R.string.cancel), color = AppColors.TextSecondary)
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = when {
-                    state.isBatchMode -> stringResource(
-                        R.string.hidden_app_selected_items,
-                        state.selectedPackages.size,
-                    )
-                    state.isManualSortMode -> stringResource(R.string.hidden_app_adjust_order)
-                    else -> stringResource(R.string.tab_hidden_app)
-                },
-                style = AppTextStyles.PageTitle,
-                color = AppColors.TextPrimary,
-            )
-            if (!state.isBatchMode && !state.isManualSortMode) {
-                Text(
-                    text = stringResource(R.string.hidden_description),
-                    style = AppTextStyles.BodySecondary,
-                    color = AppColors.TextTertiary,
-                )
-            }
-        }
-        when {
-            state.isBatchMode -> TextButton(
-                onClick = viewModel::toggleSelectAllVisible,
-                enabled = state.visibleApps.isNotEmpty(),
-            ) {
-                Text(
-                    stringResource(
-                        if (state.areAllVisibleSelected) {
-                            R.string.hidden_app_deselect_all
-                        } else {
-                            R.string.hidden_app_select_all
-                        },
-                    ),
-                    color = AppColors.AccentPrimary,
-                )
-            }
-            state.isManualSortMode -> TextButton(
-                onClick = viewModel::saveManualSort,
-                enabled = !state.isSavingManualOrder,
-            ) {
-                Text(stringResource(R.string.save), color = AppColors.AccentPrimary)
-            }
-            else -> {
+    if (!state.isBatchMode && !state.isManualSortMode) {
+        VaultSecondaryTopBar(
+            title = stringResource(R.string.tab_hidden_app),
+            subtitle = null,
+            onBack = onBack,
+            backModifier = Modifier.testTag("private_apps_back"),
+            backContentDescription = stringResource(R.string.private_apps_back),
+            overlayActions = true,
+            actions = {
                 IconButton(onClick = viewModel::toggleLayout) {
                     Icon(
                         if (state.layoutMode == HiddenAppLayoutMode.Grid) VaultIcons.List
@@ -407,6 +362,55 @@ private fun HiddenAppTopBar(
                         )
                     }
                 }
+            },
+        )
+        return
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextButton(
+            onClick = if (state.isBatchMode) viewModel::exitBatchMode
+            else viewModel::requestCancelManualSort,
+        ) {
+            Text(stringResource(R.string.cancel), color = AppColors.TextSecondary)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = when {
+                    state.isBatchMode -> stringResource(
+                        R.string.hidden_app_selected_items,
+                        state.selectedPackages.size,
+                    )
+                    state.isManualSortMode -> stringResource(R.string.hidden_app_adjust_order)
+                    else -> stringResource(R.string.tab_hidden_app)
+                },
+                style = AppTextStyles.PageTitle,
+                color = AppColors.TextPrimary,
+            )
+        }
+        when {
+            state.isBatchMode -> TextButton(
+                onClick = viewModel::toggleSelectAllVisible,
+                enabled = state.visibleApps.isNotEmpty(),
+            ) {
+                Text(
+                    stringResource(
+                        if (state.areAllVisibleSelected) {
+                            R.string.hidden_app_deselect_all
+                        } else {
+                            R.string.hidden_app_select_all
+                        },
+                    ),
+                    color = AppColors.AccentPrimary,
+                )
+            }
+            state.isManualSortMode -> TextButton(
+                onClick = viewModel::saveManualSort,
+                enabled = !state.isSavingManualOrder,
+            ) {
+                Text(stringResource(R.string.save), color = AppColors.AccentPrimary)
             }
         }
     }
@@ -519,6 +523,7 @@ private fun HiddenAppGrid(
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        contentPadding = appScrollContentPadding(),
     ) {
         items(state.visibleApps.chunked(4), key = { row -> row.joinToString { it.packageName } }) {
             rowApps ->
@@ -620,7 +625,11 @@ private fun HiddenAppList(
     onRemoval: (HiddenApp) -> Unit,
     modifier: Modifier,
 ) {
-    LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        contentPadding = appScrollContentPadding(),
+    ) {
         items(state.visibleApps, key = HiddenApp::packageName) { app ->
             var menuExpanded by remember { mutableStateOf(false) }
             Surface(
@@ -721,7 +730,10 @@ private fun AppMenu(
 
 @Composable
 private fun BatchActionBar(state: HiddenAppUiState, viewModel: HiddenAppViewModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+    Column(
+        modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
         TextButton(
             onClick = viewModel::selectInvalidApps,
             modifier = Modifier.fillMaxWidth(),
@@ -749,7 +761,11 @@ private fun ManualSortList(
     onMove: (Int, Int) -> Unit,
     modifier: Modifier,
 ) {
-    LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        contentPadding = appScrollContentPadding(),
+    ) {
         items(apps.size, key = { apps[it].packageName }) { index ->
             val app = apps[index]
             var dragAmount by remember(app.packageName) { mutableFloatStateOf(0f) }

@@ -36,6 +36,7 @@ import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
+import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
 fun AppManagementScreen(
@@ -77,7 +78,7 @@ internal fun AppManagementContent(
             .fillMaxSize()
             .testTag("app_management_screen")
             .verticalScroll(rememberScrollState())
-            .padding(AppSpacing.xl),
+            .padding(appPagePadding()),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
         PageHeader(

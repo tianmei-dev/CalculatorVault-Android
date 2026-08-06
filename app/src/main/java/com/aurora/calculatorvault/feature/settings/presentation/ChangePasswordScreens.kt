@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +26,7 @@ import com.aurora.calculatorvault.ui.component.VaultNumericKeypad
 import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.layout.AppLayout
 
 @Composable
 fun ChangePasswordScreen(
@@ -69,8 +69,8 @@ fun ChangePasswordScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
-            .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.sm),
+            .padding(horizontal = AppLayout.PageHorizontalPadding, vertical = AppSpacing.sm)
+            .padding(bottom = AppLayout.BottomSafeSpace),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         VaultIconButton(
@@ -127,6 +127,7 @@ fun ChangePasswordScreen(
             text = stringResource(buttonRes),
             enabled = state.canSubmit,
             onClick = onSubmit,
+            modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
         )
     }
 
@@ -167,7 +168,7 @@ private fun ChangePasswordErrorText(error: ChangePasswordError?) {
 fun ForgotPasswordScreen(onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     Column(
-        modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         VaultTopAppBar(
             title = stringResource(R.string.forgot_password_title),
@@ -182,7 +183,8 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.md),
+                .padding(horizontal = AppLayout.PageHorizontalPadding, vertical = AppSpacing.md)
+                .padding(bottom = AppLayout.BottomSafeSpace),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
         ) {
             VaultCard(modifier = Modifier.fillMaxWidth()) {

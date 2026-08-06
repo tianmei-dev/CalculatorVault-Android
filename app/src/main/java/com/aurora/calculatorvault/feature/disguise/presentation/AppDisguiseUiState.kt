@@ -3,6 +3,7 @@ package com.aurora.calculatorvault.feature.disguise.presentation
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseEntry
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseIconId
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseSortMode
+import com.aurora.calculatorvault.feature.disguise.shortcut.SyncedDisguiseEntry
 import com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledApp
 
 enum class AppDisguisePage {
@@ -18,7 +19,8 @@ enum class AppDisguisePage {
 data class AppDisguiseUiState(
     val page: AppDisguisePage = AppDisguisePage.List,
     val entries: List<DisguiseEntry> = emptyList(),
-    val visibleEntries: List<DisguiseEntry> = emptyList(),
+    val syncedEntries: List<SyncedDisguiseEntry> = emptyList(),
+    val visibleEntries: List<SyncedDisguiseEntry> = emptyList(),
     val query: String = "",
     val sortMode: DisguiseSortMode = DisguiseSortMode.UpdatedNewest,
     val isLoading: Boolean = true,
@@ -38,6 +40,8 @@ data class AppDisguiseUiState(
     val pendingDuplicateRequest: DisguiseEntry? = null,
     val showUnsupportedDialog: Boolean = false,
     val showRequestSubmittedDialog: Boolean = false,
+    val showManualDeleteDialog: Boolean = false,
+    val isSyncingShortcuts: Boolean = false,
     val error: AppDisguiseError? = null,
 ) {
     val canContinueName: Boolean
@@ -49,6 +53,8 @@ enum class AppDisguiseError {
     ScanFailed,
     SaveFailed,
     DeleteFailed,
+    ShortcutUpdateFailed,
+    ShortcutDeleteFailed,
 }
 
 sealed interface AppDisguiseEffect {
@@ -57,4 +63,7 @@ sealed interface AppDisguiseEffect {
     data object Deleted : AppDisguiseEffect
     data object ShortcutRequestFailed : AppDisguiseEffect
     data object ShortcutRequestStateSaveFailed : AppDisguiseEffect
+    data object ShortcutUpdated : AppDisguiseEffect
+    data object ShortcutDeleted : AppDisguiseEffect
+    data object ManualShortcutRemovalRequired : AppDisguiseEffect
 }
