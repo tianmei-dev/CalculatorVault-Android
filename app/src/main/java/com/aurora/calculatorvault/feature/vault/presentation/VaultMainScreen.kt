@@ -23,6 +23,7 @@ import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.navigation.VaultTabRoute
 import com.aurora.calculatorvault.feature.applock.presentation.AppLockScreen
+import com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel
 import com.aurora.calculatorvault.feature.appmanagement.presentation.AppManagementScreen
 import com.aurora.calculatorvault.feature.appmanagement.presentation.AppManagementViewModel
 import com.aurora.calculatorvault.feature.disguise.presentation.AppDisguiseScreen
@@ -129,7 +130,19 @@ fun VaultMainScreen(
                     onMessage = messageController::show,
                 )
             }
-            composable(VaultTabRoute.AppLock.path) { AppLockScreen() }
+            composable(VaultTabRoute.AppLock.path) {
+                val appLockViewModel: AppLockViewModel = viewModel(
+                    factory = AppLockViewModel.Factory(
+                        application.appLockRepository,
+                        application.applicationContext,
+                    ),
+                )
+                AppLockScreen(
+                    viewModel = appLockViewModel,
+                    iconProvider = application.appIconProvider,
+                    onMessage = messageController::show,
+                )
+            }
             composable(VaultTabRoute.HiddenApp.path) {
                 val hiddenAppViewModel: HiddenAppViewModel = viewModel(
                     factory = HiddenAppViewModel.Factory(

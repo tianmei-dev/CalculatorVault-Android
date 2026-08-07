@@ -4,19 +4,22 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.aurora.calculatorvault.feature.applock.data.AppLockDao
+import com.aurora.calculatorvault.feature.applock.data.AppLockEntryEntity
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppDao
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppEntity
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryDao
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryEntity
 
 @Database(
-    entities = [HiddenAppEntity::class, DisguiseEntryEntity::class],
-    version = 4,
+    entities = [HiddenAppEntity::class, DisguiseEntryEntity::class, AppLockEntryEntity::class],
+    version = 5,
     exportSchema = false,
 )
 abstract class CalculatorVaultDatabase : RoomDatabase() {
     abstract fun hiddenAppDao(): HiddenAppDao
     abstract fun disguiseEntryDao(): DisguiseEntryDao
+    abstract fun appLockDao(): AppLockDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -73,6 +76,22 @@ abstract class CalculatorVaultDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE UNIQUE INDEX IF NOT EXISTS index_disguise_entries_shortcut_id " +
                         "ON disguise_entries (shortcut_id)",
+                )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS app_lock_entries (
+                        package_name TEXT NOT NULL PRIMARY KEY,
+                        app_name_snapshot TEXT NOT NULL,
+                        enabled INTEGER NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
                 )
             }
         }

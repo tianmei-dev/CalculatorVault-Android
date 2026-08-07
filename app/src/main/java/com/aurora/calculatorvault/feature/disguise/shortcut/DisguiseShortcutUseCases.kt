@@ -1,6 +1,8 @@
 package com.aurora.calculatorvault.feature.disguise.shortcut
 
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
+import com.aurora.calculatorvault.feature.applock.domain.AppLockRepository
+import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryRepositoryContract
 import com.aurora.calculatorvault.feature.hiddenapp.domain.AppLaunchResult
 import com.aurora.calculatorvault.feature.hiddenapp.domain.HiddenAppRuntime
@@ -74,6 +76,8 @@ class LaunchDisguisedTargetUseCase(
     private val repository: DisguiseEntryRepositoryContract,
     private val runtime: HiddenAppRuntime,
     private val launchHiddenAppUseCase: LaunchHiddenAppUseCase,
+    private val appLockSessionManager: AppLockSessionManager? = null,
+    private val appLockRepository: AppLockRepository? = null,
 ) : DisguisedTargetLauncher {
     override suspend fun invoke(shortcutId: String): LaunchDisguisedTargetResult {
         if (!DisguiseShortcutIdValidator.isValid(shortcutId)) {
@@ -89,7 +93,16 @@ class LaunchDisguisedTargetUseCase(
                 InstalledAppAvailability.Unknown -> return LaunchDisguisedTargetResult.Failed
                 InstalledAppAvailability.Available -> Unit
             }
-            when (launchHiddenAppUseCase(entry.packageName)) {
+            val shouldTemporarilyUnlock = appLockRepository?.isLocked(entry.packageName) == true
+            if (shouldTemporarilyUnlock) {
+                appLockSessionManager?.markUnlocked(entry.packageName)
+            }
+            val launchResult = launchHiddenAppUseCase(entry.packageName).also { result ->
+                if (shouldTemporarilyUnlock && result != AppLaunchResult.Success) {
+                    appLockSessionManager?.clearUnlocked(entry.packageName)
+                }
+            }
+            when (launchResult) {
                 AppLaunchResult.Success -> LaunchDisguisedTargetResult.Success
                 AppLaunchResult.NotInstalled -> LaunchDisguisedTargetResult.TargetNotInstalled
                 AppLaunchResult.Disabled -> LaunchDisguisedTargetResult.TargetDisabled

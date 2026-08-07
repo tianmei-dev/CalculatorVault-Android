@@ -1,6 +1,10 @@
 package com.aurora.calculatorvault.feature.disguise.shortcut
 
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryRepositoryContract
+import com.aurora.calculatorvault.feature.applock.domain.AppLockEntry
+import com.aurora.calculatorvault.feature.applock.domain.AppLockRepository
+import com.aurora.calculatorvault.feature.applock.domain.AppLockSetResult
+import com.aurora.calculatorvault.feature.applock.domain.LockableApp
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseEntry
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseIconId
 import com.aurora.calculatorvault.feature.disguise.domain.ShortcutRequestError
@@ -69,4 +73,19 @@ internal class FakeHiddenRepository : HiddenAppRepositoryContract {
     }
     override suspend fun clearRecentHistory() = 0
     override fun refreshAppAvailability() = Unit
+}
+
+internal class FakeAppLockRepository(
+    private val lockedPackages: Set<String> = emptySet(),
+) : AppLockRepository {
+    override fun observeEntries(): Flow<List<AppLockEntry>> = flowOf(emptyList())
+    override fun observeLockedPackages(): Flow<Set<String>> = flowOf(lockedPackages)
+    override suspend fun loadLockableApps(): List<LockableApp> = emptyList()
+    override suspend fun setLocked(
+        packageName: String,
+        appName: String,
+        locked: Boolean,
+    ): AppLockSetResult = AppLockSetResult.Success
+
+    override suspend fun isLocked(packageName: String): Boolean = packageName in lockedPackages
 }

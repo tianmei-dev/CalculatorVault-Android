@@ -9,6 +9,9 @@ import com.aurora.calculatorvault.core.datastore.vaultPreferencesDataStore
 import com.aurora.calculatorvault.core.security.Pbkdf2PasswordHasher
 import com.aurora.calculatorvault.core.security.session.AppLifecycleObserver
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
+import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
+import com.aurora.calculatorvault.feature.applock.domain.AppLockPackagePolicy
+import com.aurora.calculatorvault.feature.applock.data.AppLockRepositoryImpl
 import com.aurora.calculatorvault.feature.calculator.domain.StoredVaultPasswordVerifier
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryRepository
@@ -49,17 +52,22 @@ class CalculatorVaultApp : Application() {
             CalculatorVaultDatabase.MIGRATION_1_2,
             CalculatorVaultDatabase.MIGRATION_2_3,
             CalculatorVaultDatabase.MIGRATION_3_4,
+            CalculatorVaultDatabase.MIGRATION_4_5,
         ).build()
+    }
+
+    private val launcherAppSource by lazy {
+        AndroidLauncherAppSource(packageManager)
     }
 
     private val installedAppScanner by lazy {
         FilteringInstalledAppScanner(
-            source = AndroidLauncherAppSource(packageManager),
+            source = launcherAppSource,
             ownPackageName = packageName,
         )
     }
 
-    private val hiddenAppRuntime by lazy {
+    val hiddenAppRuntime by lazy {
         AndroidHiddenAppRuntime(
             context = applicationContext,
             packageManager = packageManager,
@@ -118,6 +126,9 @@ class CalculatorVaultApp : Application() {
         LaunchHiddenAppUseCase(
             runtime = hiddenAppRuntime,
             repository = hiddenAppRepository,
+            appLockRepository = appLockRepository,
+            appLockSessionManager = appLockSessionManager,
+            vaultSessionManager = vaultSessionManager,
         )
     }
 
@@ -137,6 +148,8 @@ class CalculatorVaultApp : Application() {
             repository = disguiseEntryRepository,
             runtime = hiddenAppRuntime,
             launchHiddenAppUseCase = launchHiddenAppUseCase,
+            appLockSessionManager = appLockSessionManager,
+            appLockRepository = appLockRepository,
         )
     }
 
@@ -145,6 +158,23 @@ class CalculatorVaultApp : Application() {
     }
 
     val vaultSessionManager = VaultSessionManager()
+
+    val appLockSessionManager = AppLockSessionManager()
+
+    private val appLockPackagePolicy by lazy {
+        AppLockPackagePolicy(
+            packageManager = packageManager,
+            ownPackageName = packageName,
+        )
+    }
+
+    val appLockRepository by lazy {
+        AppLockRepositoryImpl(
+            dao = database.appLockDao(),
+            launcherAppSource = launcherAppSource,
+            packagePolicy = appLockPackagePolicy,
+        )
+    }
 
     val vaultUnlockUseCase by lazy {
         VaultUnlockUseCase(

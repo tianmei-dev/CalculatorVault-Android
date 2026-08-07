@@ -1,10 +1,13 @@
 package com.aurora.calculatorvault.feature.disguise.shortcut
 
+import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
 import com.aurora.calculatorvault.feature.hiddenapp.domain.AppLaunchResult
 import com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledAppAvailability
 import com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCase
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LaunchDisguisedTargetUseCaseTest {
@@ -12,14 +15,34 @@ class LaunchDisguisedTargetUseCaseTest {
     fun success_reReadsEntry_launchesAndUsesExistingRecentRecorder() = runTest {
         val runtime = FakeRuntime()
         val hiddenRepository = FakeHiddenRepository()
+        val appLockSessionManager = AppLockSessionManager()
         val useCase = LaunchDisguisedTargetUseCase(
             FakeDisguiseRepository(),
             runtime,
             LaunchHiddenAppUseCase(runtime, hiddenRepository) { 123L },
+            appLockSessionManager,
+            FakeAppLockRepository(setOf(TEST_PACKAGE)),
         )
         assertEquals(LaunchDisguisedTargetResult.Success, useCase(TEST_SHORTCUT_ID))
         assertEquals(1, runtime.launchCalls)
         assertEquals(1, hiddenRepository.markOpenedCalls)
+        assertTrue(appLockSessionManager.isTemporarilyUnlocked(TEST_PACKAGE))
+    }
+
+    @Test
+    fun failedLaunch_clearsShortcutTemporaryAppLockPass() = runTest {
+        val runtime = FakeRuntime(launchResult = AppLaunchResult.ActivityNotFound)
+        val appLockSessionManager = AppLockSessionManager()
+        val useCase = LaunchDisguisedTargetUseCase(
+            FakeDisguiseRepository(),
+            runtime,
+            LaunchHiddenAppUseCase(runtime, FakeHiddenRepository()),
+            appLockSessionManager,
+            FakeAppLockRepository(setOf(TEST_PACKAGE)),
+        )
+
+        assertEquals(LaunchDisguisedTargetResult.ActivityNotFound, useCase(TEST_SHORTCUT_ID))
+        assertFalse(appLockSessionManager.isTemporarilyUnlocked(TEST_PACKAGE))
     }
 
     @Test
