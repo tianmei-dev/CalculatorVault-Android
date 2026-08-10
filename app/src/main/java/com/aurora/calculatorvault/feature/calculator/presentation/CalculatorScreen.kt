@@ -1,6 +1,8 @@
 package com.aurora.calculatorvault.feature.calculator.presentation
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,6 +17,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -128,6 +132,7 @@ fun CalculatorScreen(
     onOpenVault: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val revealState by viewModel.passwordRevealState.collectAsState()
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             if (effect == CalculatorEffect.OpenVault) onOpenVault()
@@ -136,6 +141,11 @@ fun CalculatorScreen(
     CalculatorContent(
         state = state,
         onAction = viewModel::onAction,
+        onDeleteLongClick = viewModel::revealCurrentPassword,
+    )
+    PasswordRevealDialog(
+        state = revealState,
+        onDismiss = viewModel::dismissPasswordReveal,
     )
 }
 
@@ -143,6 +153,7 @@ fun CalculatorScreen(
 private fun CalculatorContent(
     state: CalculatorUiState,
     onAction: (CalculatorAction) -> Unit,
+    onDeleteLongClick: () -> Unit,
 ) {
     val displayText = when (state.error) {
         CalculatorError.DivisionByZero -> stringResource(R.string.calculator_error_division_by_zero)
@@ -200,16 +211,26 @@ private fun CalculatorContent(
             userScrollEnabled = false,
         ) {
             items(calculatorKeys, key = { it.labelRes }) { key ->
-                CalculatorKeyCell(key = key, onClick = { onAction(key.action) })
+                CalculatorKeyCell(
+                    key = key,
+                    onClick = { onAction(key.action) },
+                    onLongClick = if (key.action == CalculatorAction.Delete) {
+                        onDeleteLongClick
+                    } else {
+                        null
+                    },
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CalculatorKeyCell(
     key: CalculatorKey,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val label = stringResource(key.labelRes)
     val description = stringResource(key.contentDescriptionRes)
@@ -231,10 +252,13 @@ private fun CalculatorKeyCell(
     }
 
     Surface(
-        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(AppDimensions.CalculatorKey)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .semantics { contentDescription = description },
         shape = shape,
         color = container,
@@ -253,6 +277,87 @@ private fun CalculatorKeyCell(
             } else {
                 Text(label, style = AppTextStyles.SectionTitle)
             }
+        }
+    }
+}
+
+@Composable
+private fun PasswordRevealDialog(
+    state: CalculatorPasswordRevealState,
+    onDismiss: () -> Unit,
+) {
+    when (state) {
+        CalculatorPasswordRevealState.Hidden -> Unit
+        is CalculatorPasswordRevealState.Visible -> {
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(
+                        text = stringResource(R.string.password_reveal_title),
+                        style = AppTextStyles.SectionTitle,
+                        color = AppColors.TextPrimary,
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                        Text(
+                            text = stringResource(R.string.password_reveal_message),
+                            style = AppTextStyles.Body,
+                            color = AppColors.TextSecondary,
+                        )
+                        Text(
+                            text = state.password.concatToString(),
+                            style = AppTextStyles.NumericMedium,
+                            color = AppColors.AccentPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            text = stringResource(R.string.got_it),
+                            style = AppTextStyles.Button,
+                            color = AppColors.AccentPrimary,
+                        )
+                    }
+                },
+                containerColor = AppColors.SurfaceElevated,
+                shape = AppShapes.ExtraLarge,
+            )
+        }
+        CalculatorPasswordRevealState.Unavailable,
+        CalculatorPasswordRevealState.Failed,
+        -> {
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(
+                        text = stringResource(R.string.password_reveal_unavailable_title),
+                        style = AppTextStyles.SectionTitle,
+                        color = AppColors.TextPrimary,
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.password_reveal_unavailable_message),
+                        style = AppTextStyles.Body,
+                        color = AppColors.TextSecondary,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            text = stringResource(R.string.got_it),
+                            style = AppTextStyles.Button,
+                            color = AppColors.AccentPrimary,
+                        )
+                    }
+                },
+                containerColor = AppColors.SurfaceElevated,
+                shape = AppShapes.ExtraLarge,
+            )
         }
     }
 }

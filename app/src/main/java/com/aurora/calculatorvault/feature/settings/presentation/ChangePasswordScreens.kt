@@ -102,6 +102,12 @@ fun ChangePasswordScreen(
                 style = AppTextStyles.Caption,
                 color = AppColors.Warning,
             )
+            Text(
+                text = stringResource(R.string.password_recovery_change_hint),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                style = AppTextStyles.Caption,
+                color = AppColors.TextTertiary,
+            )
         }
         ChangePasswordErrorText(state.error)
         if (state.step == ChangePasswordStep.VerifyCurrent) {

@@ -2,6 +2,12 @@ package com.aurora.calculatorvault.feature.calculator.presentation
 
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.core.security.session.VaultSessionState
+import com.aurora.calculatorvault.core.datastore.security.SecurityPreferences
+import com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSource
+import com.aurora.calculatorvault.core.security.PasswordHashResult
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryCipher
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryMaterial
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorAction
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorOperator
 import com.aurora.calculatorvault.feature.calculator.domain.VaultPasswordVerifier
@@ -268,6 +274,97 @@ class CalculatorViewModelUnlockTest {
         assertEquals(CalculatorUiState(), viewModel.uiState.value)
     }
 
+    @Test
+    fun `legacy unlock backfills recovery material preserving leading zero password`() =
+        runTest(dispatcher) {
+            val verifier = RecordingVerifier("0123")
+            val manager = foregroundManager()
+            val dataSource = RecoveryDataSource()
+            val recoveryRepository = PasswordRecoveryRepository(
+                dataSource = dataSource,
+                cipher = PlainTextTestRecoveryCipher(),
+                currentTimeMillis = { 42L },
+            )
+            val viewModel = CalculatorViewModel(
+                unlockUseCase = VaultUnlockUseCase(verifier),
+                sessionManager = manager,
+                passwordRecoveryRepository = recoveryRepository,
+            )
+            val effect = async { viewModel.effects.first() }
+            input(viewModel, "0123")
+
+            viewModel.onAction(CalculatorAction.Equals)
+            advanceUntilIdle()
+
+            assertEquals(CalculatorEffect.OpenVault, effect.await())
+            assertEquals("0123", dataSource.preferences.passwordRecoveryCiphertext)
+            assertEquals("iv", dataSource.preferences.passwordRecoveryIv)
+            assertEquals("AES/GCM/NoPadding", dataSource.preferences.passwordRecoveryAlgorithm)
+            assertEquals(1, dataSource.preferences.passwordRecoveryVersion)
+            assertEquals(42L, dataSource.preferences.passwordRecoveryUpdatedAt)
+        }
+
+    @Test
+    fun `password reveal exposes current password and dismiss wipes visible char array`() =
+        runTest(dispatcher) {
+            val dataSource = RecoveryDataSource(
+                preferences = SecurityPreferences(
+                    passwordRecoveryCiphertext = "0012",
+                    passwordRecoveryIv = "iv",
+                    passwordRecoveryAlgorithm = "AES/GCM/NoPadding",
+                    passwordRecoveryVersion = 1,
+                    passwordRecoveryUpdatedAt = 7L,
+                ),
+            )
+            val viewModel = CalculatorViewModel(
+                passwordRecoveryRepository = PasswordRecoveryRepository(
+                    dataSource = dataSource,
+                    cipher = PlainTextTestRecoveryCipher(),
+                ),
+            )
+
+            viewModel.revealCurrentPassword()
+            advanceUntilIdle()
+
+            val visible = viewModel.passwordRevealState.value as CalculatorPasswordRevealState.Visible
+            assertEquals("0012", visible.password.concatToString())
+
+            viewModel.dismissPasswordReveal()
+
+            assertTrue(visible.password.all { it == '\u0000' })
+            assertEquals(CalculatorPasswordRevealState.Hidden, viewModel.passwordRevealState.value)
+        }
+
+    @Test
+    fun `background dismisses visible password reveal`() = runTest(dispatcher) {
+        val manager = foregroundManager()
+        val dataSource = RecoveryDataSource(
+            preferences = SecurityPreferences(
+                passwordRecoveryCiphertext = "0012",
+                passwordRecoveryIv = "iv",
+                passwordRecoveryAlgorithm = "AES/GCM/NoPadding",
+                passwordRecoveryVersion = 1,
+                passwordRecoveryUpdatedAt = 7L,
+            ),
+        )
+        val viewModel = CalculatorViewModel(
+            sessionManager = manager,
+            passwordRecoveryRepository = PasswordRecoveryRepository(
+                dataSource = dataSource,
+                cipher = PlainTextTestRecoveryCipher(),
+            ),
+        )
+        viewModel.revealCurrentPassword()
+        advanceUntilIdle()
+        val visible = viewModel.passwordRevealState.value as CalculatorPasswordRevealState.Visible
+
+        manager.onAppBackgrounded()
+        advanceUntilIdle()
+
+        assertTrue(visible.password.all { it == '\u0000' })
+        assertEquals(CalculatorPasswordRevealState.Hidden, viewModel.passwordRevealState.value)
+    }
+
     private fun viewModel(
         verifier: RecordingVerifier,
         manager: VaultSessionManager,
@@ -315,6 +412,57 @@ class CalculatorViewModelUnlockTest {
         override suspend fun verify(candidate: CharArray): Boolean {
             calls += 1
             return candidate.concatToString() == correct
+        }
+    }
+
+    private class PlainTextTestRecoveryCipher : PasswordRecoveryCipher {
+        override suspend fun encrypt(password: CharArray, updatedAt: Long): PasswordRecoveryMaterial =
+            PasswordRecoveryMaterial(
+                ciphertext = password.concatToString(),
+                iv = "iv",
+                algorithm = "AES/GCM/NoPadding",
+                version = 1,
+                updatedAt = updatedAt,
+            )
+
+        override suspend fun decrypt(material: PasswordRecoveryMaterial): CharArray =
+            material.ciphertext.toCharArray()
+    }
+
+    private class RecoveryDataSource(
+        var preferences: SecurityPreferences = SecurityPreferences(),
+    ) : SecurityPreferencesDataSource {
+        override suspend fun read(): SecurityPreferences = preferences
+
+        override suspend fun acceptPrivacy(version: String, acceptedAt: Long) = Unit
+
+        override suspend fun savePasswordInitialization(
+            result: PasswordHashResult,
+            createdAt: Long,
+        ) = Unit
+
+        override suspend fun replacePassword(result: PasswordHashResult, updatedAt: Long) = Unit
+
+        override suspend fun repairIncompletePasswordSetup() = Unit
+
+        override suspend fun saveRecoveryMaterial(material: PasswordRecoveryMaterial) {
+            preferences = preferences.copy(
+                passwordRecoveryCiphertext = material.ciphertext,
+                passwordRecoveryIv = material.iv,
+                passwordRecoveryAlgorithm = material.algorithm,
+                passwordRecoveryVersion = material.version,
+                passwordRecoveryUpdatedAt = material.updatedAt,
+            )
+        }
+
+        override suspend fun clearRecoveryMaterial() {
+            preferences = preferences.copy(
+                passwordRecoveryCiphertext = null,
+                passwordRecoveryIv = null,
+                passwordRecoveryAlgorithm = null,
+                passwordRecoveryVersion = null,
+                passwordRecoveryUpdatedAt = null,
+            )
         }
     }
 }

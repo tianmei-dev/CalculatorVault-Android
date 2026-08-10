@@ -3,6 +3,7 @@ package com.aurora.calculatorvault.feature.settings.data
 import com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.security.PasswordHasher
 import com.aurora.calculatorvault.core.security.StoredPasswordMaterialValidator
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.feature.onboarding.domain.PasswordPolicy
 import com.aurora.calculatorvault.feature.onboarding.domain.PasswordValidation
 
@@ -29,6 +30,7 @@ interface ChangePasswordRepositoryContract {
 class ChangePasswordRepository(
     private val dataSource: SecurityPreferencesDataSource,
     private val passwordHasher: PasswordHasher,
+    private val passwordRecoveryRepository: PasswordRecoveryRepository? = null,
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : ChangePasswordRepositoryContract {
 
@@ -73,23 +75,47 @@ class ChangePasswordRepository(
             newPassword.fill(NULL_CHAR)
             return ChangePasswordResult.Failure(it)
         }
+        val hashInput = newPassword.copyOf()
+        val recoveryInput = newPassword.copyOf()
         val hashResult = try {
-            passwordHasher.hash(newPassword)
+            passwordHasher.hash(hashInput)
         } catch (_: Exception) {
             newPassword.fill(NULL_CHAR)
+            hashInput.fill(NULL_CHAR)
+            recoveryInput.fill(NULL_CHAR)
             return ChangePasswordResult.Failure(ChangePasswordFailure.HashFailed)
+        }
+        val updatedAt = currentTimeMillis()
+        val recoveryMaterial = if (passwordRecoveryRepository != null) {
+            try {
+                passwordRecoveryRepository.createMaterial(recoveryInput)
+            } catch (_: Exception) {
+                newPassword.fill(NULL_CHAR)
+                hashInput.fill(NULL_CHAR)
+                recoveryInput.fill(NULL_CHAR)
+                return ChangePasswordResult.Failure(ChangePasswordFailure.SaveFailed)
+            }
+        } else {
+            recoveryInput.fill(NULL_CHAR)
+            null
         }
 
         return try {
             dataSource.replacePassword(
                 result = hashResult,
-                updatedAt = currentTimeMillis(),
+                updatedAt = updatedAt,
+                recoveryMaterial = recoveryMaterial,
             )
             ChangePasswordResult.Success(Unit)
         } catch (_: Exception) {
+            passwordRecoveryRepository?.let { repository ->
+                runCatching { repository.clear() }
+            }
             ChangePasswordResult.Failure(ChangePasswordFailure.SaveFailed)
         } finally {
             newPassword.fill(NULL_CHAR)
+            hashInput.fill(NULL_CHAR)
+            recoveryInput.fill(NULL_CHAR)
         }
     }
 

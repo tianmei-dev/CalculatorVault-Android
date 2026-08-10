@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryResult
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorAction
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorEngine
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorState
@@ -22,6 +24,7 @@ class CalculatorViewModel(
     private val engine: CalculatorEngine = CalculatorEngine(),
     private val unlockUseCase: VaultUnlockUseCase? = null,
     private val sessionManager: VaultSessionManager? = null,
+    private val passwordRecoveryRepository: PasswordRecoveryRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalculatorState())
@@ -29,6 +32,11 @@ class CalculatorViewModel(
 
     private val _effects = Channel<CalculatorEffect>(capacity = Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    private val _passwordRevealState =
+        MutableStateFlow<CalculatorPasswordRevealState>(CalculatorPasswordRevealState.Hidden)
+    val passwordRevealState: StateFlow<CalculatorPasswordRevealState> =
+        _passwordRevealState.asStateFlow()
 
     private val initialLockGeneration = sessionManager?.lockGeneration?.value
 
@@ -45,6 +53,7 @@ class CalculatorViewModel(
                     if (generation != observedGeneration) {
                         observedGeneration = generation
                         clearUnlockCandidate(allowNewRound = true)
+                        dismissPasswordReveal()
                         _uiState.value = CalculatorState()
                     }
                 }
@@ -73,6 +82,32 @@ class CalculatorViewModel(
         _uiState.update { state -> engine.reduce(state, action) }
     }
 
+    fun revealCurrentPassword() {
+        if (_passwordRevealState.value is CalculatorPasswordRevealState.Visible) return
+        val repository = passwordRecoveryRepository ?: run {
+            _passwordRevealState.value = CalculatorPasswordRevealState.Unavailable
+            return
+        }
+        viewModelScope.launch {
+            dismissPasswordReveal()
+            _passwordRevealState.value = when (val result = repository.reveal()) {
+                is PasswordRecoveryResult.Success ->
+                    CalculatorPasswordRevealState.Visible(result.password)
+                PasswordRecoveryResult.Unavailable,
+                PasswordRecoveryResult.Corrupted,
+                -> CalculatorPasswordRevealState.Unavailable
+                PasswordRecoveryResult.Failed -> CalculatorPasswordRevealState.Failed
+            }
+        }
+    }
+
+    fun dismissPasswordReveal() {
+        (_passwordRevealState.value as? CalculatorPasswordRevealState.Visible)
+            ?.password
+            ?.fill(NULL_CHAR)
+        _passwordRevealState.value = CalculatorPasswordRevealState.Hidden
+    }
+
     private fun tryCheckUnlock(): Boolean {
         val useCase = unlockUseCase ?: return false
         val manager = sessionManager ?: return false
@@ -83,21 +118,42 @@ class CalculatorViewModel(
             candidate.fill(NULL_CHAR)
             return false
         }
+        val recoveryCandidate = candidate.copyOf()
 
         clearUnlockCandidate(allowNewRound = false)
         unlockJobActive = true
         viewModelScope.launch {
             val verified = useCase.verify(candidate)
             if (_uiState.value == candidateState && verified && manager.tryUnlock()) {
+                maybeBackfillRecoveryMaterial(recoveryCandidate)
                 clearUnlockCandidate(allowNewRound = true)
                 _uiState.value = CalculatorState()
                 _effects.send(CalculatorEffect.OpenVault)
             } else if (_uiState.value == candidateState) {
+                recoveryCandidate.fill(NULL_CHAR)
                 _uiState.value = engine.reduce(candidateState, CalculatorAction.Equals)
+            } else {
+                recoveryCandidate.fill(NULL_CHAR)
             }
             unlockJobActive = false
         }
         return true
+    }
+
+    private suspend fun maybeBackfillRecoveryMaterial(candidate: CharArray) {
+        val repository = passwordRecoveryRepository ?: run {
+            candidate.fill(NULL_CHAR)
+            return
+        }
+        try {
+            if (!repository.hasMaterial()) {
+                repository.store(candidate)
+            } else {
+                candidate.fill(NULL_CHAR)
+            }
+        } catch (_: Exception) {
+            candidate.fill(NULL_CHAR)
+        }
     }
 
     private fun recordUnlockDigit(
@@ -140,6 +196,7 @@ class CalculatorViewModel(
 
     override fun onCleared() {
         clearUnlockCandidate(allowNewRound = false)
+        dismissPasswordReveal()
         _effects.close()
         super.onCleared()
     }
@@ -149,6 +206,7 @@ class CalculatorViewModel(
     class Factory(
         private val unlockUseCase: VaultUnlockUseCase,
         private val sessionManager: VaultSessionManager,
+        private val passwordRecoveryRepository: PasswordRecoveryRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -156,6 +214,7 @@ class CalculatorViewModel(
             return CalculatorViewModel(
                 unlockUseCase = unlockUseCase,
                 sessionManager = sessionManager,
+                passwordRecoveryRepository = passwordRecoveryRepository,
             ) as T
         }
     }

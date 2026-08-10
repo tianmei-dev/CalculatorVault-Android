@@ -266,6 +266,12 @@ private fun PasswordEntryScreen(
                 style = AppTextStyles.Caption,
                 color = AppColors.Warning,
             )
+            Text(
+                text = stringResource(R.string.password_recovery_setup_hint),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                style = AppTextStyles.Caption,
+                color = AppColors.TextTertiary,
+            )
         }
         OnboardingErrorText(state.error)
         Spacer(modifier = Modifier.weight(1f))

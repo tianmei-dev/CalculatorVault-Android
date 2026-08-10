@@ -3,6 +3,7 @@ package com.aurora.calculatorvault.feature.onboarding.data
 import com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.security.PasswordHasher
 import com.aurora.calculatorvault.core.security.StoredPasswordMaterialValidator
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.feature.onboarding.domain.PasswordPolicy
 import com.aurora.calculatorvault.feature.onboarding.domain.PasswordValidation
 import com.aurora.calculatorvault.feature.onboarding.domain.StartupDestination
@@ -32,6 +33,7 @@ interface OnboardingRepositoryContract {
 class OnboardingRepository(
     private val dataSource: SecurityPreferencesDataSource,
     private val passwordHasher: PasswordHasher,
+    private val passwordRecoveryRepository: PasswordRecoveryRepository? = null,
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : OnboardingRepositoryContract {
 
@@ -74,23 +76,43 @@ class OnboardingRepository(
             return OnboardingResult.Failure(validationFailure)
         }
 
+        val hashInput = password.copyOf()
+        val recoveryInput = password.copyOf()
         val hashResult = try {
-            passwordHasher.hash(password)
+            passwordHasher.hash(hashInput)
         } catch (_: Exception) {
             password.fill(NULL_CHAR)
+            hashInput.fill(NULL_CHAR)
+            recoveryInput.fill(NULL_CHAR)
             return OnboardingResult.Failure(OnboardingFailure.PasswordHashFailed)
+        }
+        val createdAt = currentTimeMillis()
+        val recoveryMaterial = if (passwordRecoveryRepository != null) {
+            try {
+                passwordRecoveryRepository.createMaterial(recoveryInput)
+            } catch (_: Exception) {
+                password.fill(NULL_CHAR)
+                recoveryInput.fill(NULL_CHAR)
+                return OnboardingResult.Failure(OnboardingFailure.PasswordSaveFailed)
+            }
+        } else {
+            recoveryInput.fill(NULL_CHAR)
+            null
         }
 
         return try {
             dataSource.savePasswordInitialization(
                 result = hashResult,
-                createdAt = currentTimeMillis(),
+                createdAt = createdAt,
+                recoveryMaterial = recoveryMaterial,
             )
             OnboardingResult.Success(Unit)
         } catch (_: Exception) {
             OnboardingResult.Failure(OnboardingFailure.PasswordSaveFailed)
         } finally {
             password.fill(NULL_CHAR)
+            hashInput.fill(NULL_CHAR)
+            recoveryInput.fill(NULL_CHAR)
         }
     }
 

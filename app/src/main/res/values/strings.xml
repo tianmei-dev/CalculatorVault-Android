@@ -19,6 +19,7 @@
     <string name="create_password_description">设置 4—8 位数字密码，用于后续进入私密空间</string>
     <string name="password_length_hint">请输入 4—8 位数字</string>
     <string name="password_weak_hint">建议避免使用过于简单的密码</string>
+    <string name="password_recovery_setup_hint">请牢记密码。如忘记密码，可在计算器页面长按删除键查看。</string>
     <string name="confirm_password_title">确认密码</string>
     <string name="confirm_password_description">请再次输入刚才设置的密码</string>
     <string name="password_mismatch">两次输入的密码不一致，请重新设置密码</string>
@@ -305,6 +306,11 @@
     <string name="set_new_password_title">设置新密码</string>
     <string name="set_new_password_description">请输入 4—8 位数字密码</string>
     <string name="new_password_hint">建议不要与当前密码相同</string>
+    <string name="password_recovery_change_hint">忘记密码时，可在计算器页面长按删除键查看。</string>
+    <string name="password_reveal_title">当前密码</string>
+    <string name="password_reveal_message">你的当前密码是</string>
+    <string name="password_reveal_unavailable_title">暂时无法查看密码</string>
+    <string name="password_reveal_unavailable_message">请先使用当前密码正常进入一次私密空间，之后即可通过长按删除键查看密码。</string>
     <string name="confirm_new_password_title">确认新密码</string>
     <string name="confirm_new_password_description">请再次输入刚才设置的新密码</string>
     <string name="new_password_mismatch">两次输入的新密码不一致，请重新输入</string>

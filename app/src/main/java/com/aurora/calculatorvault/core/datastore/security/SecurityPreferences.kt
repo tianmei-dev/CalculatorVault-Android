@@ -11,6 +11,11 @@ data class SecurityPreferences(
     val passwordIterations: Int? = null,
     val passwordCreatedAt: Long? = null,
     val passwordUpdatedAt: Long? = null,
+    val passwordRecoveryCiphertext: String? = null,
+    val passwordRecoveryIv: String? = null,
+    val passwordRecoveryAlgorithm: String? = null,
+    val passwordRecoveryVersion: Int? = null,
+    val passwordRecoveryUpdatedAt: Long? = null,
     val onboardingCompleted: Boolean = false,
 ) {
     fun hasAnyPasswordState(): Boolean =

@@ -7,6 +7,8 @@ import com.aurora.calculatorvault.core.database.CalculatorVaultDatabase
 import com.aurora.calculatorvault.core.datastore.security.DataStoreSecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.datastore.vaultPreferencesDataStore
 import com.aurora.calculatorvault.core.security.Pbkdf2PasswordHasher
+import com.aurora.calculatorvault.core.security.recovery.AndroidKeystorePasswordRecoveryCipher
+import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.core.security.session.AppLifecycleObserver
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
@@ -41,6 +43,13 @@ class CalculatorVaultApp : Application() {
 
     private val passwordHasher by lazy {
         Pbkdf2PasswordHasher()
+    }
+
+    val passwordRecoveryRepository by lazy {
+        PasswordRecoveryRepository(
+            dataSource = securityPreferencesDataSource,
+            cipher = AndroidKeystorePasswordRecoveryCipher(),
+        )
     }
 
     private val database by lazy {
@@ -189,6 +198,7 @@ class CalculatorVaultApp : Application() {
         OnboardingRepository(
             dataSource = securityPreferencesDataSource,
             passwordHasher = passwordHasher,
+            passwordRecoveryRepository = passwordRecoveryRepository,
         )
     }
 
@@ -196,6 +206,7 @@ class CalculatorVaultApp : Application() {
         ChangePasswordRepository(
             dataSource = securityPreferencesDataSource,
             passwordHasher = passwordHasher,
+            passwordRecoveryRepository = passwordRecoveryRepository,
         )
     }
 

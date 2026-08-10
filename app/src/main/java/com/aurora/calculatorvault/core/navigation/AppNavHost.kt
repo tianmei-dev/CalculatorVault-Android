@@ -161,6 +161,7 @@ fun AppNavHost(
                 factory = CalculatorViewModel.Factory(
                     unlockUseCase = application.vaultUnlockUseCase,
                     sessionManager = application.vaultSessionManager,
+                    passwordRecoveryRepository = application.passwordRecoveryRepository,
                 ),
             )
             CalculatorScreen(
