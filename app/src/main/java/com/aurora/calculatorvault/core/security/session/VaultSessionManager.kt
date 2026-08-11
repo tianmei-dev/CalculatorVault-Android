@@ -23,15 +23,36 @@ class VaultSessionManager {
     @Volatile
     private var appInForeground = false
 
+    @Volatile
+    private var externalResultInProgress = false
+
     @Synchronized
     fun onAppForegrounded() {
         appInForeground = true
+        externalResultInProgress = false
     }
 
     @Synchronized
     fun onAppBackgrounded() {
         appInForeground = false
+        if (externalResultInProgress) return
         lock()
+    }
+
+    /**
+     * 用于系统 Activity Result 场景（如 Photo Picker）。
+     *
+     * 这类系统选择器会短暂让本 App 进入后台；如果立刻锁定，会导致选择完成后
+     * 被导航守卫踢回计算器，丢失导入回调。该豁免只保持到 App 回到前台或显式结束。
+     */
+    @Synchronized
+    fun beginExternalResultFlow() {
+        externalResultInProgress = true
+    }
+
+    @Synchronized
+    fun endExternalResultFlow() {
+        externalResultInProgress = false
     }
 
     /**

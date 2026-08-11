@@ -58,6 +58,36 @@ class VaultSessionManagerTest {
         assertEquals(VaultSessionState.Locked, manager.state.value)
     }
 
+    @Test
+    fun `external result flow keeps session while system picker is open`() {
+        val manager = VaultSessionManager()
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+
+        assertEquals(VaultSessionState.Unlocked, manager.state.value)
+
+        manager.onAppForegrounded()
+        manager.onAppBackgrounded()
+
+        assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
+    @Test
+    fun `ending external result flow restores normal background locking`() {
+        val manager = VaultSessionManager()
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.endExternalResultFlow()
+        manager.onAppBackgrounded()
+
+        assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
     private class TestLifecycleOwner : LifecycleOwner {
         override val lifecycle: Lifecycle = LifecycleRegistry(this)
     }

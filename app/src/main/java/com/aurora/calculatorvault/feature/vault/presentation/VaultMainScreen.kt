@@ -33,6 +33,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPicker
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerViewModel
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModel
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaScreen
+import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaViewModel
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
 import com.aurora.calculatorvault.feature.settings.presentation.RecentHistoryViewModel
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordScreen
@@ -179,7 +180,16 @@ fun VaultMainScreen(
                     },
                 )
             }
-            composable(VaultTabRoute.PrivateMedia.path) { PrivateMediaScreen() }
+            composable(VaultTabRoute.PrivateMedia.path) {
+                val privateMediaViewModel: PrivateMediaViewModel = viewModel(
+                    factory = PrivateMediaViewModel.Factory(application.vaultMediaRepository),
+                )
+                PrivateMediaScreen(
+                    viewModel = privateMediaViewModel,
+                    sessionManager = application.vaultSessionManager,
+                    systemMediaRemovalManager = application.systemMediaRemovalManager,
+                )
+            }
             composable(VaultTabRoute.Settings.path) {
                 val recentHistoryViewModel: RecentHistoryViewModel = viewModel(
                     factory = RecentHistoryViewModel.Factory(application.hiddenAppRepository),

@@ -3,9 +3,9 @@ package com.aurora.calculatorvault.feature.calculator.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryResult
+import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorAction
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorEngine
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorState
@@ -14,11 +14,12 @@ import com.aurora.calculatorvault.feature.calculator.domain.isDirectUnlockInputS
 import com.aurora.calculatorvault.feature.calculator.domain.isUnlockCandidate
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class CalculatorViewModel(
     private val engine: CalculatorEngine = CalculatorEngine(),
@@ -44,6 +45,7 @@ class CalculatorViewModel(
     private val unlockCandidateInput = CharArray(MAX_UNLOCK_CANDIDATE_LENGTH)
     private var unlockCandidateLength = 0
     private var unlockCandidateEligible = true
+    private var unlockJobActive = false
 
     init {
         sessionManager?.let { manager ->
@@ -52,6 +54,7 @@ class CalculatorViewModel(
                 manager.lockGeneration.collect { generation ->
                     if (generation != observedGeneration) {
                         observedGeneration = generation
+                        unlockJobActive = false
                         clearUnlockCandidate(allowNewRound = true)
                         dismissPasswordReveal()
                         _uiState.value = CalculatorState()
@@ -123,19 +126,27 @@ class CalculatorViewModel(
         clearUnlockCandidate(allowNewRound = false)
         unlockJobActive = true
         viewModelScope.launch {
-            val verified = useCase.verify(candidate)
-            if (_uiState.value == candidateState && verified && manager.tryUnlock()) {
-                maybeBackfillRecoveryMaterial(recoveryCandidate)
-                clearUnlockCandidate(allowNewRound = true)
-                _uiState.value = CalculatorState()
-                _effects.send(CalculatorEffect.OpenVault)
-            } else if (_uiState.value == candidateState) {
+            try {
+                val verified = useCase.verify(candidate)
+                if (_uiState.value == candidateState && verified && manager.tryUnlock()) {
+                    clearUnlockCandidate(allowNewRound = true)
+                    _uiState.value = CalculatorState()
+                    _effects.send(CalculatorEffect.OpenVault)
+                    maybeBackfillRecoveryMaterial(recoveryCandidate)
+                } else if (_uiState.value == candidateState) {
+                    recoveryCandidate.fill(NULL_CHAR)
+                    _uiState.value = engine.reduce(candidateState, CalculatorAction.Equals)
+                } else {
+                    recoveryCandidate.fill(NULL_CHAR)
+                }
+            } catch (_: Exception) {
                 recoveryCandidate.fill(NULL_CHAR)
-                _uiState.value = engine.reduce(candidateState, CalculatorAction.Equals)
-            } else {
-                recoveryCandidate.fill(NULL_CHAR)
+                if (_uiState.value == candidateState) {
+                    _uiState.value = engine.reduce(candidateState, CalculatorAction.Equals)
+                }
+            } finally {
+                unlockJobActive = false
             }
-            unlockJobActive = false
         }
         return true
     }
@@ -146,11 +157,13 @@ class CalculatorViewModel(
             return
         }
         try {
-            if (!repository.hasMaterial()) {
-                repository.store(candidate)
-            } else {
-                candidate.fill(NULL_CHAR)
-            }
+            withTimeoutOrNull(RECOVERY_BACKFILL_TIMEOUT_MS) {
+                if (!repository.hasMaterial()) {
+                    repository.store(candidate)
+                } else {
+                    candidate.fill(NULL_CHAR)
+                }
+            } ?: candidate.fill(NULL_CHAR)
         } catch (_: Exception) {
             candidate.fill(NULL_CHAR)
         }
@@ -201,8 +214,6 @@ class CalculatorViewModel(
         super.onCleared()
     }
 
-    private var unlockJobActive = false
-
     class Factory(
         private val unlockUseCase: VaultUnlockUseCase,
         private val sessionManager: VaultSessionManager,
@@ -221,6 +232,7 @@ class CalculatorViewModel(
 
     private companion object {
         const val MAX_UNLOCK_CANDIDATE_LENGTH = 8
+        const val RECOVERY_BACKFILL_TIMEOUT_MS = 800L
         const val NULL_CHAR = '\u0000'
     }
 }

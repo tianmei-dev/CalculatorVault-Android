@@ -34,6 +34,10 @@ import com.aurora.calculatorvault.feature.hiddenapp.domain.AndroidHiddenAppRunti
 import com.aurora.calculatorvault.feature.hiddenapp.domain.FilteringInstalledAppScanner
 import com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCase
 import com.aurora.calculatorvault.feature.onboarding.data.OnboardingRepository
+import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaRepository
+import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRemovalManager
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaImporter
+import com.aurora.calculatorvault.feature.privatemedia.storage.VaultMediaStorage
 import com.aurora.calculatorvault.feature.settings.data.ChangePasswordRepository
 
 class CalculatorVaultApp : Application() {
@@ -62,6 +66,8 @@ class CalculatorVaultApp : Application() {
             CalculatorVaultDatabase.MIGRATION_2_3,
             CalculatorVaultDatabase.MIGRATION_3_4,
             CalculatorVaultDatabase.MIGRATION_4_5,
+            CalculatorVaultDatabase.MIGRATION_5_6,
+            CalculatorVaultDatabase.MIGRATION_6_7,
         ).build()
     }
 
@@ -183,6 +189,30 @@ class CalculatorVaultApp : Application() {
             launcherAppSource = launcherAppSource,
             packagePolicy = appLockPackagePolicy,
         )
+    }
+
+    private val vaultMediaStorage by lazy {
+        VaultMediaStorage(applicationContext)
+    }
+
+    private val vaultMediaImporter by lazy {
+        VaultMediaImporter(
+            contentResolver = contentResolver,
+            storage = vaultMediaStorage,
+        )
+    }
+
+    val vaultMediaRepository by lazy {
+        VaultMediaRepository(
+            albumDao = database.vaultAlbumDao(),
+            mediaDao = database.vaultMediaDao(),
+            importer = vaultMediaImporter,
+            storage = vaultMediaStorage,
+        )
+    }
+
+    val systemMediaRemovalManager by lazy {
+        SystemMediaRemovalManager(contentResolver)
     }
 
     val vaultUnlockUseCase by lazy {
