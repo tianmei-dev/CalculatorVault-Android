@@ -67,7 +67,7 @@
     <string name="privacy_collection_title">一、收集的信息</string>
     <string name="privacy_collection_body">MVP 当前不要求登录，不收集账号信息，也不将密码明文保存或上传。初始化仅在本地保存隐私同意记录及密码哈希材料。</string>
     <string name="privacy_permission_title">二、权限使用</string>
-    <string name="privacy_permission_body">当前版本不申请联系人、位置、相册、已安装应用列表等敏感权限。</string>
+    <string name="privacy_permission_body">当前版本不申请联系人、位置等权限。媒体导入优先使用系统选择器；在 Android 10 及以下从系统相册移除原文件时，可能需要请求媒体写入权限。</string>
     <string name="privacy_storage_title">三、本地存储</string>
     <string name="privacy_storage_body">隐私同意状态、协议版本、确认时间、随机盐值及密码哈希保存在应用专属 DataStore 中。</string>
     <string name="privacy_sdk_title">四、第三方 SDK</string>
@@ -385,7 +385,8 @@
     <string name="private_media_original_kept">已保留系统原文件</string>
     <string name="private_media_original_removed">已从系统相册移除 %1$d 项</string>
     <string name="private_media_original_remove_partial">已移除 %1$d 项，%2$d 项未能移除</string>
-    <string name="private_media_original_remove_failed">无法移除系统原文件</string>
+    <string name="private_media_original_remove_failed">无法从系统相册移除</string>
+    <string name="private_media_original_remove_permission_required">请允许媒体访问权限后再从系统相册移除</string>
     <string name="private_media_original_remove_unsupported">当前媒体无法从原位置移除</string>
     <string name="delete">删除</string>
     <string name="previous">上一项</string>

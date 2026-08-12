@@ -72,8 +72,7 @@ class VaultMediaImporter(
                     height = dimensions.height,
                     durationMs = dimensions.durationMs,
                     importedAt = currentTimeMillis(),
-                    originalUri = OriginalMediaUriResolver.resolveDeletableUri(uri, mediaType)?.toString()
-                        ?: uri.toString(),
+                    originalUri = uri.toString(),
                 )
             } catch (error: Exception) {
                 runCatching { tempFile.delete() }

@@ -88,6 +88,19 @@ class VaultSessionManagerTest {
         assertEquals(VaultSessionState.Locked, manager.state.value)
     }
 
+    @Test
+    fun `ending external result flow restores foreground unlock ability`() {
+        val manager = VaultSessionManager()
+        manager.onAppForegrounded()
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+        manager.endExternalResultFlow()
+
+        assertTrue(manager.tryUnlock())
+        assertEquals(VaultSessionState.Unlocked, manager.state.value)
+    }
+
     private class TestLifecycleOwner : LifecycleOwner {
         override val lifecycle: Lifecycle = LifecycleRegistry(this)
     }

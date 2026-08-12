@@ -116,13 +116,14 @@ class VaultMediaRepository(
                 if (uri == null) {
                     null
                 } else {
+                    val deletableUri = if (mediaType == null) {
+                        uri
+                    } else {
+                        OriginalMediaUriResolver.resolveDeletableUri(uri, mediaType) ?: uri
+                    }
                     OriginalMediaRemovalCandidate(
                         mediaId = entity.id,
-                        uri = if (mediaType == null) {
-                            uri
-                        } else {
-                            OriginalMediaUriResolver.resolveDeletableUri(uri, mediaType) ?: uri
-                        },
+                        uri = deletableUri,
                     )
                 }
             }

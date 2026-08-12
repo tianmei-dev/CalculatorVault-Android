@@ -34,8 +34,8 @@ class VaultSessionManager {
 
     @Synchronized
     fun onAppBackgrounded() {
-        appInForeground = false
         if (externalResultInProgress) return
+        appInForeground = false
         lock()
     }
 
@@ -53,6 +53,7 @@ class VaultSessionManager {
     @Synchronized
     fun endExternalResultFlow() {
         externalResultInProgress = false
+        appInForeground = true
     }
 
     /**

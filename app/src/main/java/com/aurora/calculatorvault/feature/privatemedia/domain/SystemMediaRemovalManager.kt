@@ -10,6 +10,8 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
+import com.aurora.calculatorvault.BuildConfig
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,6 +49,7 @@ class SystemMediaRemovalManager(
         candidates: List<OriginalMediaRemovalCandidate>,
     ): OriginalMediaRemovalStartResult = withContext(ioDispatcher) {
         val validCandidates = candidates.filter { it.uri.scheme == ContentResolver.SCHEME_CONTENT }
+        debugLog("begin api=${Build.VERSION.SDK_INT} count=${validCandidates.size} kinds=${validCandidates.map { it.uri.safeKind() }}")
         if (validCandidates.isEmpty()) return@withContext OriginalMediaRemovalStartResult.NoCandidates
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -60,6 +63,7 @@ class SystemMediaRemovalManager(
                     mediaIds = validCandidates.map { it.mediaId },
                 )
             }.getOrElse {
+                debugLog("begin createDeleteRequest failed=${it.javaClass.simpleName}")
                 OriginalMediaRemovalStartResult.Failed
             }
         }
@@ -72,14 +76,20 @@ class SystemMediaRemovalManager(
         resultCode: Int,
     ): OriginalMediaRemovalResult = withContext(ioDispatcher) {
         if (resultCode != Activity.RESULT_OK) {
+            debugLog("finish cancelled resultCode=$resultCode")
             return@withContext OriginalMediaRemovalResult(cancelled = true)
         }
         val validCandidates = candidates.filter { it.uri.scheme == ContentResolver.SCHEME_CONTENT }
+        debugLog("finish api=${Build.VERSION.SDK_INT} count=${validCandidates.size} kinds=${validCandidates.map { it.uri.safeKind() }}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val removed = mutableListOf<Long>()
             val failed = mutableListOf<Long>()
             validCandidates.forEach { candidate ->
-                if (exists(candidate.uri)) failed += candidate.mediaId else removed += candidate.mediaId
+                if (isRemovedFromVisibleGallery(candidate.uri)) {
+                    removed += candidate.mediaId
+                } else {
+                    failed += candidate.mediaId
+                }
             }
             OriginalMediaRemovalResult(removedIds = removed, failedIds = failed)
         } else {
@@ -102,18 +112,23 @@ class SystemMediaRemovalManager(
                 if (deleteUri(candidate.uri)) {
                     removed += candidate.mediaId
                 } else {
+                    debugLog("direct delete returned false kind=${candidate.uri.safeKind()}")
                     failed += candidate.mediaId
                 }
             } catch (exception: RecoverableSecurityException) {
+                debugLog("direct delete needs user action kind=${candidate.uri.safeKind()}")
                 return OriginalMediaRemovalStartResult.RequiresUserAction(
                     intentSender = exception.userAction.actionIntent.intentSender,
                     mediaIds = listOf(candidate.mediaId),
                 )
             } catch (_: ActivityNotFoundException) {
+                debugLog("direct delete failed=ActivityNotFoundException kind=${candidate.uri.safeKind()}")
                 failed += candidate.mediaId
-            } catch (_: SecurityException) {
+            } catch (exception: SecurityException) {
+                debugLog("direct delete failed=${exception.javaClass.simpleName} kind=${candidate.uri.safeKind()}")
                 failed += candidate.mediaId
-            } catch (_: IllegalArgumentException) {
+            } catch (exception: IllegalArgumentException) {
+                debugLog("direct delete failed=${exception.javaClass.simpleName} kind=${candidate.uri.safeKind()}")
                 failed += candidate.mediaId
             }
         }
@@ -127,15 +142,59 @@ class SystemMediaRemovalManager(
             contentResolver.delete(uri, null, null) > 0 || !exists(uri)
         } catch (exception: RecoverableSecurityException) {
             throw exception
-        } catch (_: Exception) {
+        } catch (exception: Exception) {
+            debugLog("deleteUri failed=${exception.javaClass.simpleName} kind=${uri.safeKind()}")
             false
         }
+
+    private fun Uri.safeKind(): String =
+        listOfNotNull(authority, pathSegments.firstOrNull(), pathSegments.getOrNull(1)).joinToString("/")
+
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, message)
+        }
+    }
+
+    private companion object {
+        const val TAG = "SystemMediaRemoval"
+    }
+
+    private fun isRemovedFromVisibleGallery(uri: Uri): Boolean {
+        if (!exists(uri)) return true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return isTrashed(uri)
+        }
+        return false
+    }
 
     private fun exists(uri: Uri): Boolean {
         var cursor: Cursor? = null
         return try {
             cursor = contentResolver.query(uri, arrayOf(MediaStore.MediaColumns._ID), null, null, null)
             cursor?.moveToFirst() == true
+        } catch (_: Exception) {
+            false
+        } finally {
+            cursor?.close()
+        }
+    }
+
+    private fun isTrashed(uri: Uri): Boolean {
+        var cursor: Cursor? = null
+        return try {
+            cursor = contentResolver.query(
+                uri,
+                arrayOf(MediaStore.MediaColumns.IS_TRASHED),
+                null,
+                null,
+                null,
+            )
+            if (cursor?.moveToFirst() == true) {
+                cursor.getInt(0) == 1
+            } else {
+                true
+            }
         } catch (_: Exception) {
             false
         } finally {

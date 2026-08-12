@@ -1,9 +1,12 @@
 package com.aurora.calculatorvault.feature.privatemedia.presentation
 
+import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
+import android.content.pm.PackageManager
 import android.widget.MediaController
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
@@ -62,6 +65,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.aurora.calculatorvault.R
@@ -73,6 +77,7 @@ import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.core.security.SecureScreenEffect
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
 import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
+import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalCandidate
 import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalStartResult
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRemovalManager
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaType
@@ -96,6 +101,7 @@ fun PrivateMediaScreen(
     systemMediaRemovalManager: SystemMediaRemovalManager,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     val messageController = LocalAppMessageController.current
     val coroutineScope = rememberCoroutineScope()
     val importFailed = stringResource(R.string.private_media_import_failed)
@@ -109,18 +115,72 @@ fun PrivateMediaScreen(
     val originalPartial = stringResource(R.string.private_media_original_remove_partial)
     val originalFailed = stringResource(R.string.private_media_original_remove_failed)
     val originalUnsupported = stringResource(R.string.private_media_original_remove_unsupported)
+    val originalPermissionRequired = stringResource(R.string.private_media_original_remove_permission_required)
+    var pendingOriginalRemovalCandidates by remember {
+        mutableStateOf<List<OriginalMediaRemovalCandidate>>(emptyList())
+    }
     val originalLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
     ) { result: ActivityResult ->
         sessionManager.endExternalResultFlow()
         coroutineScope.launch {
-            val candidates = viewModel.originalRemovalCandidates()
+            val candidates = pendingOriginalRemovalCandidates.ifEmpty {
+                viewModel.originalRemovalCandidates()
+            }
+            pendingOriginalRemovalCandidates = emptyList()
             val removalResult = systemMediaRemovalManager.finishAfterUserAction(
                 candidates = candidates,
                 resultCode = result.resultCode,
             )
             viewModel.consumeOriginalRemovalRequest()
             viewModel.handleOriginalRemovalResult(removalResult)
+        }
+    }
+    fun launchOriginalRemovalFlow() {
+        coroutineScope.launch {
+            val candidates = viewModel.originalRemovalCandidates()
+            when (val startResult = systemMediaRemovalManager.beginRemoval(candidates)) {
+                OriginalMediaRemovalStartResult.NoCandidates -> {
+                    pendingOriginalRemovalCandidates = emptyList()
+                    viewModel.consumeOriginalRemovalRequest()
+                    messageController.showWarning(originalUnsupported)
+                }
+                OriginalMediaRemovalStartResult.Failed -> {
+                    pendingOriginalRemovalCandidates = emptyList()
+                    viewModel.consumeOriginalRemovalRequest()
+                    viewModel.handleOriginalRemovalFailed()
+                }
+                is OriginalMediaRemovalStartResult.Completed -> {
+                    pendingOriginalRemovalCandidates = emptyList()
+                    viewModel.consumeOriginalRemovalRequest()
+                    viewModel.handleOriginalRemovalResult(startResult.result)
+                }
+                is OriginalMediaRemovalStartResult.RequiresUserAction -> {
+                    pendingOriginalRemovalCandidates = candidates.filter { candidate ->
+                        candidate.mediaId in startResult.mediaIds
+                    }
+                    sessionManager.beginExternalResultFlow()
+                    runCatching {
+                        originalLauncher.launch(
+                            IntentSenderRequest.Builder(startResult.intentSender).build(),
+                        )
+                    }.onFailure {
+                        sessionManager.endExternalResultFlow()
+                        pendingOriginalRemovalCandidates = emptyList()
+                        viewModel.consumeOriginalRemovalRequest()
+                        viewModel.handleOriginalRemovalFailed()
+                    }
+                }
+            }
+        }
+    }
+    val legacyMediaPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            launchOriginalRemovalFlow()
+        } else {
+            messageController.showWarning(originalPermissionRequired)
         }
     }
     val picker = rememberLauncherForActivityResult(
@@ -229,34 +289,15 @@ fun PrivateMediaScreen(
         onKeepOriginalMedia = viewModel::keepOriginalMedia,
         onDismissOriginalRemoval = viewModel::dismissOriginalRemovalPrompt,
         onRemoveOriginalMedia = {
-            coroutineScope.launch {
-                val candidates = viewModel.originalRemovalCandidates()
-                when (val startResult = systemMediaRemovalManager.beginRemoval(candidates)) {
-                    OriginalMediaRemovalStartResult.NoCandidates -> {
-                        viewModel.consumeOriginalRemovalRequest()
-                        messageController.showWarning(originalUnsupported)
-                    }
-                    OriginalMediaRemovalStartResult.Failed -> {
-                        viewModel.consumeOriginalRemovalRequest()
-                        viewModel.handleOriginalRemovalFailed()
-                    }
-                    is OriginalMediaRemovalStartResult.Completed -> {
-                        viewModel.consumeOriginalRemovalRequest()
-                        viewModel.handleOriginalRemovalResult(startResult.result)
-                    }
-                    is OriginalMediaRemovalStartResult.RequiresUserAction -> {
-                        sessionManager.beginExternalResultFlow()
-                        runCatching {
-                            originalLauncher.launch(
-                                IntentSenderRequest.Builder(startResult.intentSender).build(),
-                            )
-                        }.onFailure {
-                            sessionManager.endExternalResultFlow()
-                            viewModel.consumeOriginalRemovalRequest()
-                            viewModel.handleOriginalRemovalFailed()
-                        }
-                    }
-                }
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                legacyMediaPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                launchOriginalRemovalFlow()
             }
         },
     )
