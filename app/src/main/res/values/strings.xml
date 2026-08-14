@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">隐藏计算器</string>
+    <string name="app_name">应用加密计算器</string>
     <string name="developer_name">四川极光软件科技有限公司</string>
-    <string name="splash_title">隐藏计算器</string>
+    <string name="splash_title">应用加密计算器</string>
     <string name="splash_subtitle">正在读取本地初始化状态</string>
     <string name="startup_read_failed">无法读取本地初始化状态，请重试</string>
     <string name="retry">重试</string>
-    <string name="privacy_title">欢迎使用隐藏计算器</string>
+    <string name="privacy_title">欢迎使用应用加密计算器</string>
     <string name="privacy_intro">为了向你提供本地计算器、应用管理和私密文件功能，请阅读并同意相关协议。</string>
     <string name="privacy_local_note">本应用 MVP 阶段不要求登录，主要数据保存在当前设备本地。</string>
     <string name="user_agreement">用户协议</string>
@@ -54,7 +54,7 @@
     <string name="password_cd_delete">删除最后一位密码</string>
     <string name="back">返回</string>
     <string name="agreement_service_title">一、服务说明</string>
-    <string name="agreement_service_body">隐藏计算器提供本地计算器及后续的本地隐私工具能力。本阶段不提供账号、云同步或远程服务。</string>
+    <string name="agreement_service_body">应用加密计算器提供本地计算器及后续的本地隐私工具能力。本阶段不提供账号、云同步或远程服务。</string>
     <string name="agreement_behavior_title">二、用户行为要求</string>
     <string name="agreement_behavior_body">请合法、合理使用本应用，不得利用应用存储或处理违法违规内容。</string>
     <string name="agreement_local_title">三、本地数据说明</string>
@@ -216,11 +216,11 @@
     <string name="app_disguise_duplicate_message">系统桌面可能会创建另一个相同名称和图标的入口。</string>
     <string name="app_disguise_continue_add">继续添加</string>
     <string name="app_disguise_icon_launcher_note">实际图标形状和名称长度可能因手机桌面而略有不同。</string>
-    <string name="app_disguise_entry_safe_note">快捷入口只会打开隐藏计算器。本阶段不会直接启动目标应用。</string>
+    <string name="app_disguise_entry_safe_note">快捷入口只会打开应用加密计算器。本阶段不会直接启动目标应用。</string>
     <string name="app_disguise_finish">完成</string>
     <string name="app_lock_subtitle">为指定应用增加密码验证</string>
     <string name="app_lock_protect_title">保护指定应用</string>
-    <string name="app_lock_description">开启应用锁后，打开指定应用时需要先验证 CalculatorVault 密码。</string>
+    <string name="app_lock_description">开启应用锁后，打开指定应用时需要先验证应用加密计算器密码。</string>
     <string name="app_lock_validation_status">当前状态</string>
     <string name="app_lock_validation_pending">功能验证中</string>
     <string name="app_lock_permission_note">该功能需要额外系统授权，当前版本不会申请权限或提供锁定开关。</string>
@@ -242,9 +242,9 @@
     <string name="app_lock_monitor_notification_text">正在保护已开启应用锁的应用</string>
     <string name="app_lock_verification_channel">应用锁验证</string>
     <string name="app_lock_verification_notification_title">需要验证密码</string>
-    <string name="app_lock_verification_notification_text">检测到受保护应用已打开，请验证 CalculatorVault 密码。</string>
+    <string name="app_lock_verification_notification_text">检测到受保护应用已打开，请验证应用加密计算器密码。</string>
     <string name="app_lock_verify_title">应用锁验证</string>
-    <string name="app_lock_verify_description">请输入 CalculatorVault 密码继续</string>
+    <string name="app_lock_verify_description">请输入应用加密计算器密码继续</string>
     <string name="app_lock_verify_invalid_request">验证请求无效</string>
     <string name="app_lock_password_incorrect">密码错误，请重新输入</string>
     <string name="app_lock_verifying">正在验证…</string>
@@ -435,7 +435,7 @@
     <string name="example_document">文档</string>
     <string name="media_placeholder">媒体缩略图占位</string>
     <string name="data_not_configured">尚未配置</string>
-    <string name="about_app">隐藏计算器</string>
+    <string name="about_app">应用加密计算器</string>
     <string name="hidden_app_picker_title">添加应用</string>
     <string name="hidden_app_search">搜索应用</string>
     <string name="hidden_app_selected_count">已选择 %1$d 个</string>
@@ -535,14 +535,14 @@
     <string name="hidden_app_go_to_settings">前往设置</string>
     <string name="hidden_app_all_unavailable">这些应用当前不可用，请检查是否已卸载或停用。</string>
     <string name="disguise_shortcut_security_title">安全验证</string>
-    <string name="disguise_shortcut_security_description">请输入 CalculatorVault 密码继续</string>
+    <string name="disguise_shortcut_security_description">请输入应用加密计算器密码继续</string>
     <string name="disguise_shortcut_password_incorrect">密码错误，请重新输入</string>
     <string name="disguise_shortcut_verifying">正在验证…</string>
     <string name="disguise_shortcut_opening">正在打开…</string>
     <string name="disguise_shortcut_invalid_request">入口请求无效</string>
     <string name="disguise_shortcut_invalid_request_description">请重新从有效的桌面入口打开</string>
     <string name="disguise_shortcut_missing_title">该桌面入口已失效</string>
-    <string name="disguise_shortcut_missing_description">请返回 CalculatorVault 重新创建应用伪装</string>
+    <string name="disguise_shortcut_missing_description">请返回应用加密计算器重新创建应用伪装</string>
     <string name="disguise_shortcut_target_unavailable">目标应用暂时无法打开</string>
     <string name="disguise_shortcut_target_uninstalled">该应用可能已被卸载</string>
     <string name="disguise_shortcut_target_disabled">目标应用当前已停用</string>
@@ -550,7 +550,7 @@
     <string name="disguise_shortcut_no_launcher">没有找到可用的启动入口</string>
     <string name="disguise_shortcut_launch_blocked">系统限制了本次启动，请稍后重试</string>
     <string name="disguise_shortcut_launch_failed">打开失败，请稍后重试</string>
-    <string name="disguise_shortcut_open_calculator">打开 CalculatorVault</string>
+    <string name="disguise_shortcut_open_calculator">打开应用加密计算器</string>
     <string name="disguise_shortcut_session_expired">入口会话已过期</string>
     <string name="disguise_shortcut_session_expired_description">请重新从桌面打开</string>
     <string name="app_disguise_status_created">✓ 已创建</string>
