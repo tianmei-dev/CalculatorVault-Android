@@ -32,6 +32,8 @@ import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.DragHandle
@@ -74,6 +76,8 @@ object VaultIcons {
     val Unselected = Icons.Rounded.RadioButtonUnchecked
     val Drag = Icons.Rounded.DragHandle
     val Close = Icons.Rounded.Close
+    val Delete = Icons.Rounded.Delete
+    val Edit = Icons.Rounded.Edit
     val Refresh = Icons.Rounded.Refresh
     val Success = Icons.Rounded.CheckCircle
     val Warning = Icons.Rounded.WarningAmber

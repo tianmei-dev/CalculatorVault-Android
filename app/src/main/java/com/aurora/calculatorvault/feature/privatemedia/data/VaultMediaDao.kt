@@ -29,8 +29,14 @@ interface VaultMediaDao {
     @Query("SELECT COUNT(*) FROM vault_media")
     fun observeMediaCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM vault_media WHERE album_id = :albumId")
+    suspend fun countMediaByAlbum(albumId: Long): Int
+
     @Query("SELECT COUNT(*) FROM vault_media WHERE media_type = :mediaType")
     fun observeMediaCountByType(mediaType: String): Flow<Int>
+
+    @Query("UPDATE vault_media SET album_id = :targetAlbumId WHERE id IN (:ids)")
+    suspend fun moveMediaToAlbum(ids: List<Long>, targetAlbumId: Long): Int
 
     @Query("DELETE FROM vault_media WHERE id = :id")
     suspend fun deleteMediaRecord(id: Long): Int

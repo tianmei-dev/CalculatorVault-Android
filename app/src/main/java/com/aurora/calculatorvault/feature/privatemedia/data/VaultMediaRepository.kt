@@ -9,9 +9,12 @@ import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestore
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestoreManager
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestoreRequest
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbum
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumDeleteResult
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaDeleteSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaImportSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaImporter
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaMoveResult
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaRestoreSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultOriginalMediaState
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaType
@@ -61,20 +64,52 @@ class VaultMediaRepository(
     fun observeDefaultAlbum(): Flow<VaultAlbum?> =
         albumDao.observeDefaultAlbum().map { it?.toDomain() }
 
+    fun observeAlbumSummaries(): Flow<List<VaultAlbumSummary>> = combine(
+        albumDao.observeAllAlbums(),
+        mediaDao.observeAllMedia(),
+    ) { albums, media ->
+        val mediaByAlbum = media.groupBy { it.albumId }
+        albums
+            .map { album ->
+                val albumMedia = mediaByAlbum[album.id].orEmpty()
+                val cover = albumMedia.firstNotNullOfOrNull { entity ->
+                    val file = storage.privateFile(entity.privateFileName)
+                    if (file != null && file.exists()) {
+                        VaultMediaWithFile(entity.toDomain(), file)
+                    } else {
+                        null
+                    }
+                }
+                VaultAlbumSummary(
+                    album = album.toDomain(),
+                    mediaCount = albumMedia.size,
+                    cover = cover,
+                )
+            }
+            .sortedWith(
+                compareByDescending<VaultAlbumSummary> { it.album.isDefault }
+                    .thenByDescending { it.album.updatedAt }
+                    .thenBy { it.album.id },
+            )
+    }
+
     fun observeDefaultAlbumMedia(): Flow<List<VaultMediaWithFile>> =
         albumDao.observeDefaultAlbum().flatMapLatest { album ->
             if (album == null) {
                 flowOf(emptyList())
             } else {
-                mediaDao.observeMediaByAlbum(album.id).map { entities ->
-                    entities.mapNotNull { entity ->
-                        val file = storage.privateFile(entity.privateFileName)
-                        if (file != null && file.exists()) {
-                            VaultMediaWithFile(entity.toDomain(), file)
-                        } else {
-                            null
-                        }
-                    }
+                observeAlbumMedia(album.id)
+            }
+        }
+
+    fun observeAlbumMedia(albumId: Long): Flow<List<VaultMediaWithFile>> =
+        mediaDao.observeMediaByAlbum(albumId).map { entities ->
+            entities.mapNotNull { entity ->
+                val file = storage.privateFile(entity.privateFileName)
+                if (file != null && file.exists()) {
+                    VaultMediaWithFile(entity.toDomain(), file)
+                } else {
+                    null
                 }
             }
         }
@@ -92,6 +127,15 @@ class VaultMediaRepository(
         onProgress: ((current: Int, total: Int) -> Unit)? = null,
     ): VaultMediaImportSummary = withContext(ioDispatcher) {
         val album = ensureDefaultAlbum()
+        importMedia(album.id, uris, onProgress)
+    }
+
+    suspend fun importMedia(
+        albumId: Long,
+        uris: List<Uri>,
+        onProgress: ((current: Int, total: Int) -> Unit)? = null,
+    ): VaultMediaImportSummary = withContext(ioDispatcher) {
+        val album = albumDao.getAlbum(albumId) ?: return@withContext VaultMediaImportSummary(0, uris.distinct().size)
         var successes = 0
         var failures = 0
         val importedIds = mutableListOf<Long>()
@@ -118,9 +162,79 @@ class VaultMediaRepository(
             }
             debugLog("batch import progress current=${index + 1} total=${uniqueUris.size}")
         }
+        if (successes > 0) {
+            albumDao.touchAlbum(album.id, currentTimeMillis())
+        }
         debugLog("batch import completed success=$successes failed=$failures")
         VaultMediaImportSummary(successes, failures, importedIds)
     }
+
+    suspend fun createAlbum(name: String): Result<VaultAlbum> = withContext(ioDispatcher) {
+        runCatching {
+            val trimmedName = name.trim().takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("Album name is blank")
+            val now = currentTimeMillis()
+            val id = albumDao.insert(
+                VaultAlbumEntity(
+                    name = trimmedName,
+                    isDefault = false,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+            (albumDao.getAlbum(id) ?: VaultAlbumEntity(
+                id = id,
+                name = trimmedName,
+                isDefault = false,
+                createdAt = now,
+                updatedAt = now,
+            )).toDomain()
+        }
+    }
+
+    suspend fun renameAlbum(albumId: Long, name: String): Boolean = withContext(ioDispatcher) {
+        val trimmedName = name.trim().takeIf { it.isNotBlank() } ?: return@withContext false
+        albumDao.renameAlbum(albumId, trimmedName, currentTimeMillis()) == 1
+    }
+
+    suspend fun deleteAlbum(albumId: Long): VaultAlbumDeleteResult = withContext(ioDispatcher) {
+        val album = albumDao.getAlbum(albumId) ?: return@withContext VaultAlbumDeleteResult.NotFound
+        if (album.isDefault) return@withContext VaultAlbumDeleteResult.DefaultAlbum
+        val mediaCount = mediaDao.countMediaByAlbum(albumId)
+        if (mediaCount > 0) return@withContext VaultAlbumDeleteResult.NotEmpty(mediaCount)
+        runCatching { albumDao.deleteAlbum(albumId) }
+            .fold(
+                onSuccess = { deleted ->
+                    if (deleted == 1) VaultAlbumDeleteResult.Deleted else VaultAlbumDeleteResult.Failed
+                },
+                onFailure = { VaultAlbumDeleteResult.Failed },
+            )
+    }
+
+    suspend fun moveMediaToAlbum(mediaIds: List<Long>, targetAlbumId: Long): VaultMediaMoveResult =
+        withContext(ioDispatcher) {
+            val uniqueIds = mediaIds.distinct()
+            if (uniqueIds.isEmpty()) return@withContext VaultMediaMoveResult.NoSelection
+            val target = albumDao.getAlbum(targetAlbumId) ?: return@withContext VaultMediaMoveResult.TargetMissing
+            val entities = mediaDao.getMediaByIds(uniqueIds)
+            if (entities.isEmpty()) return@withContext VaultMediaMoveResult.NoSelection
+            if (entities.all { it.albumId == target.id }) return@withContext VaultMediaMoveResult.SameAlbum
+            runCatching {
+                val moved = mediaDao.moveMediaToAlbum(uniqueIds, target.id)
+                if (moved > 0) {
+                    val now = currentTimeMillis()
+                    albumDao.touchAlbum(target.id, now)
+                    entities.map { it.albumId }.distinct().forEach { sourceAlbumId ->
+                        albumDao.touchAlbum(sourceAlbumId, now)
+                    }
+                    VaultMediaMoveResult.Moved(moved)
+                } else {
+                    VaultMediaMoveResult.Failed
+                }
+            }.getOrElse {
+                VaultMediaMoveResult.Failed
+            }
+        }
 
     suspend fun originalRemovalCandidates(mediaIds: List<Long>) = withContext(ioDispatcher) {
         mediaDao.getMediaByIds(mediaIds.distinct())

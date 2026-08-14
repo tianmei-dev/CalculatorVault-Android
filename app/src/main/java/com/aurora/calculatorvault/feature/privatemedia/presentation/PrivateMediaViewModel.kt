@@ -6,13 +6,19 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaRepository
 import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalResult
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumDeleteResult
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumSummary
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaMoveResult
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultOriginalMediaState
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaWithFile
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,6 +30,10 @@ data class PrivateMediaUiState(
     val importProgressTotal: Int = 0,
     val isDeleting: Boolean = false,
     val isRestoring: Boolean = false,
+    val isAlbumHome: Boolean = true,
+    val currentAlbumId: Long? = null,
+    val currentAlbumName: String? = null,
+    val albumSummaries: List<VaultAlbumSummary> = emptyList(),
     val media: List<VaultMediaWithFile> = emptyList(),
     val totalCount: Int = 0,
     val imageCount: Int = 0,
@@ -48,6 +58,7 @@ data class PrivateMediaUiState(
 }
 
 sealed interface PrivateMediaEffect {
+    data class OpenMediaPicker(val albumId: Long) : PrivateMediaEffect
     data class ImportCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
     data object ImportFailed : PrivateMediaEffect
     data class DeleteCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
@@ -57,8 +68,19 @@ sealed interface PrivateMediaEffect {
     data class OriginalRemovalCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
     data object OriginalRemovalKept : PrivateMediaEffect
     data object OriginalRemovalFailed : PrivateMediaEffect
+    data object AlbumCreated : PrivateMediaEffect
+    data object AlbumCreateFailed : PrivateMediaEffect
+    data object AlbumRenamed : PrivateMediaEffect
+    data object AlbumRenameFailed : PrivateMediaEffect
+    data object AlbumDeleted : PrivateMediaEffect
+    data object AlbumDeleteFailed : PrivateMediaEffect
+    data object DefaultAlbumCannotDelete : PrivateMediaEffect
+    data class AlbumNotEmpty(val mediaCount: Int) : PrivateMediaEffect
+    data class MediaMoved(val count: Int) : PrivateMediaEffect
+    data object MediaMoveFailed : PrivateMediaEffect
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PrivateMediaViewModel(
     private val repository: VaultMediaRepository,
 ) : ViewModel() {
@@ -67,11 +89,15 @@ class PrivateMediaViewModel(
     val effects = MutableSharedFlow<PrivateMediaEffect>(extraBufferCapacity = 8)
 
     val uiState: StateFlow<PrivateMediaUiState> = combine(
-        repository.observeDefaultAlbumMedia(),
+        repository.observeAlbumSummaries(),
+        transientState.flatMapLatest { transient ->
+            transient.currentAlbumId?.let(repository::observeAlbumMedia) ?: flowOf(emptyList())
+        },
         repository.observeCounts(),
         transientState,
-    ) { media, counts, transient ->
+    ) { albumSummaries, media, counts, transient ->
         val validIds = media.map { it.media.id }.toSet()
+        val currentAlbum = albumSummaries.firstOrNull { it.album.id == transient.currentAlbumId }?.album
         PrivateMediaUiState(
             isLoading = false,
             isImporting = transient.isImporting,
@@ -79,6 +105,10 @@ class PrivateMediaViewModel(
             importProgressTotal = transient.importProgressTotal,
             isDeleting = transient.isDeleting,
             isRestoring = transient.isRestoring,
+            isAlbumHome = transient.currentAlbumId == null,
+            currentAlbumId = transient.currentAlbumId,
+            currentAlbumName = currentAlbum?.name,
+            albumSummaries = albumSummaries,
             media = media,
             totalCount = counts.total,
             imageCount = counts.images,
@@ -102,7 +132,16 @@ class PrivateMediaViewModel(
         }
     }
 
-    fun importMedia(uris: List<Uri>) {
+    fun requestImportToAlbum(albumId: Long) {
+        if (transientState.value.isImporting) return
+        effects.tryEmit(PrivateMediaEffect.OpenMediaPicker(albumId))
+    }
+
+    fun requestImportToCurrentAlbum() {
+        transientState.value.currentAlbumId?.let(::requestImportToAlbum)
+    }
+
+    fun importMedia(albumId: Long, uris: List<Uri>) {
         val uniqueUris = uris.distinct().take(MAX_IMPORT_BATCH_SIZE)
         if (uniqueUris.isEmpty() || transientState.value.isImporting) return
         viewModelScope.launch {
@@ -114,7 +153,7 @@ class PrivateMediaViewModel(
                 )
             }
             try {
-                val summary = repository.importMedia(uniqueUris) { current, total ->
+                val summary = repository.importMedia(albumId, uniqueUris) { current, total ->
                     transientState.update {
                         it.copy(
                             importProgressCurrent = current,
@@ -140,6 +179,101 @@ class PrivateMediaViewModel(
                         importProgressTotal = 0,
                     )
                 }
+            }
+        }
+    }
+
+    fun importMedia(uris: List<Uri>) {
+        transientState.value.currentAlbumId?.let { albumId ->
+            importMedia(albumId, uris)
+        }
+    }
+
+    fun openAlbum(albumId: Long) {
+        if (transientState.value.isImporting || transientState.value.isDeleting || transientState.value.isRestoring) return
+        transientState.update {
+            it.copy(
+                currentAlbumId = albumId,
+                selectedMediaIds = emptySet(),
+                previewMediaId = null,
+                pendingDeleteMediaIds = emptySet(),
+                pendingRestoreMediaIds = emptySet(),
+            )
+        }
+    }
+
+    fun backToAlbumHome() {
+        if (transientState.value.isImporting || transientState.value.isDeleting || transientState.value.isRestoring) return
+        transientState.update {
+            it.copy(
+                currentAlbumId = null,
+                selectedMediaIds = emptySet(),
+                previewMediaId = null,
+                pendingDeleteMediaIds = emptySet(),
+                pendingRestoreMediaIds = emptySet(),
+            )
+        }
+    }
+
+    fun createAlbum(
+        name: String,
+        importAfterCreate: Boolean = false,
+        moveSelectionAfterCreate: Boolean = false,
+    ) {
+        viewModelScope.launch {
+            val album = repository.createAlbum(name).getOrNull()
+            if (album == null) {
+                effects.tryEmit(PrivateMediaEffect.AlbumCreateFailed)
+                return@launch
+            }
+            effects.tryEmit(PrivateMediaEffect.AlbumCreated)
+            when {
+                importAfterCreate -> effects.tryEmit(PrivateMediaEffect.OpenMediaPicker(album.id))
+                moveSelectionAfterCreate -> moveSelectedToAlbum(album.id)
+            }
+        }
+    }
+
+    fun renameAlbum(albumId: Long, name: String) {
+        viewModelScope.launch {
+            if (repository.renameAlbum(albumId, name)) {
+                effects.tryEmit(PrivateMediaEffect.AlbumRenamed)
+            } else {
+                effects.tryEmit(PrivateMediaEffect.AlbumRenameFailed)
+            }
+        }
+    }
+
+    fun deleteAlbum(albumId: Long) {
+        viewModelScope.launch {
+            when (val result = repository.deleteAlbum(albumId)) {
+                VaultAlbumDeleteResult.Deleted -> {
+                    if (transientState.value.currentAlbumId == albumId) {
+                        backToAlbumHome()
+                    }
+                    effects.tryEmit(PrivateMediaEffect.AlbumDeleted)
+                }
+                VaultAlbumDeleteResult.DefaultAlbum -> effects.tryEmit(PrivateMediaEffect.DefaultAlbumCannotDelete)
+                is VaultAlbumDeleteResult.NotEmpty -> effects.tryEmit(PrivateMediaEffect.AlbumNotEmpty(result.mediaCount))
+                VaultAlbumDeleteResult.Failed,
+                VaultAlbumDeleteResult.NotFound -> effects.tryEmit(PrivateMediaEffect.AlbumDeleteFailed)
+            }
+        }
+    }
+
+    fun moveSelectedToAlbum(targetAlbumId: Long) {
+        val selected = transientState.value.selectedMediaIds.toList()
+        if (selected.isEmpty()) return
+        viewModelScope.launch {
+            when (val result = repository.moveMediaToAlbum(selected, targetAlbumId)) {
+                is VaultMediaMoveResult.Moved -> {
+                    transientState.update { it.copy(selectedMediaIds = emptySet()) }
+                    effects.tryEmit(PrivateMediaEffect.MediaMoved(result.count))
+                }
+                VaultMediaMoveResult.NoSelection,
+                VaultMediaMoveResult.SameAlbum,
+                VaultMediaMoveResult.TargetMissing,
+                VaultMediaMoveResult.Failed -> effects.tryEmit(PrivateMediaEffect.MediaMoveFailed)
             }
         }
     }
@@ -349,6 +483,7 @@ class PrivateMediaViewModel(
         val importProgressTotal: Int = 0,
         val isDeleting: Boolean = false,
         val isRestoring: Boolean = false,
+        val currentAlbumId: Long? = null,
         val selectedMediaIds: Set<Long> = emptySet(),
         val previewMediaId: Long? = null,
         val pendingDeleteMediaIds: Set<Long> = emptySet(),

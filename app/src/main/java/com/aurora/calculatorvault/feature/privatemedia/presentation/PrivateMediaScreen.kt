@@ -44,6 +44,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -82,6 +83,7 @@ import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalCandidate
 import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalStartResult
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRemovalManager
+import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaType
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaWithFile
 import com.aurora.calculatorvault.ui.component.VaultCard
@@ -121,6 +123,21 @@ fun PrivateMediaScreen(
     val originalFailed = stringResource(R.string.private_media_original_remove_failed)
     val originalUnsupported = stringResource(R.string.private_media_original_remove_unsupported)
     val originalPermissionRequired = stringResource(R.string.private_media_original_remove_permission_required)
+    val albumCreated = stringResource(R.string.private_media_folder_created)
+    val albumCreateFailed = stringResource(R.string.private_media_folder_create_failed)
+    val albumRenamed = stringResource(R.string.private_media_folder_renamed)
+    val albumRenameFailed = stringResource(R.string.private_media_folder_rename_failed)
+    val albumDeleted = stringResource(R.string.private_media_folder_deleted)
+    val albumDeleteFailed = stringResource(R.string.private_media_folder_delete_failed)
+    val defaultAlbumCannotDelete = stringResource(R.string.private_media_default_folder_cannot_delete)
+    val albumNotEmpty = stringResource(R.string.private_media_folder_not_empty)
+    val mediaMoved = stringResource(R.string.private_media_move_success)
+    val mediaMoveFailed = stringResource(R.string.private_media_move_failed)
+    var pendingPickerAlbumId by remember { mutableStateOf<Long?>(null) }
+    var showImportAlbumPicker by remember { mutableStateOf(false) }
+    var showMoveAlbumPicker by remember { mutableStateOf(false) }
+    var albumNameDialog by remember { mutableStateOf<AlbumNameDialogState?>(null) }
+    var pendingDeleteAlbum by remember { mutableStateOf<VaultAlbumSummary?>(null) }
     var pendingOriginalRemovalCandidates by remember {
         mutableStateOf<List<OriginalMediaRemovalCandidate>>(emptyList())
     }
@@ -192,22 +209,42 @@ fun PrivateMediaScreen(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = MAX_PICK_ITEMS),
     ) { uris ->
         // 继续保留安全规则：空结果不导入、不弹移除确认，并结束本次私密会话。
+        val albumId = pendingPickerAlbumId
+        pendingPickerAlbumId = null
         if (uris.isEmpty()) {
             sessionManager.cancelExternalResultFlowAndLock()
         } else {
             sessionManager.endExternalResultFlow()
-            viewModel.importMedia(uris)
+            if (albumId != null) {
+                viewModel.importMedia(albumId, uris)
+            }
         }
     }
     val legacyPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
         // ACTION_OPEN_DOCUMENT fallback 返回单项或多项时统一为 List<Uri>。
+        val albumId = pendingPickerAlbumId
+        pendingPickerAlbumId = null
         if (uris.isEmpty()) {
             sessionManager.cancelExternalResultFlowAndLock()
         } else {
             sessionManager.endExternalResultFlow()
-            viewModel.importMedia(uris)
+            if (albumId != null) {
+                viewModel.importMedia(albumId, uris)
+            }
+        }
+    }
+
+    fun launchPickerForAlbum(albumId: Long) {
+        pendingPickerAlbumId = albumId
+        sessionManager.beginExternalResultFlow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            picker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+            )
+        } else {
+            legacyPicker.launch(arrayOf("image/*", "video/*"))
         }
     }
 
@@ -217,10 +254,14 @@ fun PrivateMediaScreen(
     BackHandler(enabled = state.isSelectionMode && state.previewItem == null) {
         viewModel.cancelSelection()
     }
+    BackHandler(enabled = !state.isAlbumHome && !state.isSelectionMode && state.previewItem == null) {
+        viewModel.backToAlbumHome()
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                is PrivateMediaEffect.OpenMediaPicker -> launchPickerForAlbum(effect.albumId)
                 PrivateMediaEffect.ImportFailed ->
                     messageController.showError(importFailed)
                 is PrivateMediaEffect.ImportCompleted -> {
@@ -284,6 +325,18 @@ fun PrivateMediaScreen(
                 }
                 PrivateMediaEffect.OriginalRemovalKept -> messageController.showInfo(originalKept)
                 PrivateMediaEffect.OriginalRemovalFailed -> messageController.showError(originalFailed)
+                PrivateMediaEffect.AlbumCreated -> messageController.showSuccess(albumCreated)
+                PrivateMediaEffect.AlbumCreateFailed -> messageController.showError(albumCreateFailed)
+                PrivateMediaEffect.AlbumRenamed -> messageController.showSuccess(albumRenamed)
+                PrivateMediaEffect.AlbumRenameFailed -> messageController.showError(albumRenameFailed)
+                PrivateMediaEffect.AlbumDeleted -> messageController.showSuccess(albumDeleted)
+                PrivateMediaEffect.AlbumDeleteFailed -> messageController.showError(albumDeleteFailed)
+                PrivateMediaEffect.DefaultAlbumCannotDelete -> messageController.showWarning(defaultAlbumCannotDelete)
+                is PrivateMediaEffect.AlbumNotEmpty ->
+                    messageController.showWarning(albumNotEmpty.format(effect.mediaCount))
+                is PrivateMediaEffect.MediaMoved ->
+                    messageController.showSuccess(mediaMoved.format(effect.count))
+                PrivateMediaEffect.MediaMoveFailed -> messageController.showError(mediaMoveFailed)
                 is PrivateMediaEffect.OriginalRemovalCompleted -> {
                     when {
                         effect.successCount > 0 && effect.failureCount == 0 ->
@@ -309,17 +362,21 @@ fun PrivateMediaScreen(
 
     PrivateMediaContent(
         state = state,
-        onImport = {
-            if (state.isImporting) return@PrivateMediaContent
-            sessionManager.beginExternalResultFlow()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                picker.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
-                )
-            } else {
-                legacyPicker.launch(arrayOf("image/*", "video/*"))
-            }
+        onImportFromHome = { showImportAlbumPicker = true },
+        onImportCurrentAlbum = viewModel::requestImportToCurrentAlbum,
+        onOpenAlbum = viewModel::openAlbum,
+        onBackToAlbumHome = viewModel::backToAlbumHome,
+        onCreateAlbum = {
+            albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.Create)
         },
+        onRenameAlbum = { album ->
+            albumNameDialog = AlbumNameDialogState(
+                purpose = AlbumNameDialogPurpose.Rename(album.album.id),
+                initialName = album.album.name,
+            )
+        },
+        onDeleteAlbum = { album -> pendingDeleteAlbum = album },
+        onMoveSelection = { showMoveAlbumPicker = true },
         onOpenPreview = viewModel::openPreview,
         onLongPressItem = viewModel::enterSelectionMode,
         onToggleSelection = viewModel::toggleSelection,
@@ -351,12 +408,91 @@ fun PrivateMediaScreen(
             }
         },
     )
+
+    if (showImportAlbumPicker) {
+        AlbumPickerDialog(
+            title = stringResource(R.string.private_media_select_import_folder),
+            albums = state.albumSummaries,
+            disabledAlbumId = null,
+            onSelect = { albumId ->
+                showImportAlbumPicker = false
+                viewModel.requestImportToAlbum(albumId)
+            },
+            onCreate = {
+                showImportAlbumPicker = false
+                albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.CreateForImport)
+            },
+            onCancel = { showImportAlbumPicker = false },
+        )
+    }
+
+    if (showMoveAlbumPicker) {
+        AlbumPickerDialog(
+            title = stringResource(R.string.private_media_select_move_folder),
+            albums = state.albumSummaries,
+            disabledAlbumId = state.currentAlbumId,
+            onSelect = { albumId ->
+                showMoveAlbumPicker = false
+                viewModel.moveSelectedToAlbum(albumId)
+            },
+            onCreate = {
+                showMoveAlbumPicker = false
+                albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.CreateForMove)
+            },
+            onCancel = { showMoveAlbumPicker = false },
+        )
+    }
+
+    albumNameDialog?.let { dialogState ->
+        AlbumNameDialog(
+            title = when (dialogState.purpose) {
+                AlbumNameDialogPurpose.Create,
+                AlbumNameDialogPurpose.CreateForImport,
+                AlbumNameDialogPurpose.CreateForMove -> stringResource(R.string.private_media_create_folder)
+                is AlbumNameDialogPurpose.Rename -> stringResource(R.string.private_media_rename_folder)
+            },
+            initialName = dialogState.initialName,
+            onCancel = { albumNameDialog = null },
+            onConfirm = { name ->
+                albumNameDialog = null
+                when (val purpose = dialogState.purpose) {
+                    AlbumNameDialogPurpose.Create -> viewModel.createAlbum(name)
+                    AlbumNameDialogPurpose.CreateForImport ->
+                        viewModel.createAlbum(name, importAfterCreate = true)
+                    AlbumNameDialogPurpose.CreateForMove ->
+                        viewModel.createAlbum(name, moveSelectionAfterCreate = true)
+                    is AlbumNameDialogPurpose.Rename ->
+                        viewModel.renameAlbum(purpose.albumId, name)
+                }
+            },
+        )
+    }
+
+    pendingDeleteAlbum?.let { summary ->
+        DeleteAlbumDialog(
+            albumName = summary.album.name,
+            isDefault = summary.album.isDefault,
+            mediaCount = summary.mediaCount,
+            onCancel = { pendingDeleteAlbum = null },
+            onConfirm = {
+                pendingDeleteAlbum = null
+                viewModel.deleteAlbum(summary.album.id)
+            },
+        )
+    }
 }
 
 @Composable
 private fun PrivateMediaContent(
     state: PrivateMediaUiState,
-    onImport: () -> Unit,
+    onImportFromHome: () -> Unit,
+    onImportCurrentAlbum: () -> Unit,
+    onOpenAlbum: (Long) -> Unit,
+    onBackToAlbumHome: () -> Unit,
+    onCreateAlbum: () -> Unit,
+    onRenameAlbum: (VaultAlbumSummary) -> Unit,
+    onDeleteAlbum: (VaultAlbumSummary) -> Unit,
+    onMoveSelection: () -> Unit,
     onOpenPreview: (Long) -> Unit,
     onLongPressItem: (Long) -> Unit,
     onToggleSelection: (Long) -> Unit,
@@ -378,50 +514,29 @@ private fun PrivateMediaContent(
     onRemoveOriginalMedia: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            modifier = Modifier.fillMaxSize(),
-            columns = GridCells.Fixed(3),
-            contentPadding = PaddingValues(
-                start = AppSpacing.xl,
-                top = AppSpacing.xl,
-                end = AppSpacing.xl,
-                bottom = appFabScrollContentPadding().calculateBottomPadding(),
-            ),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            header(
+        if (state.isAlbumHome) {
+            AlbumHomeContent(
                 state = state,
-                onImport = onImport,
+                onImport = onImportFromHome,
+                onCreateAlbum = onCreateAlbum,
+                onOpenAlbum = onOpenAlbum,
+                onRenameAlbum = onRenameAlbum,
+                onDeleteAlbum = onDeleteAlbum,
+            )
+        } else {
+            AlbumDetailContent(
+                state = state,
+                onImport = onImportCurrentAlbum,
+                onBack = onBackToAlbumHome,
+                onMoveSelection = onMoveSelection,
+                onOpenPreview = onOpenPreview,
+                onLongPressItem = onLongPressItem,
+                onToggleSelection = onToggleSelection,
                 onCancelSelection = onCancelSelection,
                 onSelectAll = onSelectAll,
                 onRequestRestoreSelection = onRequestRestoreSelection,
                 onRequestDeleteSelection = onRequestDeleteSelection,
             )
-            if (state.media.isEmpty() && !state.isLoading) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    EmptyPrivateMedia(
-                        isImporting = state.isImporting,
-                        onImport = onImport,
-                    )
-                }
-            } else {
-                items(state.media, key = { it.media.id }) { item ->
-                    VaultMediaGridItem(
-                        item = item,
-                        isSelected = item.media.id in state.selectedMediaIds,
-                        isSelectionMode = state.isSelectionMode,
-                        onClick = {
-                            if (state.isSelectionMode) {
-                                onToggleSelection(item.media.id)
-                            } else {
-                                onOpenPreview(item.media.id)
-                            }
-                        },
-                        onLongClick = { onLongPressItem(item.media.id) },
-                    )
-                }
-            }
         }
 
         if (state.isImporting || state.isDeleting || state.isRestoring) {
@@ -482,6 +597,386 @@ private fun PrivateMediaContent(
     }
 }
 
+@Composable
+private fun AlbumHomeContent(
+    state: PrivateMediaUiState,
+    onImport: () -> Unit,
+    onCreateAlbum: () -> Unit,
+    onOpenAlbum: (Long) -> Unit,
+    onRenameAlbum: (VaultAlbumSummary) -> Unit,
+    onDeleteAlbum: (VaultAlbumSummary) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = AppSpacing.xl,
+                top = AppSpacing.xl,
+                end = AppSpacing.xl,
+            ),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+    ) {
+        PageHeader(
+            title = stringResource(R.string.tab_private_media),
+            description = stringResource(R.string.private_media_folder_home_description),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ImportMediaHeroButton(
+                onClick = onImport,
+                enabled = !state.isImporting,
+                modifier = Modifier.weight(1f),
+            )
+            CreateFolderShortcut(
+                enabled = !state.isImporting,
+                onClick = onCreateAlbum,
+            )
+        }
+        Text(
+            text = stringResource(R.string.private_media_folder_count, state.albumSummaries.size),
+            style = AppTextStyles.SectionTitle,
+            color = AppColors.TextPrimary,
+        )
+        LazyVerticalGrid(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            columns = GridCells.Fixed(1),
+            contentPadding = PaddingValues(
+                bottom = appFabScrollContentPadding().calculateBottomPadding(),
+            ),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        ) {
+            items(state.albumSummaries, key = { it.album.id }) { summary ->
+                FolderCard(
+                    summary = summary,
+                    onClick = { onOpenAlbum(summary.album.id) },
+                    onRename = { onRenameAlbum(summary) },
+                    onDelete = { onDeleteAlbum(summary) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlbumDetailContent(
+    state: PrivateMediaUiState,
+    onImport: () -> Unit,
+    onBack: () -> Unit,
+    onMoveSelection: () -> Unit,
+    onOpenPreview: (Long) -> Unit,
+    onLongPressItem: (Long) -> Unit,
+    onToggleSelection: (Long) -> Unit,
+    onCancelSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onRequestRestoreSelection: () -> Unit,
+    onRequestDeleteSelection: () -> Unit,
+) {
+    LazyVerticalGrid(
+        modifier = Modifier.fillMaxSize(),
+        columns = GridCells.Fixed(3),
+        contentPadding = PaddingValues(
+            start = AppSpacing.xl,
+            top = AppSpacing.xl,
+            end = AppSpacing.xl,
+            bottom = appFabScrollContentPadding().calculateBottomPadding(),
+        ),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)) {
+                if (state.isSelectionMode) {
+                    SelectionHeader(
+                        selectedCount = state.selectedCount,
+                        allSelected = state.selectedCount == state.media.size && state.media.isNotEmpty(),
+                        isDeleting = state.isDeleting,
+                        isRestoring = state.isRestoring,
+                        onCancelSelection = onCancelSelection,
+                        onSelectAll = onSelectAll,
+                        onMoveSelection = onMoveSelection,
+                        onRequestRestoreSelection = onRequestRestoreSelection,
+                        onRequestDeleteSelection = onRequestDeleteSelection,
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                            Icon(
+                                VaultIcons.Back,
+                                contentDescription = stringResource(R.string.private_media_back_to_folders),
+                                tint = AppColors.TextPrimary,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = state.currentAlbumName ?: stringResource(R.string.tab_private_media),
+                                style = AppTextStyles.PageTitle,
+                                color = AppColors.TextPrimary,
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = stringResource(R.string.private_media_folder_detail_count, state.media.size),
+                                style = AppTextStyles.BodySecondary,
+                                color = AppColors.TextTertiary,
+                            )
+                        }
+                        TextButton(onClick = onImport, enabled = !state.isImporting) {
+                            Text(stringResource(R.string.import_media))
+                        }
+                    }
+                    VaultSectionTitle(stringResource(R.string.private_media_folder_media))
+                }
+            }
+        }
+        if (state.media.isEmpty() && !state.isLoading) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                EmptyPrivateMedia(
+                    isImporting = state.isImporting,
+                    onImport = onImport,
+                )
+            }
+        } else {
+            items(state.media, key = { it.media.id }) { item ->
+                VaultMediaGridItem(
+                    item = item,
+                    isSelected = item.media.id in state.selectedMediaIds,
+                    isSelectionMode = state.isSelectionMode,
+                    onClick = {
+                        if (state.isSelectionMode) {
+                            onToggleSelection(item.media.id)
+                        } else {
+                            onOpenPreview(item.media.id)
+                        }
+                    },
+                    onLongClick = { onLongPressItem(item.media.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImportMediaHeroButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .height(76.dp)
+            .clip(AppShapes.Large)
+            .background(
+                if (enabled) AppColors.AccentPrimary else AppColors.SurfaceSecondary,
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = AppSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            VaultIcons.Image,
+            contentDescription = null,
+            tint = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
+            modifier = Modifier.size(30.dp),
+        )
+        Spacer(modifier = Modifier.size(AppSpacing.md))
+        Text(
+            text = stringResource(R.string.import_media),
+            style = AppTextStyles.SectionTitle,
+            color = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun CreateFolderShortcut(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .size(width = 108.dp, height = 92.dp)
+            .clip(AppShapes.Large)
+            .clickable(enabled = enabled, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Icon(
+                VaultIcons.Files,
+                contentDescription = null,
+                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
+                modifier = Modifier.size(42.dp),
+            )
+            Icon(
+                VaultIcons.Add,
+                contentDescription = null,
+                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(AppColors.BackgroundPrimary, AppShapes.Small),
+            )
+        }
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+        Text(
+            text = stringResource(R.string.private_media_create_folder),
+            style = AppTextStyles.BodySecondary,
+            color = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun FolderCard(
+    summary: VaultAlbumSummary,
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    VaultCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+        ) {
+            FolderCover(
+                cover = summary.cover,
+                modifier = Modifier.size(88.dp),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Text(
+                    text = summary.album.name,
+                    style = AppTextStyles.SectionTitle,
+                    color = AppColors.TextPrimary,
+                    maxLines = 2,
+                )
+                Text(
+                    text = stringResource(R.string.private_media_folder_item_count, summary.mediaCount),
+                    style = AppTextStyles.BodySecondary,
+                    color = AppColors.TextTertiary,
+                    maxLines = 1,
+                )
+            }
+            Icon(
+                VaultIcons.Chevron,
+                contentDescription = null,
+                tint = AppColors.TextTertiary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            TextButton(onClick = onRename) {
+                Icon(
+                    VaultIcons.Edit,
+                    contentDescription = null,
+                    tint = AppColors.AccentPrimary,
+                )
+                Spacer(modifier = Modifier.size(AppSpacing.xs))
+                Text(
+                    text = stringResource(R.string.private_media_rename_folder),
+                    color = AppColors.AccentPrimary,
+                    maxLines = 1,
+                )
+            }
+            TextButton(
+                onClick = onDelete,
+                enabled = !summary.album.isDefault,
+            ) {
+                Icon(
+                    VaultIcons.Delete,
+                    contentDescription = null,
+                    tint = if (summary.album.isDefault) AppColors.TextDisabled else AppColors.Error,
+                )
+                Spacer(modifier = Modifier.size(AppSpacing.xs))
+                Text(
+                    text = stringResource(R.string.delete),
+                    color = if (summary.album.isDefault) AppColors.TextDisabled else AppColors.Error,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderCover(
+    cover: VaultMediaWithFile?,
+    modifier: Modifier = Modifier
+        .fillMaxWidth()
+        .aspectRatio(1.18f),
+) {
+    Box(
+        modifier = modifier
+            .clip(AppShapes.Medium)
+            .background(AppColors.SurfaceSecondary),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (cover == null) {
+            Icon(VaultIcons.Files, contentDescription = null, tint = AppColors.AccentPrimary)
+            return@Box
+        }
+        val bitmap by produceState<Bitmap?>(initialValue = null, cover.file.absolutePath) {
+            value = withContext(Dispatchers.IO) {
+                when (cover.media.mediaType) {
+                    VaultMediaType.IMAGE -> decodeSampledBitmap(cover.file, 512)
+                    VaultMediaType.VIDEO -> decodeVideoFrame(cover.file)
+                }
+            }
+        }
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = cover.media.originalDisplayName
+                    ?: stringResource(R.string.private_media_thumbnail),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Icon(
+                if (cover.media.mediaType == VaultMediaType.VIDEO) VaultIcons.Video else VaultIcons.Image,
+                contentDescription = null,
+                tint = AppColors.TextDisabled,
+            )
+        }
+        if (cover.media.mediaType == VaultMediaType.VIDEO) {
+            Icon(
+                VaultIcons.Video,
+                contentDescription = null,
+                tint = AppColors.TextPrimary,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+                    .clip(AppShapes.Small)
+                    .background(AppColors.BackgroundPrimary.copy(alpha = 0.72f))
+                    .padding(6.dp),
+            )
+        }
+    }
+}
+
 private fun LazyGridScope.header(
     state: PrivateMediaUiState,
     onImport: () -> Unit,
@@ -500,6 +995,7 @@ private fun LazyGridScope.header(
                     isRestoring = state.isRestoring,
                     onCancelSelection = onCancelSelection,
                     onSelectAll = onSelectAll,
+                    onMoveSelection = {},
                     onRequestRestoreSelection = onRequestRestoreSelection,
                     onRequestDeleteSelection = onRequestDeleteSelection,
                 )
@@ -547,6 +1043,7 @@ private fun SelectionHeader(
     isRestoring: Boolean,
     onCancelSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onMoveSelection: () -> Unit,
     onRequestRestoreSelection: () -> Unit,
     onRequestDeleteSelection: () -> Unit,
 ) {
@@ -571,6 +1068,9 @@ private fun SelectionHeader(
             )
             TextButton(onClick = onSelectAll, enabled = !isDeleting && !isRestoring && !allSelected) {
                 Text(stringResource(R.string.hidden_app_select_all))
+            }
+            TextButton(onClick = onMoveSelection, enabled = !isDeleting && !isRestoring && selectedCount > 0) {
+                Text(stringResource(R.string.private_media_move_to_folder))
             }
             TextButton(onClick = onRequestRestoreSelection, enabled = !isDeleting && !isRestoring && selectedCount > 0) {
                 Text(stringResource(R.string.private_media_restore_action))
@@ -615,11 +1115,13 @@ private fun EmptyPrivateMedia(
             style = AppTextStyles.SectionTitle,
             color = AppColors.TextPrimary,
         )
+        Spacer(modifier = Modifier.height(AppSpacing.md))
         Text(
             text = stringResource(R.string.private_media_empty_description),
             style = AppTextStyles.BodySecondary,
             color = AppColors.TextTertiary,
         )
+        Spacer(modifier = Modifier.height(AppSpacing.xxl))
         VaultPrimaryButton(
             text = stringResource(R.string.import_media),
             onClick = onImport,
@@ -979,6 +1481,187 @@ private fun BrokenMediaState(
     }
 }
 
+private sealed interface AlbumNameDialogPurpose {
+    data object Create : AlbumNameDialogPurpose
+    data object CreateForImport : AlbumNameDialogPurpose
+    data object CreateForMove : AlbumNameDialogPurpose
+    data class Rename(val albumId: Long) : AlbumNameDialogPurpose
+}
+
+private data class AlbumNameDialogState(
+    val purpose: AlbumNameDialogPurpose,
+    val initialName: String = "",
+)
+
+@Composable
+private fun AlbumNameDialog(
+    title: String,
+    initialName: String,
+    onCancel: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    val trimmed = name.trim()
+    AlertDialog(
+        onDismissRequest = onCancel,
+        containerColor = AppColors.SurfacePrimary,
+        titleContentColor = AppColors.TextPrimary,
+        textContentColor = AppColors.TextSecondary,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it.take(MAX_ALBUM_NAME_LENGTH) },
+                label = { Text(stringResource(R.string.private_media_folder_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(trimmed) },
+                enabled = trimmed.isNotEmpty(),
+            ) {
+                Text(stringResource(R.string.confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun AlbumPickerDialog(
+    title: String,
+    albums: List<VaultAlbumSummary>,
+    disabledAlbumId: Long?,
+    onSelect: (Long) -> Unit,
+    onCreate: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        containerColor = AppColors.SurfacePrimary,
+        titleContentColor = AppColors.TextPrimary,
+        textContentColor = AppColors.TextSecondary,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                albums.forEach { summary ->
+                    val enabled = summary.album.id != disabledAlbumId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(AppShapes.Medium)
+                            .clickable(enabled = enabled) { onSelect(summary.album.id) }
+                            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(AppShapes.Small)
+                                .background(AppColors.AccentContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                VaultIcons.Files,
+                                contentDescription = null,
+                                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = summary.album.name,
+                                style = AppTextStyles.Body,
+                                color = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = stringResource(R.string.private_media_folder_item_count, summary.mediaCount),
+                                style = AppTextStyles.Caption,
+                                color = if (enabled) AppColors.TextTertiary else AppColors.TextDisabled,
+                                maxLines = 1,
+                            )
+                        }
+                        Icon(
+                            VaultIcons.Chevron,
+                            contentDescription = null,
+                            tint = if (enabled) AppColors.TextTertiary else AppColors.TextDisabled,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onCreate) {
+                Text(stringResource(R.string.private_media_create_folder))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DeleteAlbumDialog(
+    albumName: String,
+    isDefault: Boolean,
+    mediaCount: Int,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        containerColor = AppColors.SurfacePrimary,
+        titleContentColor = AppColors.TextPrimary,
+        textContentColor = AppColors.TextSecondary,
+        title = {
+            Text(
+                text = when {
+                    isDefault -> stringResource(R.string.private_media_default_folder_cannot_delete)
+                    mediaCount > 0 -> stringResource(R.string.private_media_folder_not_empty_title)
+                    else -> stringResource(R.string.private_media_delete_folder_title)
+                },
+            )
+        },
+        text = {
+            Text(
+                text = when {
+                    isDefault -> stringResource(R.string.private_media_default_folder_cannot_delete_message)
+                    mediaCount > 0 -> stringResource(R.string.private_media_folder_not_empty_message, mediaCount)
+                    else -> stringResource(R.string.private_media_delete_folder_message, albumName)
+                },
+            )
+        },
+        confirmButton = {
+            if (!isDefault && mediaCount == 0) {
+                TextButton(onClick = onConfirm) {
+                    Text(stringResource(R.string.delete), color = AppColors.Error)
+                }
+            } else {
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(R.string.got_it))
+                }
+            }
+        },
+        dismissButton = {
+            if (!isDefault && mediaCount == 0) {
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        },
+    )
+}
+
 @Composable
 private fun DeletePrivateMediaDialog(
     count: Int,
@@ -1178,3 +1861,4 @@ private fun formatFileSize(sizeBytes: Long): String {
 }
 
 private const val MAX_PICK_ITEMS = 50
+private const val MAX_ALBUM_NAME_LENGTH = 30

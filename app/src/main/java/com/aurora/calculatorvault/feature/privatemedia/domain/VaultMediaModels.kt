@@ -44,6 +44,12 @@ data class VaultMediaWithFile(
     val file: File,
 )
 
+data class VaultAlbumSummary(
+    val album: VaultAlbum,
+    val mediaCount: Int,
+    val cover: VaultMediaWithFile?,
+)
+
 data class VaultMediaImportSummary(
     val successCount: Int,
     val failureCount: Int,
@@ -64,6 +70,22 @@ data class VaultMediaRestoreSummary(
     val sourceMissingCount: Int = 0,
     val storageUnavailableCount: Int = 0,
 )
+
+sealed interface VaultAlbumDeleteResult {
+    data object Deleted : VaultAlbumDeleteResult
+    data object DefaultAlbum : VaultAlbumDeleteResult
+    data class NotEmpty(val mediaCount: Int) : VaultAlbumDeleteResult
+    data object NotFound : VaultAlbumDeleteResult
+    data object Failed : VaultAlbumDeleteResult
+}
+
+sealed interface VaultMediaMoveResult {
+    data class Moved(val count: Int) : VaultMediaMoveResult
+    data object NoSelection : VaultMediaMoveResult
+    data object TargetMissing : VaultMediaMoveResult
+    data object SameAlbum : VaultMediaMoveResult
+    data object Failed : VaultMediaMoveResult
+}
 
 sealed interface VaultMediaImportFailure {
     data object UnsupportedMediaType : VaultMediaImportFailure
