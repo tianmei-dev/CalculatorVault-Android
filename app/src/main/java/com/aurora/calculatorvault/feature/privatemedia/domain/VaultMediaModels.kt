@@ -58,6 +58,13 @@ data class VaultMediaDeleteSummary(
         get() = successCount > 0 && failureCount == 0
 }
 
+data class VaultMediaRestoreSummary(
+    val successCount: Int,
+    val failureCount: Int,
+    val sourceMissingCount: Int = 0,
+    val storageUnavailableCount: Int = 0,
+)
+
 sealed interface VaultMediaImportFailure {
     data object UnsupportedMediaType : VaultMediaImportFailure
     data object SourceUnavailable : VaultMediaImportFailure

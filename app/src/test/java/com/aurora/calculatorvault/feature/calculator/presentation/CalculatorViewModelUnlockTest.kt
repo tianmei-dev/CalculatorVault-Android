@@ -77,6 +77,31 @@ class CalculatorViewModelUnlockTest {
     }
 
     @Test
+    fun `deleting all digits after wrong password starts a fresh unlock round like clear`() =
+        runTest(dispatcher) {
+            val verifier = RecordingVerifier("4826")
+            val manager = foregroundManager()
+            val viewModel = viewModel(verifier, manager)
+            input(viewModel, "4827")
+            viewModel.onAction(CalculatorAction.Equals)
+            advanceUntilIdle()
+
+            repeat(4) {
+                viewModel.onAction(CalculatorAction.Delete)
+            }
+            input(viewModel, "4826")
+            val effect = async { viewModel.effects.first() }
+
+            viewModel.onAction(CalculatorAction.Equals)
+            advanceUntilIdle()
+
+            assertEquals(CalculatorEffect.OpenVault, effect.await())
+            assertEquals(2, verifier.calls)
+            assertTrue(manager.isUnlocked())
+            assertEquals(CalculatorUiState(), viewModel.uiState.value)
+        }
+
+    @Test
     fun `leading zero password 0123 unlocks while calculator displays 123`() = runTest(dispatcher) {
         assertLeadingZeroPasswordUnlocks(password = "0123", expectedDisplayBeforeEquals = "123")
     }

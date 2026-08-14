@@ -20,7 +20,10 @@ import kotlinx.coroutines.launch
 data class PrivateMediaUiState(
     val isLoading: Boolean = true,
     val isImporting: Boolean = false,
+    val importProgressCurrent: Int = 0,
+    val importProgressTotal: Int = 0,
     val isDeleting: Boolean = false,
+    val isRestoring: Boolean = false,
     val media: List<VaultMediaWithFile> = emptyList(),
     val totalCount: Int = 0,
     val imageCount: Int = 0,
@@ -28,6 +31,7 @@ data class PrivateMediaUiState(
     val selectedMediaIds: Set<Long> = emptySet(),
     val previewMediaId: Long? = null,
     val pendingDeleteMediaIds: Set<Long> = emptySet(),
+    val pendingRestoreMediaIds: Set<Long> = emptySet(),
     val pendingOriginalRemovalMediaIds: List<Long> = emptyList(),
 ) {
     val selectedCount: Int
@@ -48,6 +52,8 @@ sealed interface PrivateMediaEffect {
     data object ImportFailed : PrivateMediaEffect
     data class DeleteCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
     data object DeleteFailed : PrivateMediaEffect
+    data class RestoreCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
+    data object RestoreFailed : PrivateMediaEffect
     data class OriginalRemovalCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
     data object OriginalRemovalKept : PrivateMediaEffect
     data object OriginalRemovalFailed : PrivateMediaEffect
@@ -69,7 +75,10 @@ class PrivateMediaViewModel(
         PrivateMediaUiState(
             isLoading = false,
             isImporting = transient.isImporting,
+            importProgressCurrent = transient.importProgressCurrent,
+            importProgressTotal = transient.importProgressTotal,
             isDeleting = transient.isDeleting,
+            isRestoring = transient.isRestoring,
             media = media,
             totalCount = counts.total,
             imageCount = counts.images,
@@ -77,6 +86,7 @@ class PrivateMediaViewModel(
             selectedMediaIds = transient.selectedMediaIds.intersect(validIds),
             previewMediaId = transient.previewMediaId?.takeIf(validIds::contains),
             pendingDeleteMediaIds = transient.pendingDeleteMediaIds,
+            pendingRestoreMediaIds = transient.pendingRestoreMediaIds,
             pendingOriginalRemovalMediaIds = transient.pendingOriginalRemovalMediaIds,
         )
     }.stateIn(
@@ -93,11 +103,25 @@ class PrivateMediaViewModel(
     }
 
     fun importMedia(uris: List<Uri>) {
-        if (uris.isEmpty() || transientState.value.isImporting) return
+        val uniqueUris = uris.distinct().take(MAX_IMPORT_BATCH_SIZE)
+        if (uniqueUris.isEmpty() || transientState.value.isImporting) return
         viewModelScope.launch {
-            transientState.update { it.copy(isImporting = true) }
+            transientState.update {
+                it.copy(
+                    isImporting = true,
+                    importProgressCurrent = 0,
+                    importProgressTotal = uniqueUris.size,
+                )
+            }
             try {
-                val summary = repository.importMedia(uris)
+                val summary = repository.importMedia(uniqueUris) { current, total ->
+                    transientState.update {
+                        it.copy(
+                            importProgressCurrent = current,
+                            importProgressTotal = total,
+                        )
+                    }
+                }
                 if (summary.successCount > 0) {
                     transientState.update {
                         it.copy(pendingOriginalRemovalMediaIds = summary.importedMediaIds)
@@ -109,13 +133,19 @@ class PrivateMediaViewModel(
             } catch (_: Exception) {
                 effects.tryEmit(PrivateMediaEffect.ImportFailed)
             } finally {
-                transientState.update { it.copy(isImporting = false) }
+                transientState.update {
+                    it.copy(
+                        isImporting = false,
+                        importProgressCurrent = 0,
+                        importProgressTotal = 0,
+                    )
+                }
             }
         }
     }
 
     fun openPreview(mediaId: Long) {
-        if (transientState.value.isDeleting) return
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update { it.copy(previewMediaId = mediaId) }
     }
 
@@ -141,12 +171,12 @@ class PrivateMediaViewModel(
 
     fun enterSelectionMode(mediaId: Long) {
         val transient = transientState.value
-        if (transient.isDeleting || transient.isImporting) return
+        if (transient.isDeleting || transient.isImporting || transient.isRestoring) return
         transientState.update { it.copy(selectedMediaIds = setOf(mediaId)) }
     }
 
     fun toggleSelection(mediaId: Long) {
-        if (transientState.value.isDeleting) return
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update { transient ->
             val updated = transient.selectedMediaIds.toMutableSet().apply {
                 if (!add(mediaId)) remove(mediaId)
@@ -156,30 +186,36 @@ class PrivateMediaViewModel(
     }
 
     fun selectAll() {
-        if (transientState.value.isDeleting) return
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update {
             it.copy(selectedMediaIds = uiState.value.media.map { item -> item.media.id }.toSet())
         }
     }
 
     fun cancelSelection() {
-        if (transientState.value.isDeleting) return
-        transientState.update { it.copy(selectedMediaIds = emptySet(), pendingDeleteMediaIds = emptySet()) }
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
+        transientState.update {
+            it.copy(
+                selectedMediaIds = emptySet(),
+                pendingDeleteMediaIds = emptySet(),
+                pendingRestoreMediaIds = emptySet(),
+            )
+        }
     }
 
     fun requestDelete(mediaId: Long) {
-        if (transientState.value.isDeleting) return
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update { it.copy(pendingDeleteMediaIds = setOf(mediaId)) }
     }
 
     fun requestDeleteSelection() {
         val selected = transientState.value.selectedMediaIds
-        if (selected.isEmpty() || transientState.value.isDeleting) return
+        if (selected.isEmpty() || transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update { it.copy(pendingDeleteMediaIds = selected) }
     }
 
     fun cancelDelete() {
-        if (transientState.value.isDeleting) return
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
         transientState.update { it.copy(pendingDeleteMediaIds = emptySet()) }
     }
 
@@ -218,6 +254,46 @@ class PrivateMediaViewModel(
                 effects.tryEmit(PrivateMediaEffect.DeleteFailed)
             } finally {
                 transientState.update { it.copy(isDeleting = false) }
+            }
+        }
+    }
+
+    fun requestRestore(mediaId: Long) {
+        if (transientState.value.isDeleting || transientState.value.isRestoring) return
+        transientState.update { it.copy(pendingRestoreMediaIds = setOf(mediaId)) }
+    }
+
+    fun requestRestoreSelection() {
+        val selected = transientState.value.selectedMediaIds
+        if (selected.isEmpty() || transientState.value.isDeleting || transientState.value.isRestoring) return
+        transientState.update { it.copy(pendingRestoreMediaIds = selected) }
+    }
+
+    fun cancelRestore() {
+        if (transientState.value.isRestoring) return
+        transientState.update { it.copy(pendingRestoreMediaIds = emptySet()) }
+    }
+
+    fun confirmRestore() {
+        val ids = transientState.value.pendingRestoreMediaIds
+        if (ids.isEmpty() || transientState.value.isRestoring) return
+        viewModelScope.launch {
+            transientState.update { it.copy(isRestoring = true) }
+            try {
+                val summary = repository.restoreMediaToSystem(ids.toList())
+                effects.tryEmit(
+                    PrivateMediaEffect.RestoreCompleted(summary.successCount, summary.failureCount),
+                )
+                transientState.update {
+                    it.copy(
+                        selectedMediaIds = emptySet(),
+                        pendingRestoreMediaIds = emptySet(),
+                    )
+                }
+            } catch (_: Exception) {
+                effects.tryEmit(PrivateMediaEffect.RestoreFailed)
+            } finally {
+                transientState.update { it.copy(isRestoring = false) }
             }
         }
     }
@@ -269,10 +345,14 @@ class PrivateMediaViewModel(
 
     private data class TransientState(
         val isImporting: Boolean = false,
+        val importProgressCurrent: Int = 0,
+        val importProgressTotal: Int = 0,
         val isDeleting: Boolean = false,
+        val isRestoring: Boolean = false,
         val selectedMediaIds: Set<Long> = emptySet(),
         val previewMediaId: Long? = null,
         val pendingDeleteMediaIds: Set<Long> = emptySet(),
+        val pendingRestoreMediaIds: Set<Long> = emptySet(),
         val pendingOriginalRemovalMediaIds: List<Long> = emptyList(),
     )
 
@@ -283,5 +363,9 @@ class PrivateMediaViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return PrivateMediaViewModel(repository) as T
         }
+    }
+
+    private companion object {
+        const val MAX_IMPORT_BATCH_SIZE = 50
     }
 }

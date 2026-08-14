@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 sealed interface VaultSessionState {
     data object Locked : VaultSessionState
@@ -13,7 +15,12 @@ sealed interface VaultSessionState {
 /**
  * 私密会话仅保存在当前进程内存中。新进程始终从 Locked 开始。
  */
-class VaultSessionManager {
+class VaultSessionManager(
+    private val externalResultForegroundTimeoutMs: Long = DEFAULT_EXTERNAL_RESULT_FOREGROUND_TIMEOUT_MS,
+    private val scheduleExternalResultTimeout: (Long, () -> Unit) -> Unit = { delayMillis, action ->
+        externalResultTimeoutExecutor.schedule(action, delayMillis, TimeUnit.MILLISECONDS)
+    },
+) {
     private val _state = MutableStateFlow<VaultSessionState>(VaultSessionState.Locked)
     val state: StateFlow<VaultSessionState> = _state.asStateFlow()
 
@@ -26,16 +33,18 @@ class VaultSessionManager {
     @Volatile
     private var externalResultInProgress = false
 
+    private var externalResultToken = 0L
+
     @Synchronized
     fun onAppForegrounded() {
         appInForeground = true
-        externalResultInProgress = false
+        scheduleExternalResultRelockIfNeeded()
     }
 
     @Synchronized
     fun onAppBackgrounded() {
-        if (externalResultInProgress) return
         appInForeground = false
+        if (externalResultInProgress) return
         lock()
     }
 
@@ -48,12 +57,28 @@ class VaultSessionManager {
     @Synchronized
     fun beginExternalResultFlow() {
         externalResultInProgress = true
+        externalResultToken += 1L
     }
 
     @Synchronized
     fun endExternalResultFlow() {
         externalResultInProgress = false
+        externalResultToken += 1L
         appInForeground = true
+    }
+
+    @Synchronized
+    fun cancelExternalResultFlowAndLock() {
+        externalResultInProgress = false
+        externalResultToken += 1L
+        appInForeground = true
+        lock()
+    }
+
+    @Synchronized
+    fun onHostActivityResumed() {
+        appInForeground = true
+        scheduleExternalResultRelockIfNeeded()
     }
 
     /**
@@ -73,4 +98,30 @@ class VaultSessionManager {
     }
 
     fun isUnlocked(): Boolean = state.value == VaultSessionState.Unlocked
+
+    private fun scheduleExternalResultRelockIfNeeded() {
+        if (externalResultInProgress) {
+            val token = ++externalResultToken
+            scheduleExternalResultTimeout(externalResultForegroundTimeoutMs) {
+                lockIfExternalResultStillPending(token)
+            }
+        }
+    }
+
+    @Synchronized
+    private fun lockIfExternalResultStillPending(token: Long) {
+        if (externalResultInProgress && appInForeground && token == externalResultToken) {
+            externalResultInProgress = false
+            lock()
+        }
+    }
+
+    private companion object {
+        const val DEFAULT_EXTERNAL_RESULT_FOREGROUND_TIMEOUT_MS = 500L
+        val externalResultTimeoutExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
+            Thread(runnable, "VaultExternalResultTimeout").apply {
+                isDaemon = true
+            }
+        }
+    }
 }

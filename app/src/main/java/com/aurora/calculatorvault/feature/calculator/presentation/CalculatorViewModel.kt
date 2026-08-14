@@ -196,7 +196,12 @@ class CalculatorViewModel(
             clearUnlockCandidate(allowNewRound = true)
             return
         }
-        if (!unlockCandidateEligible || unlockCandidateLength == 0) return
+        if (!unlockCandidateEligible || unlockCandidateLength == 0) {
+            if (isDirectUnlockInputState(state) && state.displayValue.willDeleteToZero()) {
+                clearUnlockCandidate(allowNewRound = true)
+            }
+            return
+        }
         unlockCandidateLength -= 1
         unlockCandidateInput[unlockCandidateLength] = NULL_CHAR
     }
@@ -212,6 +217,11 @@ class CalculatorViewModel(
         dismissPasswordReveal()
         _effects.close()
         super.onCleared()
+    }
+
+    private fun String.willDeleteToZero(): Boolean {
+        val next = dropLast(1)
+        return next.isEmpty() || next == "-"
     }
 
     class Factory(

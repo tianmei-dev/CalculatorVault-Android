@@ -3,6 +3,8 @@ package com.aurora.calculatorvault.feature.privatemedia.presentation
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -110,6 +112,9 @@ fun PrivateMediaScreen(
     val deleteSuccess = stringResource(R.string.private_media_delete_success)
     val deletePartial = stringResource(R.string.private_media_delete_partial)
     val deleteFailed = stringResource(R.string.private_media_delete_failed)
+    val restoreSuccess = stringResource(R.string.private_media_restore_success)
+    val restorePartial = stringResource(R.string.private_media_restore_partial)
+    val restoreFailed = stringResource(R.string.private_media_restore_failed)
     val originalKept = stringResource(R.string.private_media_original_kept)
     val originalRemoved = stringResource(R.string.private_media_original_removed)
     val originalPartial = stringResource(R.string.private_media_original_remove_partial)
@@ -186,8 +191,24 @@ fun PrivateMediaScreen(
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = MAX_PICK_ITEMS),
     ) { uris ->
-        sessionManager.endExternalResultFlow()
-        viewModel.importMedia(uris)
+        // 继续保留安全规则：空结果不导入、不弹移除确认，并结束本次私密会话。
+        if (uris.isEmpty()) {
+            sessionManager.cancelExternalResultFlowAndLock()
+        } else {
+            sessionManager.endExternalResultFlow()
+            viewModel.importMedia(uris)
+        }
+    }
+    val legacyPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        // ACTION_OPEN_DOCUMENT fallback 返回单项或多项时统一为 List<Uri>。
+        if (uris.isEmpty()) {
+            sessionManager.cancelExternalResultFlowAndLock()
+        } else {
+            sessionManager.endExternalResultFlow()
+            viewModel.importMedia(uris)
+        }
     }
 
     BackHandler(enabled = state.previewItem != null) {
@@ -222,6 +243,26 @@ fun PrivateMediaScreen(
                     }
                 }
                 PrivateMediaEffect.DeleteFailed -> messageController.showError(deleteFailed)
+                is PrivateMediaEffect.RestoreCompleted -> {
+                    when {
+                        effect.successCount > 0 && effect.failureCount == 0 ->
+                            messageController.show(
+                                AppMessage(
+                                    message = restoreSuccess.format(effect.successCount),
+                                    type = AppMessageType.Success,
+                                ),
+                            )
+                        effect.successCount > 0 ->
+                            messageController.show(
+                                AppMessage(
+                                    message = restorePartial.format(effect.successCount, effect.failureCount),
+                                    type = AppMessageType.Warning,
+                                ),
+                            )
+                        else -> messageController.showError(restoreFailed)
+                    }
+                }
+                PrivateMediaEffect.RestoreFailed -> messageController.showError(restoreFailed)
                 is PrivateMediaEffect.DeleteCompleted -> {
                     when {
                         effect.successCount > 0 && effect.failureCount == 0 ->
@@ -269,23 +310,32 @@ fun PrivateMediaScreen(
     PrivateMediaContent(
         state = state,
         onImport = {
+            if (state.isImporting) return@PrivateMediaContent
             sessionManager.beginExternalResultFlow()
-            picker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                picker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+                )
+            } else {
+                legacyPicker.launch(arrayOf("image/*", "video/*"))
+            }
         },
         onOpenPreview = viewModel::openPreview,
         onLongPressItem = viewModel::enterSelectionMode,
         onToggleSelection = viewModel::toggleSelection,
         onCancelSelection = viewModel::cancelSelection,
         onSelectAll = viewModel::selectAll,
+        onRequestRestoreSelection = viewModel::requestRestoreSelection,
         onRequestDeleteSelection = viewModel::requestDeleteSelection,
+        onRequestRestorePreview = viewModel::requestRestore,
         onRequestDeletePreview = viewModel::requestDelete,
         onPreviewPrevious = viewModel::previewPrevious,
         onPreviewNext = viewModel::previewNext,
         onClosePreview = viewModel::closePreview,
         onCancelDelete = viewModel::cancelDelete,
         onConfirmDelete = viewModel::confirmDelete,
+        onCancelRestore = viewModel::cancelRestore,
+        onConfirmRestore = viewModel::confirmRestore,
         onKeepOriginalMedia = viewModel::keepOriginalMedia,
         onDismissOriginalRemoval = viewModel::dismissOriginalRemovalPrompt,
         onRemoveOriginalMedia = {
@@ -312,13 +362,17 @@ private fun PrivateMediaContent(
     onToggleSelection: (Long) -> Unit,
     onCancelSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onRequestRestoreSelection: () -> Unit,
     onRequestDeleteSelection: () -> Unit,
+    onRequestRestorePreview: (Long) -> Unit,
     onRequestDeletePreview: (Long) -> Unit,
     onPreviewPrevious: () -> Unit,
     onPreviewNext: () -> Unit,
     onClosePreview: () -> Unit,
     onCancelDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
+    onCancelRestore: () -> Unit,
+    onConfirmRestore: () -> Unit,
     onKeepOriginalMedia: () -> Unit,
     onDismissOriginalRemoval: () -> Unit,
     onRemoveOriginalMedia: () -> Unit,
@@ -341,11 +395,15 @@ private fun PrivateMediaContent(
                 onImport = onImport,
                 onCancelSelection = onCancelSelection,
                 onSelectAll = onSelectAll,
+                onRequestRestoreSelection = onRequestRestoreSelection,
                 onRequestDeleteSelection = onRequestDeleteSelection,
             )
             if (state.media.isEmpty() && !state.isLoading) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    EmptyPrivateMedia(onImport = onImport)
+                    EmptyPrivateMedia(
+                        isImporting = state.isImporting,
+                        onImport = onImport,
+                    )
                 }
             } else {
                 items(state.media, key = { it.media.id }) { item ->
@@ -366,7 +424,7 @@ private fun PrivateMediaContent(
             }
         }
 
-        if (state.isImporting || state.isDeleting) {
+        if (state.isImporting || state.isDeleting || state.isRestoring) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -376,13 +434,7 @@ private fun PrivateMediaContent(
                 VaultCard {
                     CircularProgressIndicator(color = AppColors.AccentPrimary)
                     Text(
-                        text = stringResource(
-                            if (state.isDeleting) {
-                                R.string.private_media_deleting
-                            } else {
-                                R.string.private_media_importing
-                            },
-                        ),
+                        text = progressMessage(state),
                         style = AppTextStyles.Body,
                         color = AppColors.TextPrimary,
                     )
@@ -395,6 +447,7 @@ private fun PrivateMediaContent(
                 state = state,
                 item = item,
                 onClose = onClosePreview,
+                onRestore = { onRequestRestorePreview(item.media.id) },
                 onDelete = { onRequestDeletePreview(item.media.id) },
                 onPrevious = onPreviewPrevious,
                 onNext = onPreviewNext,
@@ -407,6 +460,15 @@ private fun PrivateMediaContent(
                 isDeleting = state.isDeleting,
                 onCancel = onCancelDelete,
                 onConfirm = onConfirmDelete,
+            )
+        }
+
+        if (state.pendingRestoreMediaIds.isNotEmpty()) {
+            RestoreMediaDialog(
+                count = state.pendingRestoreMediaIds.size,
+                isRestoring = state.isRestoring,
+                onCancel = onCancelRestore,
+                onConfirm = onConfirmRestore,
             )
         }
 
@@ -425,6 +487,7 @@ private fun LazyGridScope.header(
     onImport: () -> Unit,
     onCancelSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onRequestRestoreSelection: () -> Unit,
     onRequestDeleteSelection: () -> Unit,
 ) {
     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -434,8 +497,10 @@ private fun LazyGridScope.header(
                     selectedCount = state.selectedCount,
                     allSelected = state.selectedCount == state.media.size && state.media.isNotEmpty(),
                     isDeleting = state.isDeleting,
+                    isRestoring = state.isRestoring,
                     onCancelSelection = onCancelSelection,
                     onSelectAll = onSelectAll,
+                    onRequestRestoreSelection = onRequestRestoreSelection,
                     onRequestDeleteSelection = onRequestDeleteSelection,
                 )
             } else {
@@ -479,8 +544,10 @@ private fun SelectionHeader(
     selectedCount: Int,
     allSelected: Boolean,
     isDeleting: Boolean,
+    isRestoring: Boolean,
     onCancelSelection: () -> Unit,
     onSelectAll: () -> Unit,
+    onRequestRestoreSelection: () -> Unit,
     onRequestDeleteSelection: () -> Unit,
 ) {
     VaultCard(modifier = Modifier.fillMaxWidth()) {
@@ -489,7 +556,11 @@ private fun SelectionHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            IconButton(onClick = onCancelSelection, enabled = !isDeleting, modifier = Modifier.size(48.dp)) {
+            IconButton(
+                onClick = onCancelSelection,
+                enabled = !isDeleting && !isRestoring,
+                modifier = Modifier.size(48.dp),
+            ) {
                 Icon(VaultIcons.Close, contentDescription = stringResource(R.string.cancel))
             }
             Text(
@@ -498,10 +569,13 @@ private fun SelectionHeader(
                 style = AppTextStyles.SectionTitle,
                 color = AppColors.TextPrimary,
             )
-            TextButton(onClick = onSelectAll, enabled = !isDeleting && !allSelected) {
+            TextButton(onClick = onSelectAll, enabled = !isDeleting && !isRestoring && !allSelected) {
                 Text(stringResource(R.string.hidden_app_select_all))
             }
-            TextButton(onClick = onRequestDeleteSelection, enabled = !isDeleting && selectedCount > 0) {
+            TextButton(onClick = onRequestRestoreSelection, enabled = !isDeleting && !isRestoring && selectedCount > 0) {
+                Text(stringResource(R.string.private_media_restore_action))
+            }
+            TextButton(onClick = onRequestDeleteSelection, enabled = !isDeleting && !isRestoring && selectedCount > 0) {
                 Text(
                     text = stringResource(R.string.delete),
                     color = AppColors.Error,
@@ -527,6 +601,7 @@ private fun MediaStat(
 
 @Composable
 private fun EmptyPrivateMedia(
+    isImporting: Boolean,
     onImport: () -> Unit,
 ) {
     VaultCard(
@@ -548,9 +623,26 @@ private fun EmptyPrivateMedia(
         VaultPrimaryButton(
             text = stringResource(R.string.import_media),
             onClick = onImport,
+            enabled = !isImporting,
         )
     }
 }
+
+@Composable
+private fun progressMessage(state: PrivateMediaUiState): String =
+    when {
+        state.isDeleting -> stringResource(R.string.private_media_deleting)
+        state.isRestoring -> stringResource(R.string.private_media_restoring)
+        state.isImporting &&
+            state.importProgressTotal > 1 &&
+            state.importProgressCurrent > 0 ->
+            stringResource(
+                R.string.private_media_importing_progress,
+                state.importProgressCurrent,
+                state.importProgressTotal,
+            )
+        else -> stringResource(R.string.private_media_importing)
+    }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -640,6 +732,7 @@ private fun PrivateMediaPreview(
     state: PrivateMediaUiState,
     item: VaultMediaWithFile,
     onClose: () -> Unit,
+    onRestore: () -> Unit,
     onDelete: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -669,6 +762,7 @@ private fun PrivateMediaPreview(
                 ),
                 subtitle = item.media.originalDisplayName ?: stringResource(R.string.private_media_unnamed),
                 onClose = onClose,
+                onRestore = onRestore,
                 onDelete = onDelete,
             )
             PreviewNavigation(
@@ -784,6 +878,7 @@ private fun PreviewTopBar(
     title: String,
     subtitle: String,
     onClose: () -> Unit,
+    onRestore: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -800,6 +895,9 @@ private fun PreviewTopBar(
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = AppTextStyles.SectionTitle, color = AppColors.TextPrimary)
             Text(subtitle, style = AppTextStyles.Caption, color = AppColors.TextTertiary, maxLines = 1)
+        }
+        TextButton(onClick = onRestore) {
+            Text(text = stringResource(R.string.private_media_restore_to_gallery_action))
         }
         TextButton(onClick = onDelete) {
             Text(text = stringResource(R.string.delete), color = AppColors.Error)
@@ -927,6 +1025,43 @@ private fun DeletePrivateMediaDialog(
 }
 
 @Composable
+private fun RestoreMediaDialog(
+    count: Int,
+    isRestoring: Boolean,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isRestoring) onCancel() },
+        containerColor = AppColors.SurfacePrimary,
+        titleContentColor = AppColors.TextPrimary,
+        textContentColor = AppColors.TextSecondary,
+        title = {
+            Text(text = stringResource(R.string.private_media_restore_title))
+        },
+        text = {
+            Text(
+                text = if (count == 1) {
+                    stringResource(R.string.private_media_restore_message_single)
+                } else {
+                    stringResource(R.string.private_media_restore_message_batch, count)
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !isRestoring) {
+                Text(stringResource(R.string.private_media_restore_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, enabled = !isRestoring) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
 private fun OriginalMediaRemovalDialog(
     onKeep: () -> Unit,
     onRemove: () -> Unit,
@@ -966,7 +1101,8 @@ private fun decodeSampledBitmap(file: File, maxSize: Int): Bitmap? {
     val options = BitmapFactory.Options().apply {
         inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, maxSize)
     }
-    return BitmapFactory.decodeFile(file.absolutePath, options)
+    val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+    return applyExifOrientation(bitmap, file)
 }
 
 private fun calculateInSampleSize(width: Int, height: Int, maxSize: Int): Int {
@@ -986,6 +1122,41 @@ private fun decodeVideoFrame(file: File): Bitmap? {
         null
     } finally {
         runCatching { retriever.release() }
+    }
+}
+
+private fun applyExifOrientation(bitmap: Bitmap, file: File): Bitmap {
+    val orientation = runCatching {
+        ExifInterface(file.absolutePath).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL,
+        )
+    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+    val matrix = Matrix()
+    when (orientation) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.setRotate(90f)
+            matrix.postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.setRotate(-90f)
+            matrix.postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
+        else -> return bitmap
+    }
+
+    return runCatching {
+        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also { rotated ->
+            if (rotated != bitmap) bitmap.recycle()
+        }
+    }.getOrElse {
+        bitmap
     }
 }
 

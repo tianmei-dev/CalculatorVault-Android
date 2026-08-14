@@ -360,6 +360,8 @@
     <string name="private_media_empty_title">还没有导入媒体</string>
     <string name="private_media_empty_description">选择要导入的照片和视频，应用会保存一份私有副本；原文件仍保留在系统相册。</string>
     <string name="private_media_importing">正在导入…</string>
+    <string name="private_media_importing_progress">正在导入 %1$d / %2$d</string>
+    <string name="private_media_restoring">正在恢复到系统相册…</string>
     <string name="private_media_import_success">已成功导入 %1$d 项到私密相册</string>
     <string name="private_media_import_partial">已成功导入 %1$d 项，%2$d 项失败</string>
     <string name="private_media_import_failed">导入失败，请稍后重试</string>
@@ -373,6 +375,14 @@
     <string name="private_media_delete_success">已删除 %1$d 个私密副本</string>
     <string name="private_media_delete_partial">已删除 %1$d 个私密副本，%2$d 个删除失败</string>
     <string name="private_media_delete_failed">删除失败，请重试</string>
+    <string name="private_media_restore_action">恢复</string>
+    <string name="private_media_restore_to_gallery_action">恢复到系统相册</string>
+    <string name="private_media_restore_title">恢复到系统相册？</string>
+    <string name="private_media_restore_message_single">将把所选照片或视频复制到系统相册，私密相册中的内容仍会保留。</string>
+    <string name="private_media_restore_message_batch">将把所选 %1$d 项复制到系统相册，私密相册中的内容仍会保留。</string>
+    <string name="private_media_restore_success">已恢复 %1$d 项到系统相册</string>
+    <string name="private_media_restore_partial">已恢复 %1$d 项，%2$d 项失败</string>
+    <string name="private_media_restore_failed">恢复到系统相册失败，私密副本仍会保留</string>
     <string name="private_media_preview_index">%1$d / %2$d</string>
     <string name="private_media_unnamed">未命名媒体</string>
     <string name="private_media_preview_image">私密照片预览</string>

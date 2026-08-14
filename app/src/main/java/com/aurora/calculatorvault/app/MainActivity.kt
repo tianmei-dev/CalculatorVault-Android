@@ -18,6 +18,9 @@ import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 import com.aurora.calculatorvault.ui.message.rememberAppMessageController
 
 class MainActivity : ComponentActivity() {
+    private val calculatorVaultApp: CalculatorVaultApp
+        get() = applicationContext as CalculatorVaultApp
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -37,5 +40,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        calculatorVaultApp.vaultSessionManager.onHostActivityResumed()
     }
 }

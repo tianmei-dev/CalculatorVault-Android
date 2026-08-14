@@ -70,9 +70,68 @@ class VaultSessionManagerTest {
         assertEquals(VaultSessionState.Unlocked, manager.state.value)
 
         manager.onAppForegrounded()
+        manager.endExternalResultFlow()
         manager.onAppBackgrounded()
 
         assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
+    @Test
+    fun `external result flow locks after app is reopened without result callback`() {
+        var timeoutAction: (() -> Unit)? = null
+        val manager = VaultSessionManager(
+            scheduleExternalResultTimeout = { _, action ->
+                timeoutAction = action
+            },
+        )
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+        manager.onAppForegrounded()
+        timeoutAction?.invoke()
+
+        assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
+    @Test
+    fun `host activity resume also schedules pending external result relock`() {
+        var timeoutAction: (() -> Unit)? = null
+        val manager = VaultSessionManager(
+            scheduleExternalResultTimeout = { _, action ->
+                timeoutAction = action
+            },
+        )
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+        manager.onHostActivityResumed()
+        timeoutAction?.invoke()
+
+        assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
+    @Test
+    fun `external result callback cancels pending relock`() {
+        var timeoutAction: (() -> Unit)? = null
+        val manager = VaultSessionManager(
+            scheduleExternalResultTimeout = { _, action ->
+                timeoutAction = action
+            },
+        )
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+        manager.onAppForegrounded()
+        manager.endExternalResultFlow()
+        timeoutAction?.invoke()
+
+        assertEquals(VaultSessionState.Unlocked, manager.state.value)
     }
 
     @Test
@@ -84,6 +143,19 @@ class VaultSessionManagerTest {
         manager.beginExternalResultFlow()
         manager.endExternalResultFlow()
         manager.onAppBackgrounded()
+
+        assertEquals(VaultSessionState.Locked, manager.state.value)
+    }
+
+    @Test
+    fun `canceling external result flow locks immediately`() {
+        val manager = VaultSessionManager()
+        manager.onAppForegrounded()
+        assertTrue(manager.tryUnlock())
+
+        manager.beginExternalResultFlow()
+        manager.onAppBackgrounded()
+        manager.cancelExternalResultFlowAndLock()
 
         assertEquals(VaultSessionState.Locked, manager.state.value)
     }

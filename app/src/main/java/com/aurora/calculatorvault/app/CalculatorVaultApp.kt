@@ -36,6 +36,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCas
 import com.aurora.calculatorvault.feature.onboarding.data.OnboardingRepository
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaRepository
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRemovalManager
+import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestoreManager
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaImporter
 import com.aurora.calculatorvault.feature.privatemedia.storage.VaultMediaStorage
 import com.aurora.calculatorvault.feature.settings.data.ChangePasswordRepository
@@ -202,12 +203,17 @@ class CalculatorVaultApp : Application() {
         )
     }
 
+    private val systemMediaRestoreManager by lazy {
+        SystemMediaRestoreManager(contentResolver)
+    }
+
     val vaultMediaRepository by lazy {
         VaultMediaRepository(
             albumDao = database.vaultAlbumDao(),
             mediaDao = database.vaultMediaDao(),
             importer = vaultMediaImporter,
             storage = vaultMediaStorage,
+            restoreManager = systemMediaRestoreManager,
         )
     }
 
