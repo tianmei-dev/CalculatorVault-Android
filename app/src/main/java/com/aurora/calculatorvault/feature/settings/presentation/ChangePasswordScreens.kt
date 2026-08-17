@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,7 +35,6 @@ fun ChangePasswordScreen(
     onSubmit: () -> Unit,
     onBackStep: () -> Boolean,
     onExit: () -> Unit,
-    onForgotPassword: () -> Unit,
     onResetSamePassword: () -> Unit,
     onAcceptSamePassword: () -> Unit,
 ) {
@@ -110,19 +108,6 @@ fun ChangePasswordScreen(
             )
         }
         ChangePasswordErrorText(state.error)
-        if (state.step == ChangePasswordStep.VerifyCurrent) {
-            TextButton(
-                onClick = onForgotPassword,
-                enabled = !state.isProcessing,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                Text(
-                    text = stringResource(R.string.forgot_password),
-                    style = AppTextStyles.Button,
-                    color = AppColors.AccentPrimary,
-                )
-            }
-        }
         Spacer(modifier = Modifier.weight(1f))
         VaultNumericKeypad(
             onDigit = onDigit,

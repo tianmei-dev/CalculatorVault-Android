@@ -26,4 +26,14 @@ sealed interface VaultTabRoute {
     data object Settings : VaultTabRoute { override val path = "vault/settings" }
     data object ChangePassword : VaultTabRoute { override val path = "vault/settings/change_password" }
     data object ForgotPassword : VaultTabRoute { override val path = "vault/settings/forgot_password" }
+    data object About : VaultTabRoute { override val path = "vault/settings/about" }
+    data object ContactUs : VaultTabRoute { override val path = "vault/settings/contact_us" }
+    data object PrivacyDocuments : VaultTabRoute { override val path = "vault/settings/privacy_documents" }
+    data object LegalDocument : VaultTabRoute {
+        const val TYPE_ARG = "type"
+        override val path = "vault/settings/legal/{$TYPE_ARG}"
+
+        fun createRoute(type: com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType): String =
+            "vault/settings/legal/${type.routeValue}"
+    }
 }

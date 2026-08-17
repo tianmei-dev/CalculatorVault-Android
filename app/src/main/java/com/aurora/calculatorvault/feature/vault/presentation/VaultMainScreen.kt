@@ -14,9 +14,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
@@ -34,8 +36,12 @@ import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPicker
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModel
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaScreen
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaViewModel
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
+import com.aurora.calculatorvault.feature.legal.presentation.PrivacyDocumentsScreen
+import com.aurora.calculatorvault.feature.settings.presentation.AboutScreen
+import com.aurora.calculatorvault.feature.settings.presentation.ContactUsScreen
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
-import com.aurora.calculatorvault.feature.settings.presentation.RecentHistoryViewModel
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordScreen
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordStep
 import com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordViewModel
@@ -191,23 +197,47 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.Settings.path) {
-                val recentHistoryViewModel: RecentHistoryViewModel = viewModel(
-                    factory = RecentHistoryViewModel.Factory(application.hiddenAppRepository),
-                )
-                val recentClearedMessage = stringResource(R.string.hidden_app_recent_cleared)
-                LaunchedEffect(recentHistoryViewModel) {
-                    recentHistoryViewModel.cleared.collect {
-                        messageController.showSuccess(recentClearedMessage)
-                    }
-                }
                 SettingsScreen(
-                    recentHistoryViewModel = recentHistoryViewModel,
                     onChangePassword = {
                         navController.navigate(VaultTabRoute.ChangePassword.path)
                     },
-                    onForgotPassword = {
-                        navController.navigate(VaultTabRoute.ForgotPassword.path)
+                    onAbout = {
+                        navController.navigate(VaultTabRoute.About.path)
                     },
+                    onContactUs = {
+                        navController.navigate(VaultTabRoute.ContactUs.path)
+                    },
+                    onPrivacyDocuments = {
+                        navController.navigate(VaultTabRoute.PrivacyDocuments.path)
+                    },
+                )
+            }
+            composable(VaultTabRoute.About.path) {
+                AboutScreen(onBack = navController::popBackStack)
+            }
+            composable(VaultTabRoute.ContactUs.path) {
+                ContactUsScreen(onBack = navController::popBackStack)
+            }
+            composable(VaultTabRoute.PrivacyDocuments.path) {
+                PrivacyDocumentsScreen(
+                    onBack = navController::popBackStack,
+                    onOpenDocument = { type ->
+                        navController.navigate(VaultTabRoute.LegalDocument.createRoute(type))
+                    },
+                )
+            }
+            composable(
+                route = VaultTabRoute.LegalDocument.path,
+                arguments = listOf(navArgument(VaultTabRoute.LegalDocument.TYPE_ARG) {
+                    type = NavType.StringType
+                }),
+            ) { entry ->
+                val type = LegalDocumentType.fromRouteValue(
+                    entry.arguments?.getString(VaultTabRoute.LegalDocument.TYPE_ARG),
+                )
+                LegalDocumentScreen(
+                    type = type,
+                    onBack = navController::popBackStack,
                 )
             }
             composable(VaultTabRoute.ChangePassword.path) {
@@ -236,9 +266,6 @@ fun VaultMainScreen(
                     onExit = {
                         changePasswordViewModel.cancelFlow()
                         navController.popBackStack()
-                    },
-                    onForgotPassword = {
-                        navController.navigate(VaultTabRoute.ForgotPassword.path)
                     },
                     onResetSamePassword = changePasswordViewModel::resetSamePassword,
                     onAcceptSamePassword = changePasswordViewModel::acceptSamePassword,

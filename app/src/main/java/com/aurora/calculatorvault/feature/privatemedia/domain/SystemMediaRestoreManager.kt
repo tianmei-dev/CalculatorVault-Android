@@ -160,8 +160,8 @@ class SystemMediaRestoreManager(
 
     private fun relativePath(mediaType: VaultMediaType): String =
         when (mediaType) {
-            VaultMediaType.IMAGE -> "${Environment.DIRECTORY_PICTURES}/应用加密计算器/"
-            VaultMediaType.VIDEO -> "${Environment.DIRECTORY_MOVIES}/应用加密计算器/"
+            VaultMediaType.IMAGE -> "${Environment.DIRECTORY_PICTURES}/隐藏加密计算器/"
+            VaultMediaType.VIDEO -> "${Environment.DIRECTORY_MOVIES}/隐藏加密计算器/"
         }
 
     private fun safeMimeType(request: SystemMediaRestoreRequest): String =

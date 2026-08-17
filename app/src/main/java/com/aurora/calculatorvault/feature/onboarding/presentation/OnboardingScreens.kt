@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,9 +39,10 @@ import com.aurora.calculatorvault.ui.component.VaultNumericKeypad
 import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
-import com.aurora.calculatorvault.ui.component.VaultTopAppBar
 import com.aurora.calculatorvault.ui.layout.AppLayout
 import com.aurora.calculatorvault.ui.layout.appPagePadding
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 
 @Composable
 fun SplashScreen(
@@ -344,15 +343,7 @@ private fun OnboardingErrorText(error: OnboardingError?) {
 @Composable
 fun UserAgreementScreen(onBack: () -> Unit) {
     LegalDocumentScreen(
-        titleRes = R.string.user_agreement,
-        sections = listOf(
-            R.string.agreement_service_title to R.string.agreement_service_body,
-            R.string.agreement_behavior_title to R.string.agreement_behavior_body,
-            R.string.agreement_local_title to R.string.agreement_local_body,
-            R.string.agreement_risk_title to R.string.agreement_risk_body,
-            R.string.agreement_contact_title to R.string.agreement_contact_body,
-        ),
-        effectiveDateRes = R.string.agreement_effective_date,
+        type = LegalDocumentType.UserAgreement,
         onBack = onBack,
     )
 }
@@ -360,66 +351,7 @@ fun UserAgreementScreen(onBack: () -> Unit) {
 @Composable
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
     LegalDocumentScreen(
-        titleRes = R.string.privacy_policy,
-        sections = listOf(
-            R.string.privacy_collection_title to R.string.privacy_collection_body,
-            R.string.privacy_permission_title to R.string.privacy_permission_body,
-            R.string.privacy_storage_title to R.string.privacy_storage_body,
-            R.string.privacy_sdk_title to R.string.privacy_sdk_body,
-            R.string.privacy_deletion_title to R.string.privacy_deletion_body,
-            R.string.privacy_contact_title to R.string.privacy_contact_body,
-        ),
-        effectiveDateRes = R.string.privacy_effective_date,
+        type = LegalDocumentType.PrivacyPolicy,
         onBack = onBack,
     )
-}
-
-@Composable
-private fun LegalDocumentScreen(
-    @StringRes titleRes: Int,
-    sections: List<Pair<Int, Int>>,
-    @StringRes effectiveDateRes: Int,
-    onBack: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        VaultTopAppBar(
-            title = stringResource(titleRes),
-            navigationIcon = {
-                VaultIconButton(
-                    icon = VaultIcons.Back,
-                    contentDescription = stringResource(R.string.back),
-                    onClick = onBack,
-                )
-            },
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(appPagePadding()),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
-        ) {
-            sections.forEach { (title, body) ->
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    Text(
-                        text = stringResource(title),
-                        style = AppTextStyles.SectionTitle,
-                        color = AppColors.TextPrimary,
-                    )
-                    Text(
-                        text = stringResource(body),
-                        style = AppTextStyles.Body,
-                        color = AppColors.TextSecondary,
-                    )
-                }
-            }
-            Text(
-                text = stringResource(effectiveDateRes),
-                style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
-            )
-        }
-    }
 }

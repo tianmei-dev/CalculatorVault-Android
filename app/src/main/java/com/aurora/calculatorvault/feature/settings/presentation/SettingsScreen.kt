@@ -1,5 +1,9 @@
 package com.aurora.calculatorvault.feature.settings.presentation
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,28 +11,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.aurora.calculatorvault.R
+import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
+import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
 import com.aurora.calculatorvault.ui.component.VaultCard
-import com.aurora.calculatorvault.ui.component.VaultSectionTitle
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
-import com.aurora.calculatorvault.ui.component.VaultDialog
 import com.aurora.calculatorvault.ui.layout.appPagePadding
+import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 
 @Composable
 fun SettingsScreen(
-    recentHistoryViewModel: RecentHistoryViewModel,
     onChangePassword: () -> Unit,
-    onForgotPassword: () -> Unit,
+    onAbout: () -> Unit,
+    onContactUs: () -> Unit,
+    onPrivacyDocuments: () -> Unit,
 ) {
-    val recentState by recentHistoryViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val messageController = LocalAppMessageController.current
+    val appSettingsFallbackMessage = stringResource(R.string.settings_app_detail_open_failed)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,86 +55,45 @@ fun SettingsScreen(
                 onClick = onChangePassword,
             )
             VaultSettingItem(
-                title = stringResource(R.string.forgot_password),
-                icon = VaultIcons.Help,
-                onClick = onForgotPassword,
-            )
-            VaultSettingItem(
-                title = stringResource(R.string.auto_lock),
-                subtitle = stringResource(R.string.auto_lock_enabled),
-                icon = VaultIcons.Timer,
-                onClick = {},
-                enabled = false,
-                showDivider = false,
-            )
-        }
-        SettingsGroup(title = stringResource(R.string.data_group)) {
-            VaultSettingItem(
-                title = stringResource(R.string.storage_overview),
-                subtitle = stringResource(R.string.coming_soon),
-                icon = VaultIcons.Storage,
-                onClick = {},
-                enabled = false,
-            )
-            VaultSettingItem(
-                title = stringResource(R.string.clear_cache),
-                subtitle = stringResource(R.string.coming_soon),
-                icon = VaultIcons.Files,
-                onClick = {},
-                enabled = false,
-            )
-            VaultSettingItem(
-                title = stringResource(R.string.clear_recent_history),
-                subtitle = stringResource(
-                    if (recentState.hasHistory) {
-                        R.string.clear_recent_history_description
-                    } else {
-                        R.string.no_recent_history
-                    },
-                ),
-                icon = VaultIcons.Timer,
-                onClick = recentHistoryViewModel::requestClear,
-                enabled = recentState.hasHistory && !recentState.isClearing,
-                showDivider = false,
-            )
-        }
-        SettingsGroup(title = stringResource(R.string.help_group)) {
-            VaultSettingItem(
-                title = stringResource(R.string.help_center),
-                subtitle = stringResource(R.string.coming_soon),
-                icon = VaultIcons.Help,
-                onClick = {},
-                enabled = false,
+                title = stringResource(R.string.settings_permission_view),
+                icon = VaultIcons.Security,
+                onClick = {
+                    val appDetailsIntent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:${context.packageName}"),
+                    )
+                    val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
+                    try {
+                        context.startActivity(appDetailsIntent)
+                    } catch (_: ActivityNotFoundException) {
+                        try {
+                            context.startActivity(fallbackIntent)
+                        } catch (_: ActivityNotFoundException) {
+                            messageController.showError(appSettingsFallbackMessage)
+                        }
+                    }
+                },
                 showDivider = false,
             )
         }
         SettingsGroup(title = stringResource(R.string.about_group)) {
             VaultSettingItem(
-                title = stringResource(R.string.about_app),
-                subtitle = stringResource(R.string.version),
+                title = stringResource(R.string.settings_about_us),
                 icon = VaultIcons.Info,
-                onClick = {},
-                enabled = false,
+                onClick = onAbout,
+            )
+            VaultSettingItem(
+                title = stringResource(R.string.settings_contact_us),
+                icon = VaultIcons.Mail,
+                onClick = onContactUs,
+            )
+            VaultSettingItem(
+                title = stringResource(R.string.settings_privacy_documents),
+                icon = VaultIcons.Privacy,
+                onClick = onPrivacyDocuments,
                 showDivider = false,
             )
         }
-        if (recentState.clearFailed) {
-            androidx.compose.material3.Text(
-                text = stringResource(R.string.hidden_app_clear_recent_failed),
-                color = com.aurora.calculatorvault.core.designsystem.color.AppColors.Error,
-                style = com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles.Caption,
-            )
-        }
-    }
-    if (recentState.showConfirmation) {
-        VaultDialog(
-            title = stringResource(R.string.hidden_app_clear_recent_title),
-            message = stringResource(R.string.hidden_app_clear_recent_message),
-            confirmText = stringResource(R.string.clear_action),
-            dismissText = stringResource(R.string.cancel),
-            onConfirm = recentHistoryViewModel::confirmClear,
-            onDismiss = recentHistoryViewModel::cancelClear,
-        )
     }
 }
 
@@ -136,7 +103,11 @@ private fun SettingsGroup(
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        VaultSectionTitle(title)
+        Text(
+            text = title,
+            style = AppTextStyles.Caption,
+            color = AppColors.TextTertiary,
+        )
         VaultCard(modifier = Modifier.fillMaxWidth(), content = content)
     }
 }

@@ -1,0 +1,34 @@
+第三方 SDK 目录
+
+生效日期：2026 年 8 月 17 日
+
+当前版本未接入广告、统计、登录、支付、地图、推送、云存储或社交分享 SDK。
+
+当前工程使用的运行时依赖主要为 Android 官方或开源基础组件：
+
+1. AndroidX Core KTX
+用途：Android 基础兼容能力与 Kotlin 扩展。
+
+2. AndroidX Activity Compose
+用途：承载 Jetpack Compose 页面。
+
+3. AndroidX Lifecycle
+用途：生命周期管理、ViewModel、进程前后台监听。
+
+4. AndroidX Navigation Compose
+用途：应用内页面导航。
+
+5. Jetpack Compose UI / Material 3 / Material Icons
+用途：界面绘制、组件、图标。
+
+6. AndroidX Room
+用途：本地数据库，保存用户主动创建的应用管理、应用锁、应用伪装和私密相册记录。
+
+7. AndroidX DataStore Preferences
+用途：本地保存隐私协议确认状态和密码安全配置。
+
+8. Kotlinx Coroutines
+用途：异步任务、IO 调度和 Flow 状态流。
+
+说明：
+以上组件用于本地功能实现。当前版本没有接入会向第三方发送用户行为数据的广告、统计或营销 SDK。

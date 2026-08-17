@@ -1,0 +1,47 @@
+应用权限说明
+
+生效日期：2026 年 8 月 17 日
+
+以下权限依据当前 AndroidManifest.xml 中声明的权限整理。
+
+一、使用情况访问
+
+权限：android.permission.PACKAGE_USAGE_STATS
+用途：用于应用锁功能识别当前前台应用，从而判断是否需要显示密码验证。
+是否必须：仅在使用应用锁时需要用户在系统设置中授权。
+
+二、显示在其他应用上层
+
+权限：android.permission.SYSTEM_ALERT_WINDOW
+用途：用于应用锁功能在受保护应用上方显示验证界面。
+是否必须：仅在使用应用锁时需要用户在系统设置中授权。
+
+三、前台服务
+
+权限：android.permission.FOREGROUND_SERVICE
+用途：用于应用锁前台保护服务持续运行。
+是否必须：使用应用锁监控时需要。
+
+四、特殊用途前台服务
+
+权限：android.permission.FOREGROUND_SERVICE_SPECIAL_USE
+用途：用于声明应用锁前台监控服务的特殊用途类型。
+是否必须：在 Android 14 及以上系统使用对应前台服务类型时需要。
+
+五、通知
+
+权限：android.permission.POST_NOTIFICATIONS
+用途：用于展示应用锁前台服务通知和验证提醒通知。
+是否必须：Android 13 及以上系统可能需要用户授权；未授权可能影响通知展示。
+
+六、外部存储写入（Android 10 及以下）
+
+权限：android.permission.WRITE_EXTERNAL_STORAGE，maxSdkVersion=29
+用途：在 Android 10 及以下系统中，从系统相册移除用户明确确认的原媒体文件时可能需要。
+是否必须：仅在旧系统执行相关媒体移除操作时需要。
+
+七、应用可见性查询
+
+声明：queries 中的 MAIN / LAUNCHER Intent
+用途：用于查询设备上可从桌面启动的应用，供私密应用、应用伪装和应用锁选择目标应用。
+说明：这不是运行时权限。当前版本没有声明 QUERY_ALL_PACKAGES。
