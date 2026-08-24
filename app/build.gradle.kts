@@ -1,22 +1,26 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
 
+val umengAppKey = providers.gradleProperty("UMENG_APP_KEY").orElse("")
+val umengChannel = providers.gradleProperty("UMENG_CHANNEL").orElse("official")
+
 android {
     namespace = "com.aurora.calculatorvault"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aurora.calculatorvault"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "UMENG_APP_KEY", "\"${umengAppKey.get()}\"")
+        buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
     }
 
     buildTypes {
@@ -32,10 +36,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -61,6 +61,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.umeng.common)
+    implementation(libs.umeng.asms)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

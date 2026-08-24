@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class OnboardingViewModel(
     private val repository: OnboardingRepositoryContract,
+    private val onPrivacyAccepted: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private val password = CharArray(PasswordPolicy.MAX_LENGTH)
@@ -63,6 +64,8 @@ class OnboardingViewModel(
         viewModelScope.launch {
             when (val result = repository.acceptPrivacy()) {
                 is OnboardingResult.Success -> {
+                    // Persistence completed successfully; analytics may now re-check consent.
+                    runCatching { onPrivacyAccepted() }
                     clearSensitiveInput()
                     _uiState.value = OnboardingUiState(step = OnboardingStep.CreatePassword)
                 }
@@ -228,11 +231,12 @@ class OnboardingViewModel(
 
     class Factory(
         private val repository: OnboardingRepositoryContract,
+        private val onPrivacyAccepted: suspend () -> Unit = {},
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(OnboardingViewModel::class.java))
-            return OnboardingViewModel(repository) as T
+            return OnboardingViewModel(repository, onPrivacyAccepted) as T
         }
     }
 

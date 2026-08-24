@@ -3,6 +3,8 @@ package com.aurora.calculatorvault.app
 import android.app.Application
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.room.Room
+import com.aurora.calculatorvault.core.analytics.AnalyticsInitializer
+import com.aurora.calculatorvault.core.analytics.UmengAnalyticsTracker
 import com.aurora.calculatorvault.core.database.CalculatorVaultDatabase
 import com.aurora.calculatorvault.core.datastore.security.DataStoreSecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.datastore.vaultPreferencesDataStore
@@ -40,14 +42,32 @@ import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestore
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaImporter
 import com.aurora.calculatorvault.feature.privatemedia.storage.VaultMediaStorage
 import com.aurora.calculatorvault.feature.settings.data.ChangePasswordRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class CalculatorVaultApp : Application() {
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
     private val securityPreferencesDataSource by lazy {
         DataStoreSecurityPreferencesDataSource(vaultPreferencesDataStore)
     }
 
     private val passwordHasher by lazy {
         Pbkdf2PasswordHasher()
+    }
+
+    val analyticsTracker by lazy {
+        UmengAnalyticsTracker(applicationContext)
+    }
+
+    val analyticsInitializer by lazy {
+        AnalyticsInitializer(
+            context = applicationContext,
+            consentDataSource = securityPreferencesDataSource,
+            tracker = analyticsTracker,
+        )
     }
 
     val passwordRecoveryRepository by lazy {
@@ -251,6 +271,10 @@ class CalculatorVaultApp : Application() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             AppLifecycleObserver(vaultSessionManager),
         )
+        applicationScope.launch {
+            // This call reads persisted consent before the Umeng SDK is touched.
+            analyticsInitializer.initializeIfAllowed()
+        }
     }
 
     private companion object {

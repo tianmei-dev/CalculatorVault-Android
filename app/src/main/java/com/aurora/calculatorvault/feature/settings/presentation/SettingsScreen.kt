@@ -33,6 +33,7 @@ fun SettingsScreen(
     onAbout: () -> Unit,
     onContactUs: () -> Unit,
     onPrivacyDocuments: () -> Unit,
+    onPermissionSettingsClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val messageController = LocalAppMessageController.current
@@ -58,6 +59,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_permission_view),
                 icon = VaultIcons.Security,
                 onClick = {
+                    onPermissionSettingsClick()
                     val appDetailsIntent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.parse("package:${context.packageName}"),

@@ -103,6 +103,9 @@ fun PrivateMediaScreen(
     viewModel: PrivateMediaViewModel,
     sessionManager: VaultSessionManager,
     systemMediaRemovalManager: SystemMediaRemovalManager,
+    onImportClick: () -> Unit,
+    onCreateFolderClick: () -> Unit,
+    onRestoreClick: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -362,11 +365,18 @@ fun PrivateMediaScreen(
 
     PrivateMediaContent(
         state = state,
-        onImportFromHome = { showImportAlbumPicker = true },
-        onImportCurrentAlbum = viewModel::requestImportToCurrentAlbum,
+        onImportFromHome = {
+            onImportClick()
+            showImportAlbumPicker = true
+        },
+        onImportCurrentAlbum = {
+            onImportClick()
+            viewModel.requestImportToCurrentAlbum()
+        },
         onOpenAlbum = viewModel::openAlbum,
         onBackToAlbumHome = viewModel::backToAlbumHome,
         onCreateAlbum = {
+            onCreateFolderClick()
             albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.Create)
         },
         onRenameAlbum = { album ->
@@ -382,9 +392,15 @@ fun PrivateMediaScreen(
         onToggleSelection = viewModel::toggleSelection,
         onCancelSelection = viewModel::cancelSelection,
         onSelectAll = viewModel::selectAll,
-        onRequestRestoreSelection = viewModel::requestRestoreSelection,
+        onRequestRestoreSelection = {
+            onRestoreClick()
+            viewModel.requestRestoreSelection()
+        },
         onRequestDeleteSelection = viewModel::requestDeleteSelection,
-        onRequestRestorePreview = viewModel::requestRestore,
+        onRequestRestorePreview = { mediaId ->
+            onRestoreClick()
+            viewModel.requestRestore(mediaId)
+        },
         onRequestDeletePreview = viewModel::requestDelete,
         onPreviewPrevious = viewModel::previewPrevious,
         onPreviewNext = viewModel::previewNext,
@@ -419,6 +435,7 @@ fun PrivateMediaScreen(
                 viewModel.requestImportToAlbum(albumId)
             },
             onCreate = {
+                onCreateFolderClick()
                 showImportAlbumPicker = false
                 albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.CreateForImport)
             },
@@ -436,6 +453,7 @@ fun PrivateMediaScreen(
                 viewModel.moveSelectedToAlbum(albumId)
             },
             onCreate = {
+                onCreateFolderClick()
                 showMoveAlbumPicker = false
                 albumNameDialog = AlbumNameDialogState(AlbumNameDialogPurpose.CreateForMove)
             },

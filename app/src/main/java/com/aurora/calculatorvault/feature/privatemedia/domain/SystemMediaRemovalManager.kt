@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.aurora.calculatorvault.BuildConfig
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -104,12 +105,22 @@ class SystemMediaRemovalManager(
 
     private fun removeDirectlyOrRequestUserAction(
         candidates: List<OriginalMediaRemovalCandidate>,
+    ): OriginalMediaRemovalStartResult =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            removeDirectlyOrRequestUserActionApi29(candidates)
+        } else {
+            removeDirectlyLegacy(candidates)
+        }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun removeDirectlyOrRequestUserActionApi29(
+        candidates: List<OriginalMediaRemovalCandidate>,
     ): OriginalMediaRemovalStartResult {
         val removed = mutableListOf<Long>()
         val failed = mutableListOf<Long>()
         candidates.forEach { candidate ->
             try {
-                if (deleteUri(candidate.uri)) {
+                if (deleteUriUnchecked(candidate.uri)) {
                     removed += candidate.mediaId
                 } else {
                     debugLog("direct delete returned false kind=${candidate.uri.safeKind()}")
@@ -137,15 +148,45 @@ class SystemMediaRemovalManager(
         )
     }
 
+    private fun removeDirectlyLegacy(
+        candidates: List<OriginalMediaRemovalCandidate>,
+    ): OriginalMediaRemovalStartResult {
+        val removed = mutableListOf<Long>()
+        val failed = mutableListOf<Long>()
+        candidates.forEach { candidate ->
+            try {
+                if (deleteUriUnchecked(candidate.uri)) {
+                    removed += candidate.mediaId
+                } else {
+                    debugLog("direct delete returned false kind=${candidate.uri.safeKind()}")
+                    failed += candidate.mediaId
+                }
+            } catch (_: ActivityNotFoundException) {
+                debugLog("direct delete failed=ActivityNotFoundException kind=${candidate.uri.safeKind()}")
+                failed += candidate.mediaId
+            } catch (exception: SecurityException) {
+                debugLog("direct delete failed=${exception.javaClass.simpleName} kind=${candidate.uri.safeKind()}")
+                failed += candidate.mediaId
+            } catch (exception: IllegalArgumentException) {
+                debugLog("direct delete failed=${exception.javaClass.simpleName} kind=${candidate.uri.safeKind()}")
+                failed += candidate.mediaId
+            }
+        }
+        return OriginalMediaRemovalStartResult.Completed(
+            OriginalMediaRemovalResult(removedIds = removed, failedIds = failed),
+        )
+    }
+
     private fun deleteUri(uri: Uri): Boolean =
         try {
-            contentResolver.delete(uri, null, null) > 0 || !exists(uri)
-        } catch (exception: RecoverableSecurityException) {
-            throw exception
+            deleteUriUnchecked(uri)
         } catch (exception: Exception) {
             debugLog("deleteUri failed=${exception.javaClass.simpleName} kind=${uri.safeKind()}")
             false
         }
+
+    private fun deleteUriUnchecked(uri: Uri): Boolean =
+        contentResolver.delete(uri, null, null) > 0 || !exists(uri)
 
     private fun Uri.safeKind(): String =
         listOfNotNull(authority, pathSegments.firstOrNull(), pathSegments.getOrNull(1)).joinToString("/")

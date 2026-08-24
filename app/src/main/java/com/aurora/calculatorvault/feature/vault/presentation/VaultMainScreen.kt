@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
+import com.aurora.calculatorvault.core.analytics.AnalyticsEvent
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.navigation.VaultTabRoute
 import com.aurora.calculatorvault.feature.applock.presentation.AppLockScreen
@@ -81,6 +82,15 @@ fun VaultMainScreen(
                             selected = currentRoute == tab.route.path,
                             testTag = tab.testTag,
                             onClick = {
+                                when (tab) {
+                                    VaultMainTab.AppLock -> application.analyticsTracker.track(
+                                        AnalyticsEvent.AppLockClick,
+                                    )
+                                    VaultMainTab.PrivateAlbum -> application.analyticsTracker.track(
+                                        AnalyticsEvent.PrivateAlbumClick,
+                                    )
+                                    else -> Unit
+                                }
                                 navController.navigate(tab.route.path) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -110,6 +120,7 @@ fun VaultMainScreen(
                 AppManagementScreen(
                     viewModel = appManagementViewModel,
                     onOpenDisguise = {
+                        application.analyticsTracker.track(AnalyticsEvent.AppDisguiseClick)
                         navController.navigate(VaultTabRoute.AppDisguise.path) {
                             launchSingleTop = true
                         }
@@ -142,6 +153,7 @@ fun VaultMainScreen(
                     factory = AppLockViewModel.Factory(
                         application.appLockRepository,
                         application.applicationContext,
+                        application.analyticsTracker,
                     ),
                 )
                 AppLockScreen(
@@ -194,11 +206,21 @@ fun VaultMainScreen(
                     viewModel = privateMediaViewModel,
                     sessionManager = application.vaultSessionManager,
                     systemMediaRemovalManager = application.systemMediaRemovalManager,
+                    onImportClick = {
+                        application.analyticsTracker.track(AnalyticsEvent.PrivateMediaImportClick)
+                    },
+                    onCreateFolderClick = {
+                        application.analyticsTracker.track(AnalyticsEvent.PrivateFolderCreateClick)
+                    },
+                    onRestoreClick = {
+                        application.analyticsTracker.track(AnalyticsEvent.PrivateMediaRestoreClick)
+                    },
                 )
             }
             composable(VaultTabRoute.Settings.path) {
                 SettingsScreen(
                     onChangePassword = {
+                        application.analyticsTracker.track(AnalyticsEvent.ChangePasswordClick)
                         navController.navigate(VaultTabRoute.ChangePassword.path)
                     },
                     onAbout = {
@@ -208,7 +230,11 @@ fun VaultMainScreen(
                         navController.navigate(VaultTabRoute.ContactUs.path)
                     },
                     onPrivacyDocuments = {
+                        application.analyticsTracker.track(AnalyticsEvent.PrivacyDocumentsClick)
                         navController.navigate(VaultTabRoute.PrivacyDocuments.path)
+                    },
+                    onPermissionSettingsClick = {
+                        application.analyticsTracker.track(AnalyticsEvent.PermissionSettingsClick)
                     },
                 )
             }

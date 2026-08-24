@@ -39,7 +39,10 @@ fun AppNavHost(
     val context = LocalContext.current
     val application = context.applicationContext as CalculatorVaultApp
     val onboardingViewModel: OnboardingViewModel = viewModel(
-        factory = OnboardingViewModel.Factory(application.onboardingRepository),
+        factory = OnboardingViewModel.Factory(
+            repository = application.onboardingRepository,
+            onPrivacyAccepted = application.analyticsInitializer::initializeIfAllowed,
+        ),
     )
     val onboardingState by onboardingViewModel.uiState.collectAsState()
     val sessionState by application.vaultSessionManager.state.collectAsState()

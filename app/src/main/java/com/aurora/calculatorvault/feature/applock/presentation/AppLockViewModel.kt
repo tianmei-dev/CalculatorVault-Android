@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.aurora.calculatorvault.core.analytics.AnalyticsEvent
+import com.aurora.calculatorvault.core.analytics.AnalyticsTracker
 import com.aurora.calculatorvault.feature.applock.domain.AppLockPermissionTarget
 import com.aurora.calculatorvault.feature.applock.domain.AppLockRepository
 import com.aurora.calculatorvault.feature.applock.domain.AppLockSetResult
@@ -24,6 +26,7 @@ class AppLockViewModel(
     private val usagePermissionHelper: UsageAccessPermissionHelper,
     private val overlayPermissionHelper: OverlayPermissionHelper,
     private val appContext: Context,
+    private val analyticsTracker: AnalyticsTracker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
@@ -89,6 +92,7 @@ class AppLockViewModel(
                         )
                     }
                     syncMonitorState()
+                    if (locked) analyticsTracker.track(AnalyticsEvent.AppLockEnable)
                 }
                 AppLockSetResult.Rejected -> {
                     _uiState.update {
@@ -165,6 +169,7 @@ class AppLockViewModel(
     class Factory(
         private val repository: AppLockRepository,
         private val appContext: Context,
+        private val analyticsTracker: AnalyticsTracker,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -174,6 +179,7 @@ class AppLockViewModel(
                 usagePermissionHelper = UsageAccessPermissionHelper(appContext),
                 overlayPermissionHelper = OverlayPermissionHelper(appContext),
                 appContext = appContext,
+                analyticsTracker = analyticsTracker,
             ) as T
         }
     }
