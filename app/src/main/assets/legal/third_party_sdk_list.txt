@@ -1,44 +1,55 @@
 第三方 SDK 目录
 
-生效日期：2026 年 8 月 24 日
+生效日期：2026 年 8 月 28 日
 
-当前版本接入友盟+移动统计 SDK，不接入广告、登录、支付、地图、推送、云存储或社交分享 SDK。
+当前版本接入友盟+移动统计 SDK 和腾讯 Bugly CrashReport SDK，不接入广告、登录、支付、地图、推送、云存储或社交分享 SDK。
 
 1. 友盟+移动统计 SDK（U-App）
-SDK 版本：Common 9.9.1、ASMS 1.8.7.2。
+SDK 版本：Common 9.9.8、ASMS 1.8.7.2。
 SDK 提供方：友盟同欣（北京）科技有限公司、北京锐讯灵通科技有限公司。
 使用目的：统计 App 启动、活跃会话以及少量核心功能入口点击，用于产品功能使用率分析。
 可能涉及的信息类型：设备信息（如 Android ID、OAID/广告标识符、设备型号和系统版本）、网络信息（如 IP 地址、网络类型）、应用信息（如应用版本和渠道）以及应用使用信息（启动、会话和本文列明的自定义事件 ID）。
 本应用的自定义事件不附带事件参数，不向友盟上传密码、密码哈希、目标应用包名或名称、媒体 Uri、媒体文件名、私密文件夹名称、计算器输入内容。
 初始化规则：仅在用户同意隐私政策且同意状态成功保存后初始化；未同意或拒绝时不初始化、不上报事件。
 隐私政策及官方说明：https://www.umeng.com/page/policy
-待确认项：发布前请产品/法务结合友盟 Common 9.9.1、ASMS 1.8.7.2 的最新官方个人信息字段清单和友盟后台配置，复核上述“可能涉及的信息类型”。当前 App 未申请电话、联系人或位置权限。
+待确认项：发布前请产品/法务结合友盟 Common 9.9.8、ASMS 1.8.7.2 的最新官方个人信息字段清单和友盟后台配置，复核上述“可能涉及的信息类型”。当前 App 未申请电话、联系人或位置权限。
+
+2. 腾讯 Bugly CrashReport SDK
+SDK 版本：crashreport 4.1.9.3。
+SDK 提供方：深圳市腾讯计算机系统有限公司。
+使用目的：自动捕获和分析 Java/Kotlin Crash、Native Crash、ANR，以及以未捕获异常形式发生的 OOM，帮助定位应用稳定性问题。
+可能涉及的信息类型：异常信息（异常类型、崩溃或 ANR 堆栈、线程信息、发生时间）、应用信息（应用包名、版本、进程名与进程 ID）以及运行设备和环境信息（设备品牌/型号、Android 系统版本与 API Level、CPU 架构、Root 状态、磁盘/内存使用情况、网络类型）。具体字段以腾讯官方最新个人信息保护规则为准。
+本应用不向 Bugly 设置自定义 User ID、设备唯一 ID、自定义用户数据、业务日志或附件，也不主动上传密码、密码哈希、目标应用包名或名称、媒体 Uri、媒体文件名、私密目录、文件夹名称或计算器输入内容。
+初始化规则：仅在用户同意隐私政策且同意状态成功保存后初始化；未同意、拒绝或缺少正式 App ID 时不初始化。应用不设置自定义 User ID、设备 ID 或用户数据，并关闭 Bugly 自定义日志上传。
+产品控制台：https://bugly.qq.com/v2/
+个人信息保护规则：https://static.bugly.qq.com/bugly-sdk-privacy-statement.pdf
+待确认项：发布前请产品/法务结合 Bugly CrashReport 4.1.9.3、正式控制台配置及上述官方规则，复核“可能涉及的信息类型”和数据保存期限。
 
 当前工程使用的运行时依赖主要为 Android 官方或开源基础组件：
 
-2. AndroidX Core KTX
+3. AndroidX Core KTX
 用途：Android 基础兼容能力与 Kotlin 扩展。
 
-3. AndroidX Activity Compose
+4. AndroidX Activity Compose
 用途：承载 Jetpack Compose 页面。
 
-4. AndroidX Lifecycle
+5. AndroidX Lifecycle
 用途：生命周期管理、ViewModel、进程前后台监听。
 
-5. AndroidX Navigation Compose
+6. AndroidX Navigation Compose
 用途：应用内页面导航。
 
-6. Jetpack Compose UI / Material 3 / Material Icons
+7. Jetpack Compose UI / Material 3 / Material Icons
 用途：界面绘制、组件、图标。
 
-7. AndroidX Room
+8. AndroidX Room
 用途：本地数据库，保存用户主动创建的应用管理、应用锁、应用伪装和私密相册记录。
 
-8. AndroidX DataStore Preferences
+9. AndroidX DataStore Preferences
 用途：本地保存隐私协议确认状态和密码安全配置。
 
-9. Kotlinx Coroutines
+10. Kotlinx Coroutines
 用途：异步任务、IO 调度和 Flow 状态流。
 
 说明：
-以上 AndroidX、Jetpack 与 Kotlin 组件用于本地功能实现。友盟+移动统计 SDK 的处理范围见第 1 项。
+以上 AndroidX、Jetpack 与 Kotlin 组件用于本地功能实现。友盟+移动统计 SDK 与腾讯 Bugly CrashReport SDK 的处理范围分别见第 1、2 项。

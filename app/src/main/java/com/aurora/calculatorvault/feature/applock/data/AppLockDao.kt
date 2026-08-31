@@ -17,6 +17,9 @@ interface AppLockDao {
     @Query("SELECT package_name FROM app_lock_entries WHERE enabled = 1")
     fun observeEnabledPackages(): Flow<List<String>>
 
+    @Query("SELECT COUNT(*) FROM app_lock_entries WHERE enabled = 1")
+    suspend fun countEnabledEntries(): Int
+
     @Query("SELECT * FROM app_lock_entries WHERE package_name = :packageName LIMIT 1")
     suspend fun getEntry(packageName: String): AppLockEntryEntity?
 

@@ -29,6 +29,9 @@ interface VaultMediaDao {
     @Query("SELECT COUNT(*) FROM vault_media")
     fun observeMediaCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM vault_media")
+    suspend fun countAllMedia(): Int
+
     @Query("SELECT COUNT(*) FROM vault_media WHERE album_id = :albumId")
     suspend fun countMediaByAlbum(albumId: Long): Int
 

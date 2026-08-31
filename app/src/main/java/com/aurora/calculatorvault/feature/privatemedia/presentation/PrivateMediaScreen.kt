@@ -62,6 +62,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -106,6 +109,7 @@ fun PrivateMediaScreen(
     onImportClick: () -> Unit,
     onCreateFolderClick: () -> Unit,
     onRestoreClick: () -> Unit,
+    onGuideTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -365,6 +369,7 @@ fun PrivateMediaScreen(
 
     PrivateMediaContent(
         state = state,
+        onGuideTargetBoundsChanged = onGuideTargetBoundsChanged,
         onImportFromHome = {
             onImportClick()
             showImportAlbumPicker = true
@@ -503,6 +508,7 @@ fun PrivateMediaScreen(
 @Composable
 private fun PrivateMediaContent(
     state: PrivateMediaUiState,
+    onGuideTargetBoundsChanged: (Rect) -> Unit,
     onImportFromHome: () -> Unit,
     onImportCurrentAlbum: () -> Unit,
     onOpenAlbum: (Long) -> Unit,
@@ -535,6 +541,7 @@ private fun PrivateMediaContent(
         if (state.isAlbumHome) {
             AlbumHomeContent(
                 state = state,
+                onGuideTargetBoundsChanged = onGuideTargetBoundsChanged,
                 onImport = onImportFromHome,
                 onCreateAlbum = onCreateAlbum,
                 onOpenAlbum = onOpenAlbum,
@@ -618,6 +625,7 @@ private fun PrivateMediaContent(
 @Composable
 private fun AlbumHomeContent(
     state: PrivateMediaUiState,
+    onGuideTargetBoundsChanged: (Rect) -> Unit,
     onImport: () -> Unit,
     onCreateAlbum: () -> Unit,
     onOpenAlbum: (Long) -> Unit,
@@ -646,7 +654,11 @@ private fun AlbumHomeContent(
             ImportMediaHeroButton(
                 onClick = onImport,
                 enabled = !state.isImporting,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .onGloballyPositioned {
+                        onGuideTargetBoundsChanged(it.boundsInRoot())
+                    },
             )
             CreateFolderShortcut(
                 enabled = !state.isImporting,

@@ -111,8 +111,12 @@ class OnboardingViewModelTest {
 
         assertEquals(1, repository.passwordCalls)
         assertEquals(OnboardingStep.Calculator, viewModel.uiState.value.step)
+        assertTrue(viewModel.uiState.value.showVaultEntryGuide)
         assertEquals(0, viewModel.uiState.value.passwordLength)
         assertEquals(0, viewModel.uiState.value.confirmPasswordLength)
+
+        viewModel.dismissVaultEntryGuide()
+        assertFalse(viewModel.uiState.value.showVaultEntryGuide)
     }
 
     @Test

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
+import com.aurora.calculatorvault.core.guide.GuideType
 import com.aurora.calculatorvault.core.security.SecureScreenEffect
 import com.aurora.calculatorvault.core.security.session.VaultSessionState
 import com.aurora.calculatorvault.feature.calculator.presentation.CalculatorScreen
@@ -29,6 +30,7 @@ import com.aurora.calculatorvault.feature.onboarding.presentation.PrivacyConsent
 import com.aurora.calculatorvault.feature.onboarding.presentation.PrivacyPolicyScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.SplashScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.UserAgreementScreen
+import com.aurora.calculatorvault.feature.onboarding.presentation.ProgressiveGuideOverlay
 import com.aurora.calculatorvault.feature.vault.presentation.VaultMainScreen
 
 @Composable
@@ -41,7 +43,7 @@ fun AppNavHost(
     val onboardingViewModel: OnboardingViewModel = viewModel(
         factory = OnboardingViewModel.Factory(
             repository = application.onboardingRepository,
-            onPrivacyAccepted = application.analyticsInitializer::initializeIfAllowed,
+            onPrivacyAccepted = application.thirdPartySdkInitializer::initializeIfAllowed,
         ),
     )
     val onboardingState by onboardingViewModel.uiState.collectAsState()
@@ -106,6 +108,12 @@ fun AppNavHost(
                     }
                 }
             }
+        }
+    }
+
+    LaunchedEffect(onboardingState.showVaultEntryGuide) {
+        if (onboardingState.showVaultEntryGuide) {
+            application.guidePreferences.markShown(GuideType.VAULT_ENTRY)
         }
     }
 
@@ -193,5 +201,12 @@ fun AppNavHost(
                 )
             }
         }
+    }
+
+    if (onboardingState.showVaultEntryGuide) {
+        ProgressiveGuideOverlay(
+            type = GuideType.VAULT_ENTRY,
+            onDismiss = onboardingViewModel::dismissVaultEntryGuide,
+        )
     }
 }

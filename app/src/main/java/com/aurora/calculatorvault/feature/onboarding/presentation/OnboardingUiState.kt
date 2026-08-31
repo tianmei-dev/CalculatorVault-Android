@@ -25,6 +25,7 @@ data class OnboardingUiState(
     val confirmPasswordLength: Int = 0,
     val isSaving: Boolean = false,
     val error: OnboardingError? = null,
+    val showVaultEntryGuide: Boolean = false,
 ) {
     val canContinuePassword: Boolean
         get() = passwordLength in 4..8 && !isSaving
@@ -32,4 +33,3 @@ data class OnboardingUiState(
     val canConfirmPassword: Boolean
         get() = confirmPasswordLength in 4..8 && !isSaving
 }
-

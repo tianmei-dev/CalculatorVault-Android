@@ -8,8 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,6 +28,7 @@ import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.core.analytics.AnalyticsEvent
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
+import com.aurora.calculatorvault.core.guide.GuideType
 import com.aurora.calculatorvault.core.navigation.VaultTabRoute
 import com.aurora.calculatorvault.feature.applock.presentation.AppLockScreen
 import com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel
@@ -40,6 +45,8 @@ import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMedia
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import com.aurora.calculatorvault.feature.legal.presentation.PrivacyDocumentsScreen
+import com.aurora.calculatorvault.feature.onboarding.presentation.GuideTargetShape
+import com.aurora.calculatorvault.feature.onboarding.presentation.ProgressiveGuideOverlay
 import com.aurora.calculatorvault.feature.settings.presentation.AboutScreen
 import com.aurora.calculatorvault.feature.settings.presentation.ContactUsScreen
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
@@ -62,6 +69,11 @@ fun VaultMainScreen(
     val currentRoute = backStackEntry?.destination?.route
     val messageController = LocalAppMessageController.current
     val passwordChangedMessage = stringResource(R.string.password_change_success)
+    var activeGuide by remember { mutableStateOf<GuideType?>(null) }
+    var pendingDisguiseCreatedGuide by remember { mutableStateOf(false) }
+    var disguiseTargetBounds by remember { mutableStateOf<Rect?>(null) }
+    var appLockTargetBounds by remember { mutableStateOf<Rect?>(null) }
+    var privateAlbumTargetBounds by remember { mutableStateOf<Rect?>(null) }
     val tabs = VaultMainTab.entries
     val tabRoutes = tabs.map { it.route.path }.toSet()
 
@@ -133,6 +145,23 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.AppDisguise.path) {
+                LaunchedEffect(Unit) {
+                    val hasExistingEntries = runCatching {
+                        application.guideLegacyUsageRepository.hasDisguiseEntries()
+                    }.getOrDefault(true)
+                    application.guidePreferences.migrateLegacyUsage(
+                        GuideType.APP_DISGUISE_CREATED,
+                        hasExistingEntries,
+                    )
+                    if (application.guidePreferences.claim(GuideType.APP_DISGUISE_INTRO)) {
+                        activeGuide = GuideType.APP_DISGUISE_INTRO
+                    }
+                }
+                LaunchedEffect(Unit) {
+                    application.guidePreferences.disguiseCreatedPending.collect { pending ->
+                        if (pending) pendingDisguiseCreatedGuide = true
+                    }
+                }
                 val appDisguiseViewModel: AppDisguiseViewModel = viewModel(
                     factory = AppDisguiseViewModel.Factory(
                         application.disguiseEntryRepository,
@@ -146,9 +175,23 @@ fun VaultMainScreen(
                     iconProvider = application.appIconProvider,
                     onBackToManagement = navController::popBackStack,
                     onMessage = messageController::show,
+                    onCreateTargetBoundsChanged = { disguiseTargetBounds = it },
                 )
             }
             composable(VaultTabRoute.AppLock.path) {
+                LaunchedEffect(Unit) {
+                    val hasEnabledEntries = runCatching {
+                        application.guideLegacyUsageRepository.hasEnabledAppLock()
+                    }.getOrDefault(true)
+                    if (
+                        application.guidePreferences.claimWithLegacyUsage(
+                            GuideType.APP_LOCK,
+                            hasEnabledEntries,
+                        )
+                    ) {
+                        activeGuide = GuideType.APP_LOCK
+                    }
+                }
                 val appLockViewModel: AppLockViewModel = viewModel(
                     factory = AppLockViewModel.Factory(
                         application.appLockRepository,
@@ -160,6 +203,7 @@ fun VaultMainScreen(
                     viewModel = appLockViewModel,
                     iconProvider = application.appIconProvider,
                     onMessage = messageController::show,
+                    onGuideTargetBoundsChanged = { appLockTargetBounds = it },
                 )
             }
             composable(VaultTabRoute.HiddenApp.path) {
@@ -199,6 +243,19 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.PrivateMedia.path) {
+                LaunchedEffect(Unit) {
+                    val hasExistingMedia = runCatching {
+                        application.guideLegacyUsageRepository.hasPrivateMedia()
+                    }.getOrDefault(true)
+                    if (
+                        application.guidePreferences.claimWithLegacyUsage(
+                            GuideType.PRIVATE_ALBUM,
+                            hasExistingMedia,
+                        )
+                    ) {
+                        activeGuide = GuideType.PRIVATE_ALBUM
+                    }
+                }
                 val privateMediaViewModel: PrivateMediaViewModel = viewModel(
                     factory = PrivateMediaViewModel.Factory(application.vaultMediaRepository),
                 )
@@ -215,6 +272,7 @@ fun VaultMainScreen(
                     onRestoreClick = {
                         application.analyticsTracker.track(AnalyticsEvent.PrivateMediaRestoreClick)
                     },
+                    onGuideTargetBoundsChanged = { privateAlbumTargetBounds = it },
                 )
             }
             composable(VaultTabRoute.Settings.path) {
@@ -301,5 +359,36 @@ fun VaultMainScreen(
                 ForgotPasswordScreen(onBack = navController::popBackStack)
             }
         }
+    }
+
+    LaunchedEffect(activeGuide, pendingDisguiseCreatedGuide) {
+        if (activeGuide == null && pendingDisguiseCreatedGuide) {
+            pendingDisguiseCreatedGuide = false
+            if (application.guidePreferences.claimPendingDisguiseCreated()) {
+                activeGuide = GuideType.APP_DISGUISE_CREATED
+            }
+        }
+    }
+
+    activeGuide?.let { guide ->
+        val targetBounds = when (guide) {
+            GuideType.APP_DISGUISE_INTRO -> disguiseTargetBounds
+            GuideType.APP_LOCK -> appLockTargetBounds
+            GuideType.PRIVATE_ALBUM -> privateAlbumTargetBounds
+            GuideType.VAULT_ENTRY,
+            GuideType.APP_DISGUISE_CREATED,
+            -> null
+        }
+        ProgressiveGuideOverlay(
+            type = guide,
+            targetBounds = targetBounds,
+            targetShape = if (guide == GuideType.APP_DISGUISE_INTRO) {
+                GuideTargetShape.Circle
+            } else {
+                GuideTargetShape.RoundedRectangle
+            },
+            avoidBottomNavigation = currentRoute in tabRoutes,
+            onDismiss = { activeGuide = null },
+        )
     }
 }

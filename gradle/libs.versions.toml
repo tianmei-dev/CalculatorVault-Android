@@ -16,6 +16,7 @@ androidxTestExtJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
 umengCommon = "9.9.8"
 umengAsms = "1.8.7.2"
+buglyCrashreport = "4.1.9.3"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -43,6 +44,7 @@ androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "a
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
 umeng-common = { module = "com.umeng.umsdk:common", version.ref = "umengCommon" }
 umeng-asms = { module = "com.umeng.umsdk:asms", version.ref = "umengAsms" }
+bugly-crashreport = { module = "com.tencent.bugly:crashreport", version.ref = "buglyCrashreport" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

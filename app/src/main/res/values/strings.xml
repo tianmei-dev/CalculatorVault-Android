@@ -594,4 +594,26 @@
     <string name="app_disguise_recreate_shortcut_content_description">重新创建桌面入口</string>
     <string name="app_disguise_edit_content_description">编辑伪装配置</string>
     <string name="app_disguise_delete_content_description">删除伪装配置</string>
+    <!-- Progressive feature guides. Event IDs and sensitive user data are intentionally absent. -->
+    <string name="guide_acknowledge">知道了</string>
+    <string name="guide_vault_entry_title">记住你的隐私空间入口</string>
+    <string name="guide_vault_entry_body">以后打开计算器，输入你的密码并按“=”，即可进入隐私空间。</string>
+    <string name="guide_vault_entry_support">计算器仍可正常进行日常计算。</string>
+    <string name="guide_vault_entry_visual">••••  +  =  →  隐私空间</string>
+    <string name="guide_app_lock_title">给重要应用加一层保护</string>
+    <string name="guide_app_lock_body">开启应用锁后，打开受保护的应用时，需要先验证隐私密码。</string>
+    <string name="guide_app_lock_support">应用锁运行需要“使用情况访问”和“显示在其他应用上层”等系统权限，我们会在你真正开启应用锁时引导设置。</string>
+    <string name="guide_disguise_intro_title">创建一个新的伪装入口</string>
+    <string name="guide_disguise_intro_body">你可以为应用创建新的桌面入口，并更换显示名称和图标，让入口看起来更自然。</string>
+    <string name="guide_disguise_intro_support">伪装不会修改或删除原 App，原 App 仍可能显示在桌面、应用抽屉或系统应用列表中。</string>
+    <string name="guide_disguise_created_title">伪装已创建</string>
+    <string name="guide_disguise_created_body">为了让伪装效果更自然，建议将原 App 移入桌面文件夹，只在桌面保留新的伪装入口。</string>
+    <string name="guide_disguise_created_support">这项整理需要由你在手机桌面上手动完成。</string>
+    <string name="guide_disguise_view_organization">查看怎么整理</string>
+    <string name="guide_disguise_organize_title">让桌面更自然</string>
+    <string name="guide_disguise_organize_steps">1. 长按原 App 图标。\n\n2. 将它拖入一个不常用的桌面文件夹。\n\n3. 桌面主要保留刚刚创建的伪装入口。</string>
+    <string name="guide_disguise_organize_support">不同品牌手机的桌面操作方式可能略有不同。原 App 仍可在应用抽屉或系统应用列表中找到。</string>
+    <string name="guide_private_album_title">把照片和视频放进隐私空间</string>
+    <string name="guide_private_album_body">导入后，我们会先保存一份私密副本，你可以只在这里查看和管理。</string>
+    <string name="guide_private_album_support">系统相册中的原文件不会自动删除。导入完成后，你可以自行选择是否将原文件从系统相册移除。</string>
 </resources>

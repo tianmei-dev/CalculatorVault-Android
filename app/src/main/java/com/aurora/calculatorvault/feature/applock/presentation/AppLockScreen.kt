@@ -25,6 +25,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -59,6 +62,7 @@ fun AppLockScreen(
     viewModel: AppLockViewModel = viewModel(),
     iconProvider: AppIconProvider,
     onMessage: (AppMessage) -> Unit,
+    onGuideTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -106,7 +110,12 @@ fun AppLockScreen(
             )
         }
         item {
-            AppLockStatusCard(state)
+            AppLockStatusCard(
+                state = state,
+                modifier = Modifier.onGloballyPositioned {
+                    onGuideTargetBoundsChanged(it.boundsInRoot())
+                },
+            )
         }
         item {
             HiddenAppSearchField(
@@ -165,8 +174,11 @@ fun AppLockScreen(
 }
 
 @Composable
-private fun AppLockStatusCard(state: AppLockUiState) {
-    VaultCard(modifier = Modifier.fillMaxWidth()) {
+private fun AppLockStatusCard(
+    state: AppLockUiState,
+    modifier: Modifier = Modifier,
+) {
+    VaultCard(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = when (state.protectionStatus) {

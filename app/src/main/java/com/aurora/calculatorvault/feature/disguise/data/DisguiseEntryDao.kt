@@ -11,6 +11,9 @@ interface DisguiseEntryDao {
     @Query("SELECT * FROM disguise_entries")
     fun observeAll(): Flow<List<DisguiseEntryEntity>>
 
+    @Query("SELECT COUNT(*) FROM disguise_entries")
+    suspend fun countEntries(): Int
+
     @Query("SELECT * FROM disguise_entries WHERE id = :id")
     suspend fun findById(id: Long): DisguiseEntryEntity?
 

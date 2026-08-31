@@ -95,6 +95,8 @@ class AppLockRepositoryImplTest {
         override fun observeEnabledPackages() =
             MutableStateFlow(entries.value.filter { it.enabled }.map { it.packageName })
 
+        override suspend fun countEnabledEntries(): Int = entries.value.count { it.enabled }
+
         override suspend fun getEntry(packageName: String): AppLockEntryEntity? =
             entries.value.firstOrNull { it.packageName == packageName }
 

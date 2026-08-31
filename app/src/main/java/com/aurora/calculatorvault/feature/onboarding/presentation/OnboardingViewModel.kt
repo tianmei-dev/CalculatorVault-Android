@@ -64,7 +64,7 @@ class OnboardingViewModel(
         viewModelScope.launch {
             when (val result = repository.acceptPrivacy()) {
                 is OnboardingResult.Success -> {
-                    // Persistence completed successfully; analytics may now re-check consent.
+                    // Persistence completed successfully; third-party SDKs may now re-check consent.
                     runCatching { onPrivacyAccepted() }
                     clearSensitiveInput()
                     _uiState.value = OnboardingUiState(step = OnboardingStep.CreatePassword)
@@ -173,7 +173,10 @@ class OnboardingViewModel(
             when (val result = repository.configurePassword(passwordCopy)) {
                 is OnboardingResult.Success -> {
                     clearSensitiveInput()
-                    _uiState.value = OnboardingUiState(step = OnboardingStep.Calculator)
+                    _uiState.value = OnboardingUiState(
+                        step = OnboardingStep.Calculator,
+                        showVaultEntryGuide = true,
+                    )
                 }
 
                 is OnboardingResult.Failure -> {
@@ -186,6 +189,10 @@ class OnboardingViewModel(
                 }
             }
         }
+    }
+
+    fun dismissVaultEntryGuide() {
+        _uiState.update { it.copy(showVaultEntryGuide = false) }
     }
 
     fun returnToCreatePassword() {

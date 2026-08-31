@@ -6,6 +6,8 @@ plugins {
 
 val umengAppKey = providers.gradleProperty("UMENG_APP_KEY").orElse("")
 val umengChannel = providers.gradleProperty("UMENG_CHANNEL").orElse("official")
+val buglyAppId = providers.gradleProperty("BUGLY_APP_ID").orElse("")
+val buglyChannel = providers.gradleProperty("BUGLY_CHANNEL").orElse(umengChannel)
 
 android {
     namespace = "com.aurora.calculatorvault"
@@ -21,6 +23,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "UMENG_APP_KEY", "\"${umengAppKey.get()}\"")
         buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
+        buildConfigField("String", "BUGLY_APP_ID", "\"${buglyAppId.get()}\"")
+        buildConfigField("String", "BUGLY_CHANNEL", "\"${buglyChannel.get()}\"")
     }
 
     buildTypes {
@@ -41,6 +45,14 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    packaging {
+        jniLibs {
+            // Legacy Bugly has no 16 KB-aligned x86_64 native crash library.
+            // Keep x86_64 emulator support for Java/ANR and retain native crash on ARM.
+            excludes += "lib/x86_64/libBugly_Native.so"
+        }
     }
 }
 
@@ -63,6 +75,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.umeng.common)
     implementation(libs.umeng.asms)
+    implementation(libs.bugly.crashreport)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -8,11 +8,14 @@ import com.aurora.calculatorvault.core.analytics.UmengAnalyticsTracker
 import com.aurora.calculatorvault.core.database.CalculatorVaultDatabase
 import com.aurora.calculatorvault.core.datastore.security.DataStoreSecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.datastore.vaultPreferencesDataStore
+import com.aurora.calculatorvault.core.guide.GuidePreferences
+import com.aurora.calculatorvault.core.monitoring.BuglyInitializer
 import com.aurora.calculatorvault.core.security.Pbkdf2PasswordHasher
 import com.aurora.calculatorvault.core.security.recovery.AndroidKeystorePasswordRecoveryCipher
 import com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepository
 import com.aurora.calculatorvault.core.security.session.AppLifecycleObserver
 import com.aurora.calculatorvault.core.security.session.VaultSessionManager
+import com.aurora.calculatorvault.core.thirdparty.ThirdPartySdkInitializer
 import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
 import com.aurora.calculatorvault.feature.applock.domain.AppLockPackagePolicy
 import com.aurora.calculatorvault.feature.applock.data.AppLockRepositoryImpl
@@ -36,6 +39,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.domain.AndroidHiddenAppRunti
 import com.aurora.calculatorvault.feature.hiddenapp.domain.FilteringInstalledAppScanner
 import com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCase
 import com.aurora.calculatorvault.feature.onboarding.data.OnboardingRepository
+import com.aurora.calculatorvault.feature.onboarding.data.GuideLegacyUsageRepository
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaRepository
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRemovalManager
 import com.aurora.calculatorvault.feature.privatemedia.domain.SystemMediaRestoreManager
@@ -62,11 +66,25 @@ class CalculatorVaultApp : Application() {
         UmengAnalyticsTracker(applicationContext)
     }
 
-    val analyticsInitializer by lazy {
+    private val analyticsInitializer by lazy {
         AnalyticsInitializer(
             context = applicationContext,
             consentDataSource = securityPreferencesDataSource,
             tracker = analyticsTracker,
+        )
+    }
+
+    private val buglyInitializer by lazy {
+        BuglyInitializer(
+            context = applicationContext,
+            consentDataSource = securityPreferencesDataSource,
+        )
+    }
+
+    val thirdPartySdkInitializer by lazy {
+        ThirdPartySdkInitializer(
+            analyticsInitializer = analyticsInitializer,
+            buglyInitializer = buglyInitializer,
         )
     }
 
@@ -258,6 +276,14 @@ class CalculatorVaultApp : Application() {
         )
     }
 
+    val guidePreferences by lazy {
+        GuidePreferences(vaultPreferencesDataStore)
+    }
+
+    val guideLegacyUsageRepository by lazy {
+        GuideLegacyUsageRepository(database)
+    }
+
     val changePasswordRepository by lazy {
         ChangePasswordRepository(
             dataSource = securityPreferencesDataSource,
@@ -272,8 +298,8 @@ class CalculatorVaultApp : Application() {
             AppLifecycleObserver(vaultSessionManager),
         )
         applicationScope.launch {
-            // This call reads persisted consent before the Umeng SDK is touched.
-            analyticsInitializer.initializeIfAllowed()
+            // Persisted consent is read before either third-party SDK is touched.
+            thirdPartySdkInitializer.initializeIfAllowed()
         }
     }
 

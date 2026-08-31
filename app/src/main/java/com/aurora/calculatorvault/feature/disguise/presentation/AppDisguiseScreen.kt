@@ -48,6 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -94,6 +97,7 @@ fun AppDisguiseScreen(
     iconProvider: AppIconProvider,
     onBackToManagement: () -> Unit,
     onMessage: (AppMessage) -> Unit,
+    onCreateTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
     val saved = stringResource(R.string.app_disguise_saved)
@@ -136,6 +140,7 @@ fun AppDisguiseScreen(
             iconProvider = iconProvider,
             onBack = onBackToManagement,
             viewModel = viewModel,
+            onCreateTargetBoundsChanged = onCreateTargetBoundsChanged,
         )
         AppDisguisePage.SelectApp -> SelectAppPage(state, iconProvider, viewModel)
         AppDisguisePage.SetName -> SetNamePage(state, viewModel)
@@ -214,6 +219,7 @@ private fun DisguiseListPage(
     iconProvider: AppIconProvider,
     onBack: () -> Unit,
     viewModel: AppDisguiseViewModel,
+    onCreateTargetBoundsChanged: (Rect) -> Unit,
 ) {
     var sortExpanded by remember { mutableStateOf(false) }
     Scaffold(
@@ -223,7 +229,11 @@ private fun DisguiseListPage(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = viewModel::startCreate,
-                modifier = Modifier.padding(bottom = AppLayout.FabBottomSpacing),
+                modifier = Modifier
+                    .padding(bottom = AppLayout.FabBottomSpacing)
+                    .onGloballyPositioned {
+                        onCreateTargetBoundsChanged(it.boundsInRoot())
+                    },
                 containerColor = AppColors.AccentPrimary,
                 contentColor = AppColors.TextPrimary,
             ) {
