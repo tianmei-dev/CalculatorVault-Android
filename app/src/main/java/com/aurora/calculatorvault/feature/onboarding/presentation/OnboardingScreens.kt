@@ -96,6 +96,7 @@ fun PrivacyConsentScreen(
     onDecline: () -> Unit,
     onOpenUserAgreement: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
+    onOpenChildrenPrivacyPolicy: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -146,6 +147,17 @@ fun PrivacyConsentScreen(
                         color = AppColors.AccentPrimary,
                     )
                 }
+            }
+            TextButton(
+                onClick = onOpenChildrenPrivacyPolicy,
+                enabled = !state.isSaving,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(
+                    text = stringResource(R.string.children_privacy_policy),
+                    style = AppTextStyles.Button,
+                    color = AppColors.AccentPrimary,
+                )
             }
             Text(
                 text = stringResource(R.string.privacy_local_note),
@@ -352,6 +364,14 @@ fun UserAgreementScreen(onBack: () -> Unit) {
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
     LegalDocumentScreen(
         type = LegalDocumentType.PrivacyPolicy,
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun ChildrenPrivacyPolicyScreen(onBack: () -> Unit) {
+    LegalDocumentScreen(
+        type = LegalDocumentType.ChildrenPrivacyPolicy,
         onBack = onBack,
     )
 }

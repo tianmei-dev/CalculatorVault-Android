@@ -23,6 +23,7 @@ import com.aurora.calculatorvault.core.security.session.VaultSessionState
 import com.aurora.calculatorvault.feature.calculator.presentation.CalculatorScreen
 import com.aurora.calculatorvault.feature.calculator.presentation.CalculatorViewModel
 import com.aurora.calculatorvault.feature.onboarding.presentation.ConfirmPasswordScreen
+import com.aurora.calculatorvault.feature.onboarding.presentation.ChildrenPrivacyPolicyScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.CreatePasswordScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.OnboardingStep
 import com.aurora.calculatorvault.feature.onboarding.presentation.OnboardingViewModel
@@ -139,6 +140,9 @@ fun AppNavHost(
                 onOpenPrivacyPolicy = {
                     navController.navigate(AppRoute.PrivacyPolicy.path)
                 },
+                onOpenChildrenPrivacyPolicy = {
+                    navController.navigate(AppRoute.ChildrenPrivacyPolicy.path)
+                },
             )
         }
         composable(AppRoute.UserAgreement.path) {
@@ -146,6 +150,9 @@ fun AppNavHost(
         }
         composable(AppRoute.PrivacyPolicy.path) {
             PrivacyPolicyScreen(onBack = navController::popBackStack)
+        }
+        composable(AppRoute.ChildrenPrivacyPolicy.path) {
+            ChildrenPrivacyPolicyScreen(onBack = navController::popBackStack)
         }
         composable(AppRoute.CreatePassword.path) {
             CreatePasswordScreen(

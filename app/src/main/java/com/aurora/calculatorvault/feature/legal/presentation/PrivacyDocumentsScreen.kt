@@ -56,6 +56,7 @@ fun PrivacyDocumentsScreen(
                         title = stringResource(type.titleRes),
                         icon = when (type) {
                             LegalDocumentType.PrivacyPolicy -> VaultIcons.Privacy
+                            LegalDocumentType.ChildrenPrivacyPolicy -> VaultIcons.Security
                             LegalDocumentType.UserAgreement -> VaultIcons.Files
                             LegalDocumentType.PersonalInformationList -> VaultIcons.Info
                             LegalDocumentType.ThirdPartySdkList -> VaultIcons.Apps

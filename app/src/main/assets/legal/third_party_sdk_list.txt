@@ -1,55 +1,76 @@
-第三方 SDK 目录
+应用加密计算器第三方SDK目录清单
 
-生效日期：2026 年 8 月 28 日
+更新日期：2026 年 9 月 1 日
+生效日期：2026 年 9 月 1 日
 
-当前版本接入友盟+移动统计 SDK 和腾讯 Bugly CrashReport SDK，不接入广告、登录、支付、地图、推送、云存储或社交分享 SDK。
+为提供统计分析和异常监控能力，“应用加密计算器”当前版本接入以下第三方 SDK。第三方 SDK 可能以自动化方式独立收集、传输和存储列明的信息。我们仅在你同意隐私政策且本应用配置了相应正式服务标识后初始化这些 SDK。
 
-1. 友盟+移动统计 SDK（U-App）
-SDK 版本：Common 9.9.8、ASMS 1.8.7.2。
-SDK 提供方：友盟同欣（北京）科技有限公司、北京锐讯灵通科技有限公司。
-使用目的：统计 App 启动、活跃会话以及少量核心功能入口点击，用于产品功能使用率分析。
-可能涉及的信息类型：设备信息（如 Android ID、OAID/广告标识符、设备型号和系统版本）、网络信息（如 IP 地址、网络类型）、应用信息（如应用版本和渠道）以及应用使用信息（启动、会话和本文列明的自定义事件 ID）。
-本应用的自定义事件不附带事件参数，不向友盟上传密码、密码哈希、目标应用包名或名称、媒体 Uri、媒体文件名、私密文件夹名称、计算器输入内容。
-初始化规则：仅在用户同意隐私政策且同意状态成功保存后初始化；未同意或拒绝时不初始化、不上报事件。
-隐私政策及官方说明：https://www.umeng.com/page/policy
-待确认项：发布前请产品/法务结合友盟 Common 9.9.8、ASMS 1.8.7.2 的最新官方个人信息字段清单和友盟后台配置，复核上述“可能涉及的信息类型”。当前 App 未申请电话、联系人或位置权限。
+一、友盟+移动统计 SDK（U-App）
 
-2. 腾讯 Bugly CrashReport SDK
-SDK 版本：crashreport 4.1.9.3。
-SDK 提供方：深圳市腾讯计算机系统有限公司。
-使用目的：自动捕获和分析 Java/Kotlin Crash、Native Crash、ANR，以及以未捕获异常形式发生的 OOM，帮助定位应用稳定性问题。
-可能涉及的信息类型：异常信息（异常类型、崩溃或 ANR 堆栈、线程信息、发生时间）、应用信息（应用包名、版本、进程名与进程 ID）以及运行设备和环境信息（设备品牌/型号、Android 系统版本与 API Level、CPU 架构、Root 状态、磁盘/内存使用情况、网络类型）。具体字段以腾讯官方最新个人信息保护规则为准。
-本应用不向 Bugly 设置自定义 User ID、设备唯一 ID、自定义用户数据、业务日志或附件，也不主动上传密码、密码哈希、目标应用包名或名称、媒体 Uri、媒体文件名、私密目录、文件夹名称或计算器输入内容。
-初始化规则：仅在用户同意隐私政策且同意状态成功保存后初始化；未同意、拒绝或缺少正式 App ID 时不初始化。应用不设置自定义 User ID、设备 ID 或用户数据，并关闭 Bugly 自定义日志上传。
-产品控制台：https://bugly.qq.com/v2/
+SDK 名称：友盟+移动统计 SDK（含组件化基础库及设备标识支持组件）
+SDK 版本：Common 9.9.8、ASMS 1.8.7.2
+SDK 开发者：友盟同欣（北京）科技有限公司
+SDK 包名/依赖：com.umeng.umsdk:common、com.umeng.umsdk:asms
+使用目的：统计应用启动和活跃会话，分析少量核心功能的使用率，为产品功能改进提供汇总数据。
+
+可能处理的信息：
+1. 设备标识信息：Android ID、OAID、OpenUDID、GUID，具体项目因设备系统和 SDK 配置而异；
+2. 设备及系统信息：设备品牌、型号、制造商、操作系统版本、语言、时区、屏幕参数等；
+3. 网络信息：IP 地址、网络类型、Wi-Fi 联网状态、运营商信息等；
+4. 应用及使用信息：应用包名、应用版本、分发渠道、SDK 版本、启动时间、会话信息和自定义事件 ID。
+
+可能使用的权限：android.permission.INTERNET、android.permission.ACCESS_NETWORK_STATE、android.permission.ACCESS_WIFI_STATE。当前应用未为友盟申请电话、通讯录、短信或位置权限。
+
+处理方式和频率：在你同意隐私政策后，SDK 随应用初始化，并在应用启动、会话变化或触发列明的统计事件时自动采集，通过加密网络发送至友盟服务。具体调用频率由应用使用情况、网络状态和 SDK 策略决定。
+
+本应用上报的自定义事件：
+app_disguise_click、app_lock_click、app_lock_enable、private_album_click、private_media_import_click、private_folder_create_click、private_media_restore_click、change_password_click、permission_settings_click、privacy_documents_click。
+
+上述自定义事件仅包含事件 ID，不附带业务参数。本应用不会主动向友盟附加密码或密码哈希、目标应用包名或名称、媒体 URI、媒体名称、私密文件路径、文件夹名称、计算器输入内容。
+
+初始化条件：仅在你同意隐私政策、同意状态成功保存且配置了正式友盟 App Key 后初始化；未同意、拒绝或缺少 App Key 时不初始化、不上报自定义事件。
+保存期限：由 SDK 开发者在实现统计分析目的所必要的最短期限内，按照其个人信息处理规则保存。
+隐私政策：https://www.umeng.com/page/policy
+SDK 下载及基本信息：https://devs.umeng.com/sdk
+
+二、腾讯 Bugly CrashReport SDK
+
+SDK 名称：腾讯 Bugly CrashReport SDK
+SDK 版本：4.1.9.3
+SDK 开发者：深圳市腾讯计算机系统有限公司
+SDK 包名/依赖：com.tencent.bugly:crashreport
+使用目的：自动捕获和分析 Java/Kotlin Crash、Native Crash、ANR，以及以未捕获异常形式发生的 OOM，帮助定位和修复应用稳定性问题。
+
+可能处理的信息：
+1. 异常信息：异常类型、Crash 或 ANR 堆栈、线程信息、发生时间等；
+2. 应用和进程信息：应用包名、版本、渠道、进程名、进程 ID 等；
+3. 设备和运行环境信息：设备品牌、型号、Android 系统版本、API Level、CPU 架构、Root 状态、磁盘或内存使用情况、网络类型等。
+
+可能使用的权限：android.permission.INTERNET、android.permission.ACCESS_NETWORK_STATE、android.permission.ACCESS_WIFI_STATE。
+
+处理方式和频率：在你同意隐私政策后初始化；当应用发生相应异常或 SDK 按其策略执行异常数据上传时自动采集，并通过网络发送至腾讯 Bugly 服务。具体调用频率取决于异常发生情况、网络状态和 SDK 策略。
+
+本应用的限制配置：不设置自定义 User ID、设备唯一 ID、自定义用户数据、业务日志或附件；不调用手动异常上报接口；关闭 Bugly 自定义日志上传和用户信息上报。本应用不会主动向 Bugly 附加密码或密码哈希、目标应用包名或名称、媒体 URI、媒体名称、私密文件路径、文件夹名称、计算器输入内容。
+
+初始化条件：仅在你同意隐私政策、同意状态成功保存且配置了正式 Bugly App ID 后初始化；未同意、拒绝或缺少 App ID 时不初始化。
+保存期限：由 SDK 开发者在实现异常诊断目的所必要的最短期限内，按照其个人信息保护规则保存。
+产品网站：https://bugly.qq.com/v2/
 个人信息保护规则：https://static.bugly.qq.com/bugly-sdk-privacy-statement.pdf
-待确认项：发布前请产品/法务结合 Bugly CrashReport 4.1.9.3、正式控制台配置及上述官方规则，复核“可能涉及的信息类型”和数据保存期限。
+隐私政策链接：https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56
 
-当前工程使用的运行时依赖主要为 Android 官方或开源基础组件：
+三、其他基础组件
 
-3. AndroidX Core KTX
-用途：Android 基础兼容能力与 Kotlin 扩展。
+当前工程还使用 AndroidX、Jetpack Compose、Room、DataStore、Navigation、Lifecycle 和 Kotlin 协程等 Android 官方或开源基础组件，用于界面、本地数据库、本地偏好设置、导航、生命周期和异步任务。这些组件由应用代码在本机调用，当前配置下不作为独立联网的个人信息收集方。
 
-4. AndroidX Activity Compose
-用途：承载 Jetpack Compose 页面。
+当前版本未接入广告、登录、支付、地图、推送、云存储或社交分享 SDK。
 
-5. AndroidX Lifecycle
-用途：生命周期管理、ViewModel、进程前后台监听。
+四、SDK 管理与变更
 
-6. AndroidX Navigation Compose
-用途：应用内页面导航。
+我们会根据功能和安全需要评估第三方 SDK，并核对其处理目的、方式和范围。SDK 名称、开发者、版本、功能或个人信息处理规则发生变化时，我们将更新本目录；依法需要重新取得同意的，将在更新并取得同意后再进行相应处理。
 
-7. Jetpack Compose UI / Material 3 / Material Icons
-用途：界面绘制、组件、图标。
+五、联系我们
 
-8. AndroidX Room
-用途：本地数据库，保存用户主动创建的应用管理、应用锁、应用伪装和私密相册记录。
+个人信息处理者/开发者：四川极光软件科技有限公司
+联系邮箱：594841675@qq.com
 
-9. AndroidX DataStore Preferences
-用途：本地保存隐私协议确认状态和密码安全配置。
-
-10. Kotlinx Coroutines
-用途：异步任务、IO 调度和 Flow 状态流。
-
-说明：
-以上 AndroidX、Jetpack 与 Kotlin 组件用于本地功能实现。友盟+移动统计 SDK 与腾讯 Bugly CrashReport SDK 的处理范围分别见第 1、2 项。
+如你希望对第三方 SDK 处理的个人信息行使权利，可以通过上述邮箱联系我们，也可以按照相应 SDK 的个人信息处理规则直接联系其开发者。

@@ -13,6 +13,11 @@ enum class LegalDocumentType(
         titleRes = R.string.privacy_policy,
         assetPath = "legal/privacy_policy.txt",
     ),
+    ChildrenPrivacyPolicy(
+        routeValue = "children_privacy_policy",
+        titleRes = R.string.children_privacy_policy,
+        assetPath = "legal/children_privacy_policy.txt",
+    ),
     UserAgreement(
         routeValue = "user_agreement",
         titleRes = R.string.user_agreement,
