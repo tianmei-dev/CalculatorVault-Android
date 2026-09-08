@@ -3,6 +3,8 @@ package com.aurora.calculatorvault.feature.onboarding.presentation
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,7 +125,12 @@ fun PrivacyConsentScreen(
             style = AppTextStyles.PageTitle,
             color = AppColors.TextPrimary,
         )
-        VaultCard(modifier = Modifier.fillMaxWidth()) {
+        VaultCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
             Text(
                 text = stringResource(R.string.privacy_intro),
                 style = AppTextStyles.Body,
@@ -135,14 +142,14 @@ fun PrivacyConsentScreen(
             ) {
                 TextButton(onClick = onOpenUserAgreement, enabled = !state.isSaving) {
                     Text(
-                        text = stringResource(R.string.user_agreement),
+                        text = stringResource(R.string.privacy_user_agreement_link),
                         style = AppTextStyles.Button,
                         color = AppColors.AccentPrimary,
                     )
                 }
                 TextButton(onClick = onOpenPrivacyPolicy, enabled = !state.isSaving) {
                     Text(
-                        text = stringResource(R.string.privacy_policy),
+                        text = stringResource(R.string.privacy_policy_link),
                         style = AppTextStyles.Button,
                         color = AppColors.AccentPrimary,
                     )
@@ -154,19 +161,18 @@ fun PrivacyConsentScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
                 Text(
-                    text = stringResource(R.string.children_privacy_policy),
+                    text = stringResource(R.string.privacy_children_policy_link),
                     style = AppTextStyles.Button,
                     color = AppColors.AccentPrimary,
                 )
             }
             Text(
                 text = stringResource(R.string.privacy_local_note),
-                style = AppTextStyles.BodySecondary,
-                color = AppColors.TextTertiary,
+                style = AppTextStyles.Body,
+                color = AppColors.TextSecondary,
             )
         }
         OnboardingErrorText(state.error)
-        Spacer(modifier = Modifier.weight(1f))
         VaultPrimaryButton(
             text = stringResource(
                 if (state.isSaving) R.string.privacy_saving else R.string.agree_and_continue,
