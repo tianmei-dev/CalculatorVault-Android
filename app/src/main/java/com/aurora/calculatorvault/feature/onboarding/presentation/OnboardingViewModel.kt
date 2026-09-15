@@ -67,7 +67,8 @@ class OnboardingViewModel(
                     // Persistence completed successfully; third-party SDKs may now re-check consent.
                     runCatching { onPrivacyAccepted() }
                     clearSensitiveInput()
-                    _uiState.value = OnboardingUiState(step = OnboardingStep.CreatePassword)
+                    _uiState.value = OnboardingUiState()
+                    loadStartupDestination()
                 }
 
                 is OnboardingResult.Failure -> {

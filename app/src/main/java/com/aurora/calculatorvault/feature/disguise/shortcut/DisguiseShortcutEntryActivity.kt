@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.repeatOnLifecycle
 import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.app.MainActivity
+import com.aurora.calculatorvault.core.privacy.requirePrivacyConsent
 import com.aurora.calculatorvault.core.designsystem.theme.CalculatorVaultTheme
 import kotlinx.coroutines.launch
 
@@ -30,6 +31,12 @@ class DisguiseShortcutEntryActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            if (requirePrivacyConsent()) showEntry()
+        }
+    }
+
+    private fun showEntry() {
         val application = applicationContext as CalculatorVaultApp
         application.vaultSessionManager.lock()
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -70,7 +77,9 @@ class DisguiseShortcutEntryActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        entryViewModel.acceptIntent(parseIntent(intent))
+        lifecycleScope.launch {
+            if (requirePrivacyConsent()) entryViewModel.acceptIntent(parseIntent(intent))
+        }
     }
 
     override fun onStop() {

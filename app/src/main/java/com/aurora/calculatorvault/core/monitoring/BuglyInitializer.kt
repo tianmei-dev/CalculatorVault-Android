@@ -14,6 +14,17 @@ class BuglyInitializer(
     private val appContext = context.applicationContext
     private val initialized = AtomicBoolean(false)
 
+    fun withdrawConsent() {
+        if (!initialized.get()) return
+        try {
+            // closeBugly checks the enabled flag, so close BEFORE disabling.
+            CrashReport.closeBugly()
+        } finally {
+            CrashReport.enableBugly(false)
+        }
+        // Recovery uses a fresh process, not a second init on closed executors.
+    }
+
     suspend fun initializeIfAllowed() {
         if (initialized.get()) {
             debugLog("bugly already initialized")

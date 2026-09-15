@@ -1,6 +1,10 @@
 package com.aurora.calculatorvault.app
 
 import android.app.Application
+import android.app.ActivityManager
+import android.os.Process
+import com.aurora.calculatorvault.core.privacy.PrivacyWithdrawalController
+import com.aurora.calculatorvault.feature.applock.service.AppLockMonitorService
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.room.Room
 import com.aurora.calculatorvault.core.analytics.AnalyticsInitializer
@@ -85,6 +89,30 @@ class CalculatorVaultApp : Application() {
         ThirdPartySdkInitializer(
             analyticsInitializer = analyticsInitializer,
             buglyInitializer = buglyInitializer,
+        )
+    }
+
+    @Volatile
+    var privacyWithdrawn = false
+        private set
+
+    suspend fun hasPrivacyConsent(): Boolean =
+        !privacyWithdrawn && securityPreferencesDataSource.read().privacyAccepted
+
+    val privacyWithdrawalController by lazy {
+        PrivacyWithdrawalController(
+            scope = applicationScope,
+            persistAndStopSdks = {
+                thirdPartySdkInitializer.withdrawConsent {
+                    securityPreferencesDataSource.withdrawPrivacy()
+                    privacyWithdrawn = true
+                }
+            },
+            endSessions = {
+                vaultSessionManager.lock()
+                appLockSessionManager.clearAll()
+                AppLockMonitorService.stop(this)
+            },
         )
     }
 
@@ -294,6 +322,14 @@ class CalculatorVaultApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // The restart helper must never open DataStore/Room or initialize SDKs.
+        val processName = if (android.os.Build.VERSION.SDK_INT >= 28) {
+            getProcessName()
+        } else {
+            getSystemService(ActivityManager::class.java)
+                .runningAppProcesses?.firstOrNull { it.pid == Process.myPid() }?.processName
+        }
+        if (processName != packageName) return
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             AppLifecycleObserver(vaultSessionManager),
         )

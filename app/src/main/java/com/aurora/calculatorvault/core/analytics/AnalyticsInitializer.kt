@@ -16,6 +16,13 @@ class AnalyticsInitializer(
     private val appContext = context.applicationContext
     private val initialized = AtomicBoolean(false)
 
+    fun withdrawConsent() {
+        tracker.disable()
+        if (initialized.get()) MobclickAgent.disable()
+        // disable has no public inverse in common 9.9.8. Keep initialized true
+        // until the process is replaced; never pretend the SDK was unloaded.
+    }
+
     suspend fun initializeIfAllowed() {
         if (initialized.get()) return
         val allowed = runCatching { consentDataSource.read().privacyAccepted }.getOrElse {

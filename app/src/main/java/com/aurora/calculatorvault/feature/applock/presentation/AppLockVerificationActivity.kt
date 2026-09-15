@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.aurora.calculatorvault.app.CalculatorVaultApp
+import com.aurora.calculatorvault.core.privacy.requirePrivacyConsent
 import com.aurora.calculatorvault.core.designsystem.theme.CalculatorVaultTheme
 import kotlinx.coroutines.launch
 
@@ -29,6 +30,12 @@ class AppLockVerificationActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            if (requirePrivacyConsent()) showVerification()
+        }
+    }
+
+    private fun showVerification() {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
         setContent {

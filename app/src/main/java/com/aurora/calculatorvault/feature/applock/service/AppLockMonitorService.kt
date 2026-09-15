@@ -42,6 +42,7 @@ class AppLockMonitorService : Service() {
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        runningService = java.lang.ref.WeakReference(this)
         Log.d(TAG, "service started")
         val app = applicationContext as CalculatorVaultApp
         overlayController = AppLockOverlayController(
@@ -51,7 +52,6 @@ class AppLockMonitorService : Service() {
             scope = serviceScope,
         )
         startAsForegroundIfPossible()
-        observeLockedPackages()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -60,13 +60,30 @@ class AppLockMonitorService : Service() {
                 stopSelf()
                 return START_NOT_STICKY
             }
-            else -> startMonitoring()
+            else -> serviceScope.launch {
+                val app = applicationContext as CalculatorVaultApp
+                val allowed = runCatching { app.hasPrivacyConsent() }.getOrDefault(false)
+                withContext(Dispatchers.Main) {
+                    if (allowed && !app.privacyWithdrawn) {
+                        observeLockedPackages()
+                        startMonitoring()
+                    } else {
+                        stopSelf()
+                    }
+                }
+            }
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
         Log.d(TAG, "service destroyed")
+        releaseMonitoring()
+        runningService = null
+        super.onDestroy()
+    }
+
+    private fun releaseMonitoring() {
         monitorJob?.cancel()
         monitorJob = null
         lockedPackagesJob?.cancel()
@@ -78,7 +95,6 @@ class AppLockMonitorService : Service() {
         (applicationContext as CalculatorVaultApp).appLockSessionManager.clearAll()
         isRunning = false
         serviceJob.cancel()
-        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -96,6 +112,7 @@ class AppLockMonitorService : Service() {
             Log.d(TAG, "usage access granted=${usagePermissionHelper.hasUsageAccess()}")
             Log.d(TAG, "overlay permission granted=${overlayPermissionHelper.isGranted()}")
             while (isActive) {
+                if (app.privacyWithdrawn) break
                 handleForegroundResult(
                     app = app,
                     overlayPermissionHelper = overlayPermissionHelper,
@@ -146,6 +163,7 @@ class AppLockMonitorService : Service() {
         overlayPermissionHelper: OverlayPermissionHelper,
         result: ForegroundAppResult,
     ) {
+        if (app.privacyWithdrawn) return
         val packageName = (result as? ForegroundAppResult.Success)?.packageName ?: return
         val now = SystemClock.elapsedRealtime()
         val session = app.appLockSessionManager
@@ -173,7 +191,7 @@ class AppLockMonitorService : Service() {
 
         val targetName = runCatching { app.hiddenAppRuntime.resolve(packageName).appName }.getOrNull()
         val shown = withContext(Dispatchers.Main) {
-            overlayController?.show(
+            !app.privacyWithdrawn && overlayController?.show(
                 targetPackageName = packageName,
                 targetAppName = targetName,
                 detectedAtElapsed = now,
@@ -273,7 +291,10 @@ class AppLockMonitorService : Service() {
         var isRunning: Boolean = false
             private set
 
+        private var runningService: java.lang.ref.WeakReference<AppLockMonitorService>? = null
+
         fun start(context: Context) {
+            if ((context.applicationContext as CalculatorVaultApp).privacyWithdrawn) return
             val intent = Intent(context, AppLockMonitorService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -283,9 +304,8 @@ class AppLockMonitorService : Service() {
         }
 
         fun stop(context: Context) {
-            context.startService(
-                Intent(context, AppLockMonitorService::class.java).setAction(ACTION_STOP),
-            )
+            runningService?.get()?.releaseMonitoring()
+            context.stopService(Intent(context, AppLockMonitorService::class.java))
         }
     }
 }

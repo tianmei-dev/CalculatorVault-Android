@@ -15,6 +15,10 @@ import kotlinx.coroutines.flow.first
 interface SecurityPreferencesDataSource {
     suspend fun read(): SecurityPreferences
 
+    suspend fun withdrawPrivacy() {
+        throw UnsupportedOperationException("Privacy withdrawal is not supported")
+    }
+
     suspend fun acceptPrivacy(
         version: String,
         acceptedAt: Long,
@@ -66,6 +70,14 @@ interface SecurityPreferencesDataSource {
 class DataStoreSecurityPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
 ) : SecurityPreferencesDataSource {
+
+    override suspend fun withdrawPrivacy() {
+        dataStore.edit { preferences ->
+            preferences[Keys.PrivacyAccepted] = false
+            preferences.remove(Keys.PrivacyVersion)
+            preferences.remove(Keys.PrivacyAcceptedAt)
+        }
+    }
 
     override suspend fun read(): SecurityPreferences {
         val preferences = dataStore.data.first()

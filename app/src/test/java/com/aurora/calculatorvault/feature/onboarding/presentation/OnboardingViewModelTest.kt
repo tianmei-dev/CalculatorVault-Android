@@ -33,6 +33,20 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `accepting again routes an existing user to calculator without password creation`() = runTest(dispatcher) {
+        val repository = FakeOnboardingRepository(
+            startupResult = OnboardingResult.Success(StartupDestination.Calculator),
+        )
+        val viewModel = OnboardingViewModel(repository)
+        advanceUntilIdle()
+        viewModel.acceptPrivacy()
+        advanceUntilIdle()
+        assertEquals(OnboardingStep.Calculator, viewModel.uiState.value.step)
+        assertEquals(0, repository.passwordCalls)
+        assertFalse(viewModel.uiState.value.showVaultEntryGuide)
+    }
+
+    @Test
     fun `startup destination updates visible step`() = runTest(dispatcher) {
         val repository = FakeOnboardingRepository(
             startupResult = OnboardingResult.Success(StartupDestination.CreatePassword),
@@ -170,7 +184,7 @@ class OnboardingViewModelTest {
     )
 
     private class FakeOnboardingRepository(
-        private val startupResult: OnboardingResult<StartupDestination> =
+        private var startupResult: OnboardingResult<StartupDestination> =
             OnboardingResult.Success(StartupDestination.PrivacyConsent),
         private val privacyResult: OnboardingResult<Unit> = OnboardingResult.Success(Unit),
         private val passwordResult: OnboardingResult<Unit> = OnboardingResult.Success(Unit),
@@ -183,6 +197,11 @@ class OnboardingViewModelTest {
 
         override suspend fun acceptPrivacy(): OnboardingResult<Unit> {
             privacyCalls++
+            if (privacyResult is OnboardingResult.Success &&
+                startupResult == OnboardingResult.Success(StartupDestination.PrivacyConsent)
+            ) {
+                startupResult = OnboardingResult.Success(StartupDestination.CreatePassword)
+            }
             return privacyResult
         }
 

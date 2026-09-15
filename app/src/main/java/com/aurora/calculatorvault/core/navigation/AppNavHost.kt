@@ -1,6 +1,15 @@
 package com.aurora.calculatorvault.core.navigation
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import com.aurora.calculatorvault.R
+import com.aurora.calculatorvault.core.privacy.PrivacyWithdrawalState
+import com.aurora.calculatorvault.core.privacy.PrivacyRestartActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +50,22 @@ fun AppNavHost(
 ) {
     val context = LocalContext.current
     val application = context.applicationContext as CalculatorVaultApp
+    val withdrawalState by application.privacyWithdrawalController.state.collectAsState()
+    if (withdrawalState == PrivacyWithdrawalState.RestartRequired) {
+        BackHandler { /* The old vault graph is no longer accessible. */ }
+        LaunchedEffect(Unit) {
+            runCatching { PrivacyRestartActivity.restart(context) }
+        }
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.privacy_withdraw_restart))
+                TextButton(onClick = { runCatching { PrivacyRestartActivity.restart(context) } }) {
+                    Text(stringResource(R.string.privacy_withdraw_return))
+                }
+            }
+        }
+        return
+    }
     val onboardingViewModel: OnboardingViewModel = viewModel(
         factory = OnboardingViewModel.Factory(
             repository = application.onboardingRepository,
@@ -70,6 +95,7 @@ fun AppNavHost(
             OnboardingStep.PrivacyConsent -> {
                 if (currentRoute != AppRoute.PrivacyConsent.path) {
                     navController.navigate(AppRoute.PrivacyConsent.path) {
+                        popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -104,7 +130,7 @@ fun AppNavHost(
             OnboardingStep.Calculator -> {
                 if (currentRoute != AppRoute.Calculator.path) {
                     navController.navigate(AppRoute.Calculator.path) {
-                        popUpTo(AppRoute.Splash.path) { inclusive = true }
+                        popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
                     }
                 }

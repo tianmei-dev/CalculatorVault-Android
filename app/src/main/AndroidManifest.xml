@@ -69,5 +69,12 @@
         <receiver
             android:name=".feature.disguise.shortcut.ShortcutPinnedReceiver"
             android:exported="false" />
+        <activity
+            android:name=".core.privacy.PrivacyRestartActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:process=":privacy_restart"
+            android:taskAffinity="com.aurora.calculatorvault.privacy_restart"
+            android:theme="@style/Theme.CalculatorVault" />
     </application>
 </manifest>

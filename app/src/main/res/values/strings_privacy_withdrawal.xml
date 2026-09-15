@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="privacy_management">隐私管理</string>
+    <string name="privacy_withdraw_title">撤回隐私政策同意</string>
+    <string name="privacy_withdraw_message">撤回同意后，我们将停止基于隐私政策同意而进行的相关数据处理，并返回首次隐私授权流程。你的密码、应用锁配置和私密相册等本地数据不会因此删除。</string>
+    <string name="privacy_withdraw_confirm">确认撤回</string>
+    <string name="privacy_withdraw_failed">撤回失败，请重试</string>
+    <string name="privacy_withdraw_restart">同意已撤回，正在返回隐私授权流程…</string>
+    <string name="privacy_withdraw_return">返回隐私授权流程</string>
+</resources>

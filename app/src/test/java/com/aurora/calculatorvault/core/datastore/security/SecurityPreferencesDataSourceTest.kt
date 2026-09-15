@@ -3,6 +3,10 @@ package com.aurora.calculatorvault.core.datastore.security
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.first
 import com.aurora.calculatorvault.core.security.PasswordHashResult
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +19,43 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SecurityPreferencesDataSourceTest {
+
+    @Test
+    fun `withdrawal changes only consent keys and retains all business preferences`() = runBlocking {
+        val store = InMemoryPreferencesDataStore()
+        val source = DataStoreSecurityPreferencesDataSource(store)
+        source.acceptPrivacy("1.0", 1234L)
+        source.savePasswordInitialization(passwordHashResult(), 5678L)
+        store.edit {
+            it[booleanPreferencesKey("guide_vault_entry_shown")] = true
+            it[stringPreferencesKey("unrelated_business_configuration")] = "preserve-me"
+        }
+        val before = store.data.first().asMap()
+        source.withdrawPrivacy()
+        val after = store.data.first().asMap()
+        val consentKeys = setOf("privacy_accepted", "privacy_version", "privacy_accepted_at")
+        assertEquals(before.filterKeys { it.name !in consentKeys }, after.filterKeys { it.name !in consentKeys })
+        val saved = DataStoreSecurityPreferencesDataSource(store).read()
+        assertFalse(saved.privacyAccepted)
+        assertNull(saved.privacyVersion)
+        assertNull(saved.privacyAcceptedAt)
+        assertTrue(saved.passwordConfigured)
+        assertTrue(saved.onboardingCompleted)
+        source.acceptPrivacy("1.0", 9999L)
+        assertEquals("encoded-hash", source.read().passwordHash)
+    }
+
+    @Test
+    fun `withdrawal write failure preserves consent and password`() = runBlocking {
+        val store = InMemoryPreferencesDataStore()
+        val source = DataStoreSecurityPreferencesDataSource(store)
+        source.acceptPrivacy("1.0", 1234L)
+        source.savePasswordInitialization(passwordHashResult(), 5678L)
+        val before = store.data.first().asMap()
+        store.failUpdates = true
+        assertTrue(runCatching { source.withdrawPrivacy() }.isFailure)
+        assertEquals(before, store.data.first().asMap())
+    }
 
     @Test
     fun `privacy acceptance saves version and timestamp`() = runBlocking {
@@ -113,7 +154,7 @@ class SecurityPreferencesDataSourceTest {
     )
 
     private class InMemoryPreferencesDataStore(
-        private val failUpdates: Boolean = false,
+        var failUpdates: Boolean = false,
     ) : DataStore<Preferences> {
         private val state = MutableStateFlow<Preferences>(emptyPreferences())
         override val data: Flow<Preferences> = state
