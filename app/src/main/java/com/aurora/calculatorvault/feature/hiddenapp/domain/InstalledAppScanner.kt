@@ -72,18 +72,29 @@ class FilteringInstalledAppScanner(
 
 class AndroidLauncherAppSource(
     private val packageManager: PackageManager,
+    private val includeTemporarilyDisabled: Boolean = false,
 ) : LauncherAppSource {
+    private val queryFlags: Int
+        get() = if (includeTemporarilyDisabled) PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS else 0
+
+    private fun canAttemptLaunch(packageName: String, info: ApplicationInfo): Boolean =
+        if (includeTemporarilyDisabled) packageManager.canAttemptAppLaunch(packageName, info) else info.enabled
+
+    private fun launchIntent(packageName: String): Intent? =
+        if (includeTemporarilyDisabled) packageManager.findAppLaunchIntent(packageName)
+        else packageManager.getLaunchIntentForPackage(packageName)
+
 
     override fun queryLauncherApps(): List<LauncherAppCandidate> {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             packageManager.queryIntentActivities(
                 launcherIntent,
-                PackageManager.ResolveInfoFlags.of(0L),
+                PackageManager.ResolveInfoFlags.of(queryFlags.toLong()),
             )
         } else {
             @Suppress("DEPRECATION")
-            packageManager.queryIntentActivities(launcherIntent, 0)
+            packageManager.queryIntentActivities(launcherIntent, queryFlags)
         }
         return activities.mapNotNull { resolveInfo ->
             runCatching {
@@ -96,9 +107,9 @@ class AndroidLauncherAppSource(
                     isSystemApp = applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
                     isUpdatedSystemApp =
                         applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0,
-                    isEnabled = applicationInfo.enabled && activityInfo.enabled,
+                    isEnabled = canAttemptLaunch(packageName, applicationInfo) && activityInfo.enabled,
                     isInstantApp = packageManager.isInstantApp(packageName),
-                    hasLaunchIntent = packageManager.getLaunchIntentForPackage(packageName) != null,
+                    hasLaunchIntent = launchIntent(packageName) != null,
                 )
             }.getOrNull()
         }
@@ -114,16 +125,16 @@ class AndroidLauncherAppSource(
             @Suppress("DEPRECATION")
             packageManager.getApplicationInfo(packageName, 0)
         }
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val launchIntent = launchIntent(packageName)
             ?: return@runCatching null
         val resolveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             packageManager.resolveActivity(
                 launchIntent,
-                PackageManager.ResolveInfoFlags.of(0L),
+                PackageManager.ResolveInfoFlags.of(queryFlags.toLong()),
             )
         } else {
             @Suppress("DEPRECATION")
-            packageManager.resolveActivity(launchIntent, 0)
+            packageManager.resolveActivity(launchIntent, queryFlags)
         }
         val activityInfo = resolveInfo?.activityInfo
         LauncherAppCandidate(
@@ -139,7 +150,7 @@ class AndroidLauncherAppSource(
             isSystemApp = applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
             isUpdatedSystemApp =
                 applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0,
-            isEnabled = applicationInfo.enabled && activityInfo?.enabled != false,
+            isEnabled = canAttemptLaunch(packageName, applicationInfo) && activityInfo?.enabled != false,
             isInstantApp = packageManager.isInstantApp(packageName),
             hasLaunchIntent = true,
         )

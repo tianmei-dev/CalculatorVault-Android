@@ -36,10 +36,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -48,6 +50,8 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
@@ -761,6 +765,9 @@ private fun ManualSortList(
     onMove: (Int, Int) -> Unit,
     modifier: Modifier,
 ) {
+    val currentApps by rememberUpdatedState(apps)
+    val currentOnMove by rememberUpdatedState(onMove)
+    val moveThresholdPx = with(LocalDensity.current) { 48.dp.toPx() }
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -769,21 +776,47 @@ private fun ManualSortList(
         items(apps.size, key = { apps[it].packageName }) { index ->
             val app = apps[index]
             var dragAmount by remember(app.packageName) { mutableFloatStateOf(0f) }
+            var isDragging by remember(app.packageName) { mutableStateOf(false) }
             Surface(
                 shape = AppShapes.Large,
                 color = AppColors.SurfacePrimary,
+                shadowElevation = if (isDragging) 12.dp else 0.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .pointerInput(app.packageName, index) {
+                    .zIndex(if (isDragging) 1f else 0f)
+                    .graphicsLayer {
+                        val scale = if (isDragging) 1.035f else 1f
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .pointerInput(app.packageName) {
                         detectDragGesturesAfterLongPress(
-                            onDragEnd = { dragAmount = 0f },
-                            onDragCancel = { dragAmount = 0f },
+                            onDragStart = { isDragging = true },
+                            onDragEnd = {
+                                dragAmount = 0f
+                                isDragging = false
+                            },
+                            onDragCancel = {
+                                dragAmount = 0f
+                                isDragging = false
+                            },
                             onDrag = { change, amount ->
                                 change.consume()
                                 dragAmount += amount.y
-                                if (abs(dragAmount) > 56f) {
-                                    val target = if (dragAmount > 0) index + 1 else index - 1
-                                    if (target in apps.indices) onMove(index, target)
+                                if (abs(dragAmount) >= moveThresholdPx) {
+                                    // The item index changes after every move. Resolve it from the
+                                    // latest list instead of restarting this long-press gesture.
+                                    val currentIndex = currentApps.indexOfFirst {
+                                        it.packageName == app.packageName
+                                    }
+                                    val target = if (dragAmount > 0) {
+                                        currentIndex + 1
+                                    } else {
+                                        currentIndex - 1
+                                    }
+                                    if (currentIndex >= 0 && target in currentApps.indices) {
+                                        currentOnMove(currentIndex, target)
+                                    }
                                     dragAmount = 0f
                                 }
                             },

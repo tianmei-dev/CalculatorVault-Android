@@ -91,14 +91,14 @@ class AndroidHiddenAppRuntime(
         val name = runCatching {
             packageManager.getApplicationLabel(applicationInfo).toString().trim().ifBlank { null }
         }.getOrNull()
-        if (!isEnabled(packageName, applicationInfo)) {
+        if (!packageManager.canAttemptAppLaunch(packageName, applicationInfo)) {
             return Inspection(
                 InstalledAppRuntimeInfo(packageName, name, InstalledAppAvailability.Disabled),
                 null,
             )
         }
         val launchIntent = runCatching {
-            packageManager.getLaunchIntentForPackage(packageName) ?: fallbackLaunchIntent(packageName)
+            packageManager.findAppLaunchIntent(packageName)
         }.getOrNull()
         return if (launchIntent == null) {
             Inspection(
@@ -111,40 +111,6 @@ class AndroidHiddenAppRuntime(
                 launchIntent,
             )
         }
-    }
-
-    private fun isEnabled(packageName: String, info: ApplicationInfo): Boolean {
-        if (!info.enabled) return false
-        return when (
-            runCatching { packageManager.getApplicationEnabledSetting(packageName) }
-                .getOrDefault(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT)
-        ) {
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED,
-            -> false
-            else -> true
-        }
-    }
-
-    private fun fallbackLaunchIntent(packageName: String): Intent? {
-        val query = Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_LAUNCHER)
-            .setPackage(packageName)
-        val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            packageManager.queryIntentActivities(
-                query,
-                PackageManager.ResolveInfoFlags.of(0L),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            packageManager.queryIntentActivities(query, 0)
-        }
-        val activity = activities.firstOrNull { it.activityInfo?.enabled == true }?.activityInfo
-            ?: return null
-        return Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_LAUNCHER)
-            .setClassName(activity.packageName, activity.name)
     }
 
     private fun getApplicationInfo(packageName: String): ApplicationInfo =
@@ -170,4 +136,45 @@ class AndroidHiddenAppRuntime(
         InstalledAppAvailability.NoLauncher -> AppLaunchResult.NoLaunchIntent
         InstalledAppAvailability.Unknown -> AppLaunchResult.Failed
     }
+}
+
+/** Temporary system disabling still requires a resolved entry before the runtime reports Available. */
+internal fun canAttemptAppLaunch(enabledSetting: Int, applicationEnabled: Boolean): Boolean =
+    when (enabledSetting) {
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER -> false
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED -> true
+        else -> applicationEnabled
+    }
+
+internal fun PackageManager.canAttemptAppLaunch(packageName: String, info: ApplicationInfo): Boolean =
+    canAttemptAppLaunch(
+        runCatching { getApplicationEnabledSetting(packageName) }
+            .getOrDefault(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT),
+        info.enabled,
+    )
+
+// Reuse the runtime's launcher fallback for target selection as well. This flag includes only
+// temporarily disabled apps, not explicitly disabled apps or disabled launcher components.
+internal fun PackageManager.findAppLaunchIntent(packageName: String): Intent? {
+    getLaunchIntentForPackage(packageName)?.let { return it }
+    val query = Intent(Intent.ACTION_MAIN)
+        .addCategory(Intent.CATEGORY_LAUNCHER)
+        .setPackage(packageName)
+    val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        queryIntentActivities(query, PackageManager.ResolveInfoFlags.of(
+            PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS.toLong(),
+        ))
+    } else {
+        @Suppress("DEPRECATION")
+        queryIntentActivities(query, PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS)
+    }
+    val activity = activities.firstOrNull {
+        it.activityInfo?.let { activity ->
+            activity.packageName == packageName && activity.enabled && activity.exported
+        } == true
+    }?.activityInfo ?: return null
+    return Intent(Intent.ACTION_MAIN)
+        .addCategory(Intent.CATEGORY_LAUNCHER)
+        .setClassName(activity.packageName, activity.name)
 }

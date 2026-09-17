@@ -144,7 +144,7 @@ class CalculatorVaultApp : Application() {
 
     private val installedAppScanner by lazy {
         FilteringInstalledAppScanner(
-            source = launcherAppSource,
+            source = AndroidLauncherAppSource(packageManager, includeTemporarilyDisabled = true),
             ownPackageName = packageName,
         )
     }

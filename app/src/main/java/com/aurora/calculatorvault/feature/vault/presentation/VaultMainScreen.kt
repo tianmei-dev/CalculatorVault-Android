@@ -1,6 +1,7 @@
 package com.aurora.calculatorvault.feature.vault.presentation
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
@@ -120,7 +121,9 @@ fun VaultMainScreen(
         NavHost(
             navController = navController,
             startDestination = VaultMainTab.default.route.path,
-            modifier = Modifier.padding(innerPadding),
+            // Scaffold padding already includes system bars and the IME. Nested
+            // screens must not subtract those insets a second time.
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
         ) {
             composable(VaultTabRoute.AppManagement.path) {
                 val appManagementViewModel: AppManagementViewModel = viewModel(

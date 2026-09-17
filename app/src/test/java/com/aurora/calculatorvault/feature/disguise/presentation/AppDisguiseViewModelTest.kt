@@ -6,6 +6,10 @@ import com.aurora.calculatorvault.feature.disguise.domain.DisguiseIconId
 import com.aurora.calculatorvault.feature.disguise.domain.DisguiseSortMode
 import com.aurora.calculatorvault.feature.disguise.domain.ShortcutRequestError
 import com.aurora.calculatorvault.feature.disguise.domain.ShortcutRequestState
+import com.aurora.calculatorvault.feature.disguise.domain.ShortcutStatus
+import com.aurora.calculatorvault.feature.disguise.shortcut.FakeRuntime
+import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutSyncManager
+import com.aurora.calculatorvault.feature.disguise.shortcut.TEST_SHORTCUT_ID
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinShortcutRequest
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinShortcutRequestResult
 import com.aurora.calculatorvault.feature.disguise.shortcut.PinnedShortcutCreator
@@ -202,6 +206,81 @@ class AppDisguiseViewModelTest {
         assertTrue(viewModel.uiState.value.showRequestSubmittedDialog)
     }
 
+    @Test
+    fun `finish without desktop request returns list with not created status`() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val creator = FakePinnedCreator()
+        val viewModel = AppDisguiseViewModel(repository, RequestPinShortcutUseCase(repository, creator))
+        saveNewEntry(viewModel, repository)
+        advanceUntilIdle()
+
+        viewModel.finishSaved()
+
+        assertEquals(AppDisguisePage.List, viewModel.uiState.value.page)
+        assertEquals(ShortcutStatus.NOT_CREATED, viewModel.uiState.value.visibleEntries.single().shortcutStatus)
+        assertEquals(0, creator.requestCount)
+    }
+
+    @Test
+    fun `submission stays saved until launcher callback confirms creation`() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val shortcuts = FakeShortcutRepository().apply { present = false }
+        val viewModel = AppDisguiseViewModel(
+            repository, RequestPinShortcutUseCase(repository, FakePinnedCreator()),
+            ShortcutSyncManager(shortcuts, FakeRuntime()),
+        )
+        saveNewEntry(viewModel, repository)
+        advanceUntilIdle()
+        viewModel.requestShortcut(requireNotNull(viewModel.uiState.value.savedEntry))
+        advanceUntilIdle()
+
+        assertEquals(AppDisguisePage.Saved, viewModel.uiState.value.page)
+        assertFalse(viewModel.uiState.value.showRequestSubmittedDialog)
+        viewModel.refreshShortcutStatus() // Returning from a cancelled launcher dialog.
+        advanceUntilIdle()
+        assertEquals(AppDisguisePage.Saved, viewModel.uiState.value.page)
+
+        shortcuts.present = true
+        repository.updateShortcutRequest(repository.entries.value.single().id, ShortcutRequestState.LauncherAccepted, 20, null)
+        advanceUntilIdle()
+
+        assertEquals(AppDisguisePage.List, viewModel.uiState.value.page)
+        assertEquals(ShortcutStatus.CREATED, viewModel.uiState.value.visibleEntries.single().shortcutStatus)
+        assertEquals(null, viewModel.uiState.value.savedEntry)
+        assertFalse(viewModel.uiState.value.showRequestSubmittedDialog)
+    }
+
+    @Test
+    fun `resume refresh returns list when launcher added shortcut without callback`() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val shortcuts = FakeShortcutRepository().apply { present = false }
+        val viewModel = AppDisguiseViewModel(
+            repository, RequestPinShortcutUseCase(repository, FakePinnedCreator()),
+            ShortcutSyncManager(shortcuts, FakeRuntime()),
+        )
+        saveNewEntry(viewModel, repository)
+        advanceUntilIdle()
+        viewModel.requestShortcut(requireNotNull(viewModel.uiState.value.savedEntry))
+        advanceUntilIdle()
+        shortcuts.present = true
+
+        viewModel.refreshShortcutStatus()
+        advanceUntilIdle()
+
+        assertEquals(AppDisguisePage.List, viewModel.uiState.value.page)
+        assertEquals(ShortcutStatus.CREATED, viewModel.uiState.value.visibleEntries.single().shortcutStatus)
+        assertFalse(viewModel.uiState.value.showRequestSubmittedDialog)
+    }
+
+    private fun saveNewEntry(viewModel: AppDisguiseViewModel, repository: FakeRepository) {
+        viewModel.startCreate()
+        viewModel.selectApp(repository.apps.single())
+        viewModel.updateCustomName("Work")
+        viewModel.continueFromName()
+        viewModel.continueToPreview()
+        viewModel.save()
+    }
+
     private fun entry(
         id: Long,
         custom: String,
@@ -271,7 +350,7 @@ class AppDisguiseViewModelTest {
 
         override suspend fun ensureShortcutId(id: Long): String? {
             val existing = entries.value.firstOrNull { it.id == id } ?: return null
-            val shortcutId = existing.shortcutId ?: "cv_disguise_generated"
+            val shortcutId = existing.shortcutId ?: TEST_SHORTCUT_ID
             entries.value = entries.value.map {
                 if (it.id == id) it.copy(shortcutId = shortcutId) else it
             }
@@ -312,9 +391,10 @@ class AppDisguiseViewModelTest {
     ) : ShortcutRepository {
         var lastUpdate: ShortcutUpdateRequest? = null
         var removedId: String? = null
+        var present = true
 
         override fun isPinRequestSupported() = true
-        override suspend fun isShortcutPresent(shortcutId: String) = true
+        override suspend fun isShortcutPresent(shortcutId: String) = present
         override suspend fun update(request: ShortcutUpdateRequest): ShortcutOperationResult {
             lastUpdate = request
             return ShortcutOperationResult.Success

@@ -66,6 +66,7 @@ class AppDisguiseViewModel(
                             error = null,
                         )
                     }
+                    finishSavedIfShortcutCreated()
                 }
         }
     }
@@ -107,6 +108,7 @@ class AppDisguiseViewModel(
                     isSyncingShortcuts = false,
                 )
             }
+            finishSavedIfShortcutCreated()
         }
     }
 
@@ -414,21 +416,39 @@ class AppDisguiseViewModel(
                 selectedDetails = null,
                 savedEntry = null,
                 pendingDelete = null,
+                showRequestSubmittedDialog = false,
                 error = null,
             )
+        }
+    }
+
+    private fun finishSavedIfShortcutCreated() {
+        val state = _uiState.value
+        if (state.page != AppDisguisePage.Saved) return
+        val entryId = state.savedEntry?.id ?: return
+        if (state.syncedEntries.any {
+                it.entry.id == entryId && it.shortcutStatus == ShortcutStatus.CREATED
+            }
+        ) {
+            resetToList()
         }
     }
 
     private fun performShortcutRequest(entryId: Long) {
         val useCase = requestPinShortcutUseCase ?: return
         if (_uiState.value.requestingShortcutEntryId != null) return
+        val requestedFromSavedPage = _uiState.value.let {
+            it.page == AppDisguisePage.Saved && it.savedEntry?.id == entryId
+        }
         _uiState.update { it.copy(requestingShortcutEntryId = entryId) }
         viewModelScope.launch {
             when (useCase(entryId)) {
                 PinShortcutRequestResult.RequestSubmitted -> _uiState.update {
                     it.copy(
                         requestingShortcutEntryId = null,
-                        showRequestSubmittedDialog = true,
+                        // A submitted request is not a created shortcut. The saved
+                        // page returns only after the launcher confirms creation.
+                        showRequestSubmittedDialog = !requestedFromSavedPage,
                     )
                 }
                 PinShortcutRequestResult.RequestSubmittedStateSaveFailed -> {
