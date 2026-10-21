@@ -1,0 +1,10 @@
+{
+  "version": "9.3.1",
+  "url": "https://services.gradle.org/distributions/gradle-9.3.1-src.zip",
+  "sha256": "57968e8a09157d7e467486a69224f24eb992df66474a51c0810cb6dc101d654d",
+  "files": 10709,
+  "rootCause": "IDE Gradle source download redirected to GitHub; direct Java connection timed out",
+  "repair": "Added verified official main source roots to the existing Gradle installation src directory",
+  "verification": "Tooling API KotlinDslScriptsModel requested offline; 3 scripts, 187 local source roots each, zero script exceptions",
+  "projectConfigurationChanged": false
+}

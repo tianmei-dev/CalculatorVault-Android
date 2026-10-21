@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_wechat_login">微信登录</string>
+    <string name="account_login_description">登录后可恢复会员权益</string>
+    <string name="account_wechat_user">微信用户</string>
+    <string name="account_logged_in">已登录</string>
+    <string name="account_logout">退出登录</string>
+    <string name="account_logout_title">确定退出登录？</string>
+    <string name="account_logout_message">退出后将暂停当前账号的会员权益，本机私密数据不会删除。重新登录后可恢复有效会员权益。</string>
+    <string name="account_logout_confirm">确定退出</string>
+    <string name="account_logout_cancel">取消</string>
+    <string name="account_logout_placeholder">退出登录功能待接入</string>
+    <string name="account_trial_active">免费试用中</string>
+    <string name="account_trial_remaining">剩余%1$d天%2$d小时</string>
+    <string name="account_vip_inactive">未开通VIP</string>
+    <string name="account_trial_expired_description">开通会员，继续使用高级保护功能</string>
+    <string name="account_open_vip">开通VIP</string>
+    <string name="account_open_vip_description">解锁应用锁和私密相册高级功能</string>
+    <string name="account_vip_expires">有效期至 %1$s</string>
+    <string name="account_vip_permanent">永久VIP</string>
+</resources>

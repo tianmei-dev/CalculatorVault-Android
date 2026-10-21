@@ -1,0 +1,9 @@
+{
+  "app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseViewModel.kt": "3fef557dd560e814410646f36a08d1c640af46c2f8a1e98291cd47dad38bed4a",
+  "app/src/main/java/com/aurora/calculatorvault/feature/membership/domain/VipPurchaseModels.kt": "12c7a8af0fee1fc01ba775b42545899511e9fb6146bf0f3a22532cffbdecbe0c",
+  "app/src/main/java/com/aurora/calculatorvault/feature/vault/presentation/VaultMainScreen.kt": "8fcb1a8cb9e0afda82c043b8aad5f3d510c4af434d9a95545237b5d7ca818fe8",
+  "app/src/main/java/com/aurora/calculatorvault/feature/settings/presentation/SettingsScreen.kt": "68fd2d4c03f0f2b63837658be58276fc92ce62012acf905a7cac6536e2c58aa2",
+  "app/src/main/java/com/aurora/calculatorvault/core/navigation/AppRoute.kt": "247a3e288903683e9f71f0ec50d7c9fc09f98854cd9e4f482b6e3eefa9d43cb9",
+  "app/src/main/java/com/aurora/calculatorvault/feature/login/presentation/WeChatLoginDialog.kt": "cc60706cdadaa1b8b9dd54525605c195afa5d3f70826261374fd574653bc1967",
+  "app/src/main/res/values/strings_login.xml": "6ea8b6d00ce66d439f3b8984d5c4943a31cfd7587ec3a04366e82908114b00ee"
+}

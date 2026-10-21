@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wechat_login_title">微信快捷登录</string>
+    <string name="wechat_login_welcome">欢迎使用应用加密计算器</string>
+    <string name="wechat_login_description">登录后可同步更多功能与后续会员权益</string>
+    <string name="wechat_login_skip">暂不登录</string>
+    <string name="wechat_login_agreement_prefix">我已阅读并同意</string>
+    <string name="wechat_login_user_agreement">《用户协议》</string>
+    <string name="wechat_login_agreement_and">和</string>
+    <string name="wechat_login_privacy_policy">《隐私政策》</string>
+    <string name="wechat_login_agreement_required">请先阅读并同意《用户协议》和《隐私政策》</string>
+    <string name="wechat_login_placeholder">微信登录暂未开放，敬请期待</string>
+    <string name="settings_account_group">账号</string>
+</resources>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vip_title">VIP会员</string>
+    <string name="vip_purchase_title">开通VIP</string>
+    <string name="vip_purchase_subtitle">解锁全部高级功能</string>
+    <string name="vip_intro_title">解锁完整隐私保护</string>
+    <string name="vip_intro_description">开通会员，持续使用应用锁与私密相册高级功能</string>
+    <string name="vip_benefits_title">会员权益</string>
+    <string name="vip_benefit_lock">应用锁</string>
+    <string name="vip_benefit_lock_description">持续畅享应用锁保护功能</string>
+    <string name="vip_benefit_album">私密相册</string>
+    <string name="vip_benefit_album_description">无限制导入和保存私密照片视频</string>
+    <string name="vip_benefit_clean">无忧畅享</string>
+    <string name="vip_benefit_clean_description">全流程极净无广告</string>
+    <string name="vip_benefit_restore">会员恢复</string>
+    <string name="vip_benefit_restore_description">更换设备后登录微信账号，可恢复会员权益</string>
+    <string name="vip_plans_title">选择套餐</string>
+    <string name="vip_monthly">月卡</string>
+    <string name="vip_annual">年卡</string>
+    <string name="vip_plan_recommended">推荐</string>
+    <string name="vip_lifetime">永久</string>
+    <string name="vip_duration_days">%1$d天</string>
+    <string name="vip_duration_lifetime">永久有效</string>
+    <string name="vip_non_renewing">非自动续费</string>
+    <string name="vip_price">¥%1$s</string>
+    <string name="vip_payment_title">支付方式</string>
+    <string name="vip_payment_wechat">微信支付</string>
+    <string name="vip_payment_alipay">支付宝</string>
+    <string name="vip_purchase_action">立即开通 ¥%1$s</string>
+    <string name="vip_agreement_prefix">我已阅读并同意</string>
+    <string name="vip_agreement_service">《会员服务协议》</string>
+    <string name="vip_agreement_and">和</string>
+    <string name="vip_agreement_privacy">《隐私政策》</string>
+    <string name="vip_agreement_required">请先阅读并同意会员服务协议和隐私政策</string>
+    <string name="vip_service_pending">会员服务协议待接入，当前仅提供页面预览</string>
+    <string name="vip_payment_placeholder">支付功能即将开放</string>
+    <string name="vip_non_renewing_notice">非自动续费，到期不自动扣费</string>
+    <string name="vip_special_notice">本应用不提倡未成年支付，用户需确认自己具有完全民事行为能力。未成年用户需得到监护人同意，才可以进行支付。请监护人切实履行监护义务。</string>
+    <string name="vip_local_data_notice">会员权益可通过微信登录恢复，私密数据仅保存在本机，不支持跨设备同步。</string>
+    <string name="vip_restore_scope_notice">仅恢复会员资格，不同步照片、视频、应用锁配置或本地密码。</string>
+</resources>

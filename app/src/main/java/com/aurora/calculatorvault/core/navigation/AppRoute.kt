@@ -25,6 +25,14 @@ sealed interface VaultTabRoute {
     data object HiddenAppPicker : VaultTabRoute { override val path = "vault/hidden_app/picker" }
     data object PrivateMedia : VaultTabRoute { override val path = "vault/private_media" }
     data object Settings : VaultTabRoute { override val path = "vault/settings" }
+    data object VipMembership : VaultTabRoute {
+        const val SOURCE_ARG = "source"
+        override val path = "vault/vip?source={$SOURCE_ARG}"
+
+        fun createRoute(
+            source: com.aurora.calculatorvault.feature.membership.domain.VipPurchaseSource,
+        ): String = "vault/vip?source=${source.name}"
+    }
     data object ChangePassword : VaultTabRoute { override val path = "vault/settings/change_password" }
     data object ForgotPassword : VaultTabRoute { override val path = "vault/settings/forgot_password" }
     data object About : VaultTabRoute { override val path = "vault/settings/about" }

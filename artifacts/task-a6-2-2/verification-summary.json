@@ -1,0 +1,10 @@
+{
+  "normal_360x720_first_screen": "passed",
+  "normal_412x800_first_screen": "passed",
+  "large_360x640_font_1_6_body_scroll": "observed",
+  "large_font_purchase_button_fixed": "passed",
+  "large_font_full_payment_scroll": "manual follow-up",
+  "protected_files_unchanged": 7,
+  "special_notice_exact_copy": true,
+  "physical_device_test": "blocked by lock screen; no unlock attempted"
+}

@@ -54,6 +54,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import com.aurora.calculatorvault.feature.login.data.LoginPromptPreferences
 
 class CalculatorVaultApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -306,6 +307,10 @@ class CalculatorVaultApp : Application() {
 
     val guidePreferences by lazy {
         GuidePreferences(vaultPreferencesDataStore)
+    }
+
+    val loginPromptPreferences by lazy {
+        LoginPromptPreferences(vaultPreferencesDataStore)
     }
 
     val guideLegacyUsageRepository by lazy {

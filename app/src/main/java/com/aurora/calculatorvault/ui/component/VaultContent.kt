@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -79,10 +80,14 @@ fun VaultSettingItem(
     showDivider: Boolean = true,
     enabled: Boolean = true,
     showChevron: Boolean = enabled,
+    adaptiveHeight: Boolean = false,
 ) {
     Column(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(AppDimensions.SettingItem),
+            modifier = Modifier.fillMaxWidth().then(
+                if (adaptiveHeight) Modifier.heightIn(min = AppDimensions.SettingItem).padding(vertical = AppSpacing.xs)
+                else Modifier.height(AppDimensions.SettingItem),
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {

@@ -34,6 +34,10 @@ fun SettingsScreen(
     onContactUs: () -> Unit,
     onPrivacyDocuments: () -> Unit,
     onPermissionSettingsClick: () -> Unit,
+    onLogin: () -> Unit,
+    onVipMembership: () -> Unit,
+    onLogoutConfirmed: () -> Unit,
+    accountState: AccountUiState = AccountUiState(),
 ) {
     val context = LocalContext.current
     val messageController = LocalAppMessageController.current
@@ -49,6 +53,9 @@ fun SettingsScreen(
             title = stringResource(R.string.tab_settings),
             description = stringResource(R.string.settings_description),
         )
+        SettingsGroup(title = stringResource(R.string.settings_account_group)) {
+            SettingsAccountContent(accountState, onLogin, onVipMembership, onLogoutConfirmed)
+        }
         SettingsGroup(title = stringResource(R.string.security_group)) {
             VaultSettingItem(
                 title = stringResource(R.string.change_password),

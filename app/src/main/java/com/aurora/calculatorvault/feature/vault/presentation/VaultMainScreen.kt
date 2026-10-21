@@ -58,6 +58,12 @@ import com.aurora.calculatorvault.feature.settings.presentation.ForgotPasswordSc
 import com.aurora.calculatorvault.ui.component.VaultBottomNavigation
 import com.aurora.calculatorvault.ui.component.VaultNavigationItem
 import com.aurora.calculatorvault.ui.message.LocalAppMessageController
+import com.aurora.calculatorvault.feature.login.presentation.LoginPromptViewModel
+import com.aurora.calculatorvault.feature.login.presentation.LoginSource
+import com.aurora.calculatorvault.feature.login.presentation.WeChatLoginDialog
+import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseSource
+import com.aurora.calculatorvault.feature.membership.presentation.VipPurchaseScreen
+import com.aurora.calculatorvault.feature.membership.presentation.VipPurchaseViewModel
 
 @Composable
 fun VaultMainScreen(
@@ -68,6 +74,15 @@ fun VaultMainScreen(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val loginViewModel: LoginPromptViewModel = viewModel(
+        factory = LoginPromptViewModel.Factory(application.loginPromptPreferences),
+    )
+    val loginState by loginViewModel.state.collectAsState()
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == VaultTabRoute.AppManagement.path) {
+            loginViewModel.onHomeEntered()
+        }
+    }
     val messageController = LocalAppMessageController.current
     val passwordChangedMessage = stringResource(R.string.password_change_success)
     var activeGuide by remember { mutableStateOf<GuideType?>(null) }
@@ -280,6 +295,15 @@ fun VaultMainScreen(
             }
             composable(VaultTabRoute.Settings.path) {
                 SettingsScreen(
+                    onLogoutConfirmed = {
+                        messageController.showInfo(context.getString(R.string.account_logout_placeholder))
+                    },
+                    onLogin = { loginViewModel.open(LoginSource.Settings) },
+                    onVipMembership = {
+                        navController.navigate(VaultTabRoute.VipMembership.createRoute(VipPurchaseSource.Settings)) {
+                            launchSingleTop = true
+                        }
+                    },
                     onChangePassword = {
                         application.analyticsTracker.track(AnalyticsEvent.ChangePasswordClick)
                         navController.navigate(VaultTabRoute.ChangePassword.path)
@@ -296,6 +320,29 @@ fun VaultMainScreen(
                     },
                     onPermissionSettingsClick = {
                         application.analyticsTracker.track(AnalyticsEvent.PermissionSettingsClick)
+                    },
+                )
+            }
+            composable(
+                route = VaultTabRoute.VipMembership.path,
+                arguments = listOf(navArgument(VaultTabRoute.VipMembership.SOURCE_ARG) {
+                    type = NavType.StringType
+                    defaultValue = VipPurchaseSource.Settings.name
+                }),
+            ) { entry ->
+                val source = VipPurchaseSource.fromRoute(
+                    entry.arguments?.getString(VaultTabRoute.VipMembership.SOURCE_ARG),
+                )
+                val purchaseViewModel: VipPurchaseViewModel = viewModel(
+                    factory = VipPurchaseViewModel.Factory(source),
+                )
+                VipPurchaseScreen(
+                    viewModel = purchaseViewModel,
+                    onBack = navController::popBackStack,
+                    onOpenPrivacyPolicy = {
+                        navController.navigate(
+                            VaultTabRoute.LegalDocument.createRoute(LegalDocumentType.PrivacyPolicy),
+                        ) { launchSingleTop = true }
                     },
                 )
             }
@@ -371,6 +418,21 @@ fun VaultMainScreen(
                 activeGuide = GuideType.APP_DISGUISE_CREATED
             }
         }
+    }
+
+    // Keep the same prompt state while reading existing legal pages; restore on back.
+    if (loginState.source != null && currentRoute != VaultTabRoute.LegalDocument.path) {
+        WeChatLoginDialog(
+            state = loginState,
+            onAgreementChanged = loginViewModel::setAgreementAccepted,
+            onLogin = loginViewModel::requestWeChatLogin,
+            onOpenDocument = { type ->
+                navController.navigate(VaultTabRoute.LegalDocument.createRoute(type)) {
+                    launchSingleTop = true
+                }
+            },
+            onDismiss = loginViewModel::dismiss,
+        )
     }
 
     activeGuide?.let { guide ->

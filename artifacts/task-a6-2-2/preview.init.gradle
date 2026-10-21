@@ -1,0 +1,9 @@
+gradle.beforeProject { p ->
+    if (p.path == ':app') {
+        p.afterEvaluate {
+            p.android.defaultConfig.applicationId = 'com.aurora.calculatorvault.uipreview'
+            p.android.sourceSets.getByName('debug').kotlin.srcDir('D:/CalculatorVaul/artifacts/task-a6-2-2/preview-src')
+            p.android.sourceSets.getByName('debug').manifest.srcFile('D:/CalculatorVaul/artifacts/task-a6-2-2/preview-manifest.xml')
+        }
+    }
+}
