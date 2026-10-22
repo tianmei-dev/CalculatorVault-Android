@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wechat_auth_authorizing">微信授权中…</string>
+    <string name="wechat_auth_app_id_missing">微信登录尚未配置 AppID，请联系开发者</string>
+    <string name="wechat_auth_unavailable">未检测到可用的微信，请安装或更新微信后重试</string>
+    <string name="wechat_auth_initialization_failed">微信登录初始化失败，请稍后重试</string>
+    <string name="wechat_auth_launch_failed">无法发起微信授权，请稍后重试</string>
+    <string name="wechat_auth_cancelled">已取消微信授权，仍可继续使用</string>
+    <string name="wechat_auth_failed">微信授权失败，请重试</string>
+    <string name="wechat_auth_invalid_callback">微信授权校验失败，请重试</string>
+    <string name="wechat_auth_expired">微信授权已超时，请重新发起</string>
+    <string name="wechat_auth_storage_failed">无法保存或校验授权请求，请稍后重试</string>
+    <string name="wechat_auth_code_received">已取得微信授权，服务端登录待接入，当前仍未登录</string>
+    <string name="wechat_auth_privacy_required">请先同意应用隐私政策后再使用微信登录</string>
+</resources>

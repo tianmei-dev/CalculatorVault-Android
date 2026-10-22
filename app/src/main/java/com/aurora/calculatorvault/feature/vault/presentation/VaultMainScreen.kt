@@ -11,6 +11,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
@@ -75,9 +78,17 @@ fun VaultMainScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val loginViewModel: LoginPromptViewModel = viewModel(
-        factory = LoginPromptViewModel.Factory(application.loginPromptPreferences),
+        factory = LoginPromptViewModel.Factory(application.loginPromptPreferences, application.wechatAuthorization),
     )
     val loginState by loginViewModel.state.collectAsState()
+    val authorizationState by loginViewModel.authorizationState.collectAsState()
+    val loginScope = rememberCoroutineScope()
+    LaunchedEffect(loginState.source) {
+        while (loginState.source != null) {
+            loginViewModel.refreshAuthorization()
+            delay(1000)
+        }
+    }
     LaunchedEffect(currentRoute) {
         if (currentRoute == VaultTabRoute.AppManagement.path) {
             loginViewModel.onHomeEntered()
@@ -425,7 +436,13 @@ fun VaultMainScreen(
         WeChatLoginDialog(
             state = loginState,
             onAgreementChanged = loginViewModel::setAgreementAccepted,
-            onLogin = loginViewModel::requestWeChatLogin,
+            authorizationStatus = authorizationState,
+            onLogin = {
+                loginScope.launch {
+                    if (application.hasPrivacyConsent()) loginViewModel.requestWeChatLogin()
+                    else application.wechatAuthorization.cancel(privacyWithdrawn = true)
+                }
+            },
             onOpenDocument = { type ->
                 navController.navigate(VaultTabRoute.LegalDocument.createRoute(type)) {
                     launchSingleTop = true

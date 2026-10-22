@@ -55,6 +55,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import com.aurora.calculatorvault.feature.login.data.LoginPromptPreferences
+import com.aurora.calculatorvault.BuildConfig
+import com.aurora.calculatorvault.feature.login.data.AndroidWeChatSdkBridge
+import com.aurora.calculatorvault.feature.login.data.SharedPreferencesWeChatAuthorizationStore
+import com.aurora.calculatorvault.feature.login.domain.PendingWeChatServerLoginEntry
+import com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationCoordinator
 
 class CalculatorVaultApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -110,6 +115,7 @@ class CalculatorVaultApp : Application() {
                 }
             },
             endSessions = {
+                wechatAuthorization.cancel(privacyWithdrawn = true)
                 vaultSessionManager.lock()
                 appLockSessionManager.clearAll()
                 AppLockMonitorService.stop(this)
@@ -311,6 +317,16 @@ class CalculatorVaultApp : Application() {
 
     val loginPromptPreferences by lazy {
         LoginPromptPreferences(vaultPreferencesDataStore)
+    }
+
+    val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID) }
+
+    val wechatAuthorization by lazy {
+        WeChatAuthorizationCoordinator(
+            sdk = wechatSdk,
+            store = SharedPreferencesWeChatAuthorizationStore(applicationContext),
+            serverLogin = PendingWeChatServerLoginEntry(),
+        )
     }
 
     val guideLegacyUsageRepository by lazy {

@@ -53,6 +53,7 @@ import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
+import com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationStatus
 
 /** Shared UI for first-home, settings, purchase and session-expiry entry points. */
 @Composable
@@ -62,6 +63,7 @@ fun WeChatLoginDialog(
     onLogin: () -> Unit,
     onOpenDocument: (LegalDocumentType) -> Unit,
     onDismiss: () -> Unit,
+    authorizationStatus: WeChatAuthorizationStatus = WeChatAuthorizationStatus.Idle,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -107,6 +109,7 @@ fun WeChatLoginDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     Button(
                         onClick = onLogin,
+                        enabled = authorizationStatus != WeChatAuthorizationStatus.Authorizing,
                         modifier = Modifier.fillMaxWidth().heightIn(min = AppDimensions.Button)
                             .testTag("wechat_login_button"),
                         shape = AppShapes.Medium,
@@ -121,7 +124,8 @@ fun WeChatLoginDialog(
                         ) {
                             Icon(painterResource(R.drawable.ic_wechat), null, Modifier.size(24.dp),
                                 tint = androidx.compose.ui.graphics.Color.Unspecified)
-                            Text(stringResource(R.string.wechat_login_title), style = AppTextStyles.Button,
+                            Text(stringResource(if (authorizationStatus == WeChatAuthorizationStatus.Authorizing)
+                                R.string.wechat_auth_authorizing else R.string.wechat_login_title), style = AppTextStyles.Button,
                                 textAlign = TextAlign.Center)
                         }
                     }
@@ -185,9 +189,9 @@ fun WeChatLoginDialog(
                             .semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }
-                if (state.placeholderVisible) {
+                wechatAuthorizationMessage(authorizationStatus)?.let { message ->
                     Text(
-                        stringResource(R.string.wechat_login_placeholder),
+                        stringResource(message),
                         color = AppColors.TextSecondary,
                         style = AppTextStyles.Caption,
                         modifier = Modifier.testTag("wechat_login_placeholder")

@@ -8,6 +8,11 @@ val umengAppKey = providers.gradleProperty("UMENG_APP_KEY").orElse("")
 val umengChannel = providers.gradleProperty("UMENG_CHANNEL").orElse("official")
 val buglyAppId = providers.gradleProperty("BUGLY_APP_ID").orElse("")
 val buglyChannel = providers.gradleProperty("BUGLY_CHANNEL").orElse(umengChannel)
+val wechatAppId = providers.gradleProperty("WECHAT_APP_ID")
+    .orElse(providers.environmentVariable("WECHAT_APP_ID")).orElse("").get().trim()
+require(wechatAppId.isEmpty() || wechatAppId.matches(Regex("wx[0-9a-fA-F]{16}"))) {
+    "WECHAT_APP_ID must be empty or a valid WeChat mobile AppID (wx + 16 hexadecimal characters)"
+}
 
 android {
     namespace = "com.aurora.calculatorvault"
@@ -25,6 +30,7 @@ android {
         buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
         buildConfigField("String", "BUGLY_APP_ID", "\"${buglyAppId.get()}\"")
         buildConfigField("String", "BUGLY_CHANNEL", "\"${buglyChannel.get()}\"")
+        buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
     }
 
     buildTypes {
@@ -57,6 +63,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.wechat.opensdk)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
