@@ -44,3 +44,7 @@ internal class MemoryWeChatStore : PendingWeChatAuthorizationStore {
 internal fun unconfiguredWeChatAuthorization() = WeChatAuthorizationCoordinator(
     FakeWeChatSdk(WeChatSdkAvailability.AppIdMissing), MemoryWeChatStore(), PendingWeChatServerLoginEntry(),
 )
+
+internal class PendingWeChatServerLoginEntry : WeChatServerLoginEntry {
+    override fun acceptAuthorization(request: WeChatServerLoginRequest) = Unit
+}

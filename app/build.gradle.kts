@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -14,6 +16,21 @@ require(wechatAppId.isEmpty() || wechatAppId.matches(Regex("wx[0-9a-fA-F]{16}"))
     "WECHAT_APP_ID must be empty or a valid WeChat mobile AppID (wx + 16 hexadecimal characters)"
 }
 
+val debugApiUrl = providers.gradleProperty("DEBUG_API_BASE_URL").orElse("http://10.0.2.2:8080").get()
+val releaseApiUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orElse("").get()
+fun quotedUrl(value: String): String {
+    require(value.none { it == '"' || it == '\\' || it.isISOControl() })
+    return "\"$value\""
+}
+if (releaseApiUrl.isNotEmpty()) {
+    val uri = URI(releaseApiUrl)
+    require(uri.scheme == "https" && uri.host != null && uri.userInfo == null)
+    val host = uri.host.lowercase()
+    require(host.contains('.') && !host.matches(Regex("[0-9.]+")) && host.none { it == ':' || it == '[' || it == ']' })
+    require(listOf("localhost", "local", "lan", "internal", "test", "invalid").none {
+        host == it || host.endsWith(".$it")
+    })
+}
 android {
     namespace = "com.aurora.calculatorvault"
     compileSdk = 37
@@ -30,11 +47,18 @@ android {
         buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
         buildConfigField("String", "BUGLY_APP_ID", "\"${buglyAppId.get()}\"")
         buildConfigField("String", "BUGLY_CHANNEL", "\"${buglyChannel.get()}\"")
+        buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", providers.gradleProperty("TRIAL_DEVICE_UPLOAD_ENABLED").orElse("false").get().toBoolean().toString())
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", quotedUrl(debugApiUrl))
+            manifestPlaceholders["accountCleartext"] = "true"
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
+            manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -85,6 +109,7 @@ dependencies {
     implementation(libs.bugly.crashreport)
 
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303")
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.core.ktx)
     androidTestImplementation(libs.androidx.test.ext.junit)

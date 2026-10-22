@@ -54,11 +54,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.catch
 import com.aurora.calculatorvault.feature.login.data.LoginPromptPreferences
 import com.aurora.calculatorvault.BuildConfig
 import com.aurora.calculatorvault.feature.login.data.AndroidWeChatSdkBridge
 import com.aurora.calculatorvault.feature.login.data.SharedPreferencesWeChatAuthorizationStore
-import com.aurora.calculatorvault.feature.login.domain.PendingWeChatServerLoginEntry
+import com.aurora.calculatorvault.feature.login.session.*
 import com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationCoordinator
 
 class CalculatorVaultApp : Application() {
@@ -116,6 +118,7 @@ class CalculatorVaultApp : Application() {
             },
             endSessions = {
                 wechatAuthorization.cancel(privacyWithdrawn = true)
+                accountSession.logout()
                 vaultSessionManager.lock()
                 appLockSessionManager.clearAll()
                 AppLockMonitorService.stop(this)
@@ -319,13 +322,27 @@ class CalculatorVaultApp : Application() {
         LoginPromptPreferences(vaultPreferencesDataStore)
     }
 
+    val deviceTrial by lazy {
+        com.aurora.calculatorvault.feature.trial.DeviceTrialRepository(
+            com.aurora.calculatorvault.feature.trial.EncryptedTrialStore(applicationContext),
+            com.aurora.calculatorvault.feature.trial.AndroidTrialClock(applicationContext),
+            com.aurora.calculatorvault.feature.trial.AndroidDeviceIdentityProvider(applicationContext),
+            HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG), applicationScope, ::hasPrivacyConsent,
+            { BuildConfig.TRIAL_DEVICE_UPLOAD_ENABLED })
+    }
+
+    val accountSession by lazy {
+        AccountSessionRepository(HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG),
+            KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent)
+    }
+
     val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID) }
 
     val wechatAuthorization by lazy {
         WeChatAuthorizationCoordinator(
             sdk = wechatSdk,
             store = SharedPreferencesWeChatAuthorizationStore(applicationContext),
-            serverLogin = PendingWeChatServerLoginEntry(),
+            serverLogin = accountSession,
         )
     }
 
@@ -351,12 +368,32 @@ class CalculatorVaultApp : Application() {
                 .runningAppProcesses?.firstOrNull { it.pid == Process.myPid() }?.processName
         }
         if (processName != packageName) return
+        deviceTrial.initialize()
+        deviceTrial.startTicker()
+        try {
+            getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(
+                object : android.net.ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: android.net.Network) {
+                        applicationScope.launch { deviceTrial.sync() }
+                    }
+                })
+        } catch (_: Exception) { /* Foreground and consent events still synchronize. */ }
+        applicationScope.launch {
+            vaultPreferencesDataStore.data.catch { }.collect {
+                if (hasPrivacyConsent()) deviceTrial.sync()
+            }
+        }
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             AppLifecycleObserver(vaultSessionManager),
         )
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) { accountSession.revalidate(); deviceTrial.refresh(); deviceTrial.sync() }
+        })
         applicationScope.launch {
             // Persisted consent is read before either third-party SDK is touched.
             thirdPartySdkInitializer.initializeIfAllowed()
+            if (hasPrivacyConsent()) accountSession.restore()
+            deviceTrial.sync()
         }
     }
 

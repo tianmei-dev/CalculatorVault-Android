@@ -38,6 +38,9 @@ fun SettingsScreen(
     onVipMembership: () -> Unit,
     onLogoutConfirmed: () -> Unit,
     accountState: AccountUiState = AccountUiState(),
+    sessionMessage: String = "",
+    onRetrySession: () -> Unit = {},
+    sessionPending: Boolean = false,
 ) {
     val context = LocalContext.current
     val messageController = LocalAppMessageController.current
@@ -55,6 +58,11 @@ fun SettingsScreen(
         )
         SettingsGroup(title = stringResource(R.string.settings_account_group)) {
             SettingsAccountContent(accountState, onLogin, onVipMembership, onLogoutConfirmed)
+            if (sessionMessage.isNotEmpty()) Text(sessionMessage)
+            if (sessionPending) {
+                androidx.compose.material3.TextButton(onClick = onRetrySession) { Text("重新校验账号") }
+                androidx.compose.material3.TextButton(onClick = onLogoutConfirmed) { Text("退出本地账号") }
+            }
         }
         SettingsGroup(title = stringResource(R.string.security_group)) {
             VaultSettingItem(

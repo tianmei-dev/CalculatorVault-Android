@@ -20,6 +20,7 @@ data class LoginPromptState(
 class LoginPromptViewModel(
     private val preferences: LoginPromptPreferences,
     private val authorization: WeChatAuthorizationCoordinator,
+    private val cancelServerLogin: () -> Unit = {},
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(LoginPromptState())
     val state = mutableState.asStateFlow()
@@ -38,13 +39,14 @@ class LoginPromptViewModel(
 
     fun dismiss() {
         authorization.cancel()
+        cancelServerLogin()
         mutableState.value = LoginPromptState()
     }
 
     fun refreshAuthorization() = authorization.refresh()
 
     fun setAgreementAccepted(accepted: Boolean) {
-        if (!accepted) authorization.cancel()
+        if (!accepted) { authorization.cancel(); cancelServerLogin() }
         mutableState.update {
             it.copy(agreementAccepted = accepted, agreementRequired = false)
         }
@@ -64,11 +66,12 @@ class LoginPromptViewModel(
     class Factory(
         private val preferences: LoginPromptPreferences,
         private val authorization: WeChatAuthorizationCoordinator,
+        private val cancelServerLogin: () -> Unit = {},
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(LoginPromptViewModel::class.java))
-            return LoginPromptViewModel(preferences, authorization) as T
+            return LoginPromptViewModel(preferences, authorization, cancelServerLogin) as T
         }
     }
 }

@@ -59,7 +59,7 @@ internal fun membershipText(state: AccountUiState): MembershipText = when (val s
     )
     MembershipStatus.TrialExpired -> MembershipText(R.string.account_vip_inactive, R.string.account_trial_expired_description)
     MembershipStatus.NotSubscribed -> if (state.account == AccountStatus.Guest) {
-        MembershipText(R.string.account_vip_inactive, R.string.account_trial_expired_description)
+        MembershipText(R.string.account_vip_inactive, R.string.account_trial_pending)
     } else {
         MembershipText(R.string.account_open_vip, R.string.account_open_vip_description)
     }

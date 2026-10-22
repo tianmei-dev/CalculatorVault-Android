@@ -1,0 +1,18 @@
+{
+  "totals": {
+    "tests": 304,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "trial": [
+    {
+      "name": "com.aurora.calculatorvault.feature.trial.DeviceTrialTest",
+      "tests": "27",
+      "failures": "0"
+    }
+  ],
+  "apkSha256": "380a7fa9d9b5b19f0b11c7578f926610d11502840f928213bbc1b2de4911bbd9",
+  "instrumentation": "compiled only; no connected device",
+  "uploadDefault": false
+}

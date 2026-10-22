@@ -14,11 +14,6 @@ class WeChatServerLoginRequest(val code: String) {
 }
 
 fun interface WeChatServerLoginEntry {
-    /** I2.1 replaces this handoff with the real Server login flow; authorization is not login. */
+    /** One-shot handoff to the app-scoped Server session owner; authorization is not login. */
     fun acceptAuthorization(request: WeChatServerLoginRequest)
-}
-
-/** A6.4 consumes the handoff without retaining the code, creating a session or sending a request. */
-class PendingWeChatServerLoginEntry : WeChatServerLoginEntry {
-    override fun acceptAuthorization(request: WeChatServerLoginRequest) = Unit
 }

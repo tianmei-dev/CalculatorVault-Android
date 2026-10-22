@@ -1,5 +1,6 @@
 package com.aurora.calculatorvault.feature.vault.presentation
 
+import com.aurora.calculatorvault.feature.login.session.AccountSession
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -78,8 +79,20 @@ fun VaultMainScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val loginViewModel: LoginPromptViewModel = viewModel(
-        factory = LoginPromptViewModel.Factory(application.loginPromptPreferences, application.wechatAuthorization),
+        factory = LoginPromptViewModel.Factory(application.loginPromptPreferences, application.wechatAuthorization, application.accountSession::cancelLogin),
     )
+    val trialState by application.deviceTrial.state.collectAsState()
+    LaunchedEffect(Unit) { application.deviceTrial.sync() }
+    val sessionState by application.accountSession.state.collectAsState()
+    val logoutWarning by application.accountSession.logoutWarning.collectAsState()
+    LaunchedEffect(logoutWarning) {
+        if (logoutWarning) android.widget.Toast.makeText(context,
+            "已停止本地登录；会话清理或服务端撤销未确认，残留会话可能持续至到期，重新登录不会撤销旧会话。",
+            android.widget.Toast.LENGTH_LONG).show()
+    }
+    LaunchedEffect(sessionState) {
+        if (sessionState is AccountSession.Authenticated) loginViewModel.dismiss()
+    }
     val loginState by loginViewModel.state.collectAsState()
     val authorizationState by loginViewModel.authorizationState.collectAsState()
     val loginScope = rememberCoroutineScope()
@@ -306,8 +319,32 @@ fun VaultMainScreen(
             }
             composable(VaultTabRoute.Settings.path) {
                 SettingsScreen(
+                    sessionPending = sessionState == AccountSession.TemporarilyUnavailable,
+                    onRetrySession = application.accountSession::revalidate,
+                    sessionMessage = (when (trialState.status) {
+                        com.aurora.calculatorvault.feature.trial.TrialStatus.ACTIVE -> "设备试用中：剩余 ${trialState.remainingMillis / 3600000} 小时 ${(trialState.remainingMillis / 60000) % 60} 分钟"
+                        com.aurora.calculatorvault.feature.trial.TrialStatus.EXPIRED -> "设备试用已到期"
+                        com.aurora.calculatorvault.feature.trial.TrialStatus.TEMPORARILY_UNAVAILABLE -> "设备试用暂时无法验证"
+                        else -> "设备试用等待联网验证，剩余 ${trialState.remainingMillis / 3600000} 小时"
+                    }) + "\n" + when (sessionState) {
+                        AccountSession.Validating -> "正在校验已保存的账号"
+                        AccountSession.TemporarilyUnavailable -> "网络暂不可用，账号待验证，账号权益未启用"
+                        AccountSession.SessionExpired -> "会话已失效，请重新登录"
+                        AccountSession.StorageFailed -> "安全存储不可用，当前未登录"
+                        else -> ""
+                    },
+                    accountState = com.aurora.calculatorvault.feature.settings.presentation.AccountUiState(
+                        account = if (sessionState is AccountSession.Authenticated)
+                            com.aurora.calculatorvault.feature.settings.presentation.AccountStatus.WeChatLoggedIn()
+                        else com.aurora.calculatorvault.feature.settings.presentation.AccountStatus.Guest,
+                        deviceTrial = if (trialState.status == com.aurora.calculatorvault.feature.trial.TrialStatus.EXPIRED)
+                            com.aurora.calculatorvault.feature.settings.presentation.MembershipStatus.TrialExpired
+                        else if (trialState.remainingMillis > 0)
+                            com.aurora.calculatorvault.feature.settings.presentation.MembershipStatus.TrialActive(java.time.Duration.ofMillis(trialState.remainingMillis))
+                        else com.aurora.calculatorvault.feature.settings.presentation.MembershipStatus.NotSubscribed),
                     onLogoutConfirmed = {
-                        messageController.showInfo(context.getString(R.string.account_logout_placeholder))
+                        application.wechatAuthorization.cancel()
+                        application.accountSession.logout()
                     },
                     onLogin = { loginViewModel.open(LoginSource.Settings) },
                     onVipMembership = {
@@ -437,6 +474,7 @@ fun VaultMainScreen(
             state = loginState,
             onAgreementChanged = loginViewModel::setAgreementAccepted,
             authorizationStatus = authorizationState,
+            sessionState = sessionState,
             onLogin = {
                 loginScope.launch {
                     if (application.hasPrivacyConsent()) loginViewModel.requestWeChatLogin()

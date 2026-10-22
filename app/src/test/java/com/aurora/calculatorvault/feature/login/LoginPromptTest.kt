@@ -98,7 +98,7 @@ class LoginPromptTest {
         withPreferences { preferences ->
             val sdk = FakeWeChatSdk()
             val auth = com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationCoordinator(
-                sdk, MemoryWeChatStore(), com.aurora.calculatorvault.feature.login.domain.PendingWeChatServerLoginEntry(),
+                sdk, MemoryWeChatStore(), PendingWeChatServerLoginEntry(),
             )
             val model = LoginPromptViewModel(preferences, auth)
             model.requestWeChatLogin()

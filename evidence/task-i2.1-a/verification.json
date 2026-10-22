@@ -1,0 +1,354 @@
+{
+  "date": "2026-10-22",
+  "totals": {
+    "tests": 277,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "com.aurora.calculatorvault.core.analytics.AnalyticsEventTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSourceTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.guide.GuidePreferencesTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.navigation.VaultRouteGuardTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.privacy.PrivacyWithdrawalControllerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.security.PasswordHasherTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.security.recovery.PasswordRecoveryRepositoryTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.core.security.session.VaultSessionManagerTest",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.applock.data.AppLockRepositoryImplTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManagerTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.appmanagement.presentation.AppManagementViewModelTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.calculator.domain.CalculatorEngineTest",
+      "tests": "13",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockPasswordChangeIntegrationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCaseTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.calculator.presentation.CalculatorViewModelTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.calculator.presentation.CalculatorViewModelUnlockTest",
+      "tests": "20",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.domain.DisguiseNamePolicyTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.presentation.AppDisguiseViewModelTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.DisguiseShortcutEntryViewModelTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.DisguiseShortcutIntentParserTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.DisguiseShortcutSessionTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.LaunchDisguisedTargetUseCaseTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.RequestPinShortcutUseCaseTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.ResolveDisguiseShortcutUseCaseTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutRepositoryContractTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutSyncManagerTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppPreferencesTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppRepositoryTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.domain.AppLaunchEligibilityTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledAppScannerTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.domain.LaunchHiddenAppUseCaseTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppExperienceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPickerViewModelTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModelTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.login.LoginPromptTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.login.session.AccountSessionTest",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest",
+      "tests": "22",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.membership.VipPurchaseViewModelTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.onboarding.data.OnboardingRepositoryTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.onboarding.domain.PasswordPolicyTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.onboarding.domain.StartupDestinationResolverTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.onboarding.presentation.OnboardingViewModelTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.settings.AccountUiStateTest",
+      "tests": "12",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.settings.data.ChangePasswordRepositoryTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.settings.presentation.ChangePasswordViewModelTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.settings.presentation.RecentHistoryViewModelTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.feature.vault.presentation.VaultMainNavigationTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.aurora.calculatorvault.ui.message.AppMessageControllerTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "releaseManifest": {
+    "usesCleartextTraffic": "false",
+    "allowBackup": "false"
+  },
+  "apkSha256": "1fc8d590ed0a26fb99ee80f67a67215f18b7d389e798bcecb050c7029a6d90bd",
+  "deviceTests": "compiled; not executed, no adb device",
+  "server": "read-only inspection; working tree clean"
+}

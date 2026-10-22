@@ -18,4 +18,5 @@
     <string name="account_open_vip_description">解锁应用锁和私密相册高级功能</string>
     <string name="account_vip_expires">有效期至 %1$s</string>
     <string name="account_vip_permanent">永久VIP</string>
+    <string name="account_trial_pending">设备试用等待验证</string>
 </resources>

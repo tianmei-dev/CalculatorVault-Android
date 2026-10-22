@@ -1,5 +1,6 @@
 package com.aurora.calculatorvault.feature.login.presentation
 
+import com.aurora.calculatorvault.feature.login.session.AccountSession
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +65,7 @@ fun WeChatLoginDialog(
     onOpenDocument: (LegalDocumentType) -> Unit,
     onDismiss: () -> Unit,
     authorizationStatus: WeChatAuthorizationStatus = WeChatAuthorizationStatus.Idle,
+    sessionState: AccountSession = AccountSession.Guest,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -106,10 +108,19 @@ fun WeChatLoginDialog(
                     color = AppColors.TextSecondary,
                     textAlign = TextAlign.Center,
                 )
+                Text(when (sessionState) {
+                    AccountSession.Authenticating -> "正在登录服务器…"
+                    AccountSession.Validating -> "正在校验账号…"
+                    AccountSession.TemporarilyUnavailable -> "网络暂不可用，账号待验证"
+                    AccountSession.LoginFailed -> "登录失败，请重新发起微信授权"
+                    AccountSession.StorageFailed -> "安全存储不可用，请重试"
+                    AccountSession.SessionExpired -> "会话已失效，请重新登录"
+                    else -> ""
+                })
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     Button(
                         onClick = onLogin,
-                        enabled = authorizationStatus != WeChatAuthorizationStatus.Authorizing,
+                        enabled = authorizationStatus != WeChatAuthorizationStatus.Authorizing && sessionState != AccountSession.Authenticating,
                         modifier = Modifier.fillMaxWidth().heightIn(min = AppDimensions.Button)
                             .testTag("wechat_login_button"),
                         shape = AppShapes.Medium,

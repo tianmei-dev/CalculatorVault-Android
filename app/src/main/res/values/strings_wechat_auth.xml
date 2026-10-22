@@ -10,6 +10,6 @@
     <string name="wechat_auth_invalid_callback">微信授权校验失败，请重试</string>
     <string name="wechat_auth_expired">微信授权已超时，请重新发起</string>
     <string name="wechat_auth_storage_failed">无法保存或校验授权请求，请稍后重试</string>
-    <string name="wechat_auth_code_received">已取得微信授权，服务端登录待接入，当前仍未登录</string>
+    <string name="wechat_auth_code_received">已取得微信授权</string>
     <string name="wechat_auth_privacy_required">请先同意应用隐私政策后再使用微信登录</string>
 </resources>
