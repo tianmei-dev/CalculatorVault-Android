@@ -1,0 +1,10 @@
+{
+  "debug": {
+    "wechatAppIdConfigured": false,
+    "trialUploadDisabled": true
+  },
+  "release": {
+    "wechatAppIdConfigured": false,
+    "trialUploadDisabled": true
+  }
+}

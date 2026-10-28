@@ -1,0 +1,9 @@
+{
+  "app\\src\\main\\assets\\legal\\privacy_policy.txt": "2c27155c7c745484e576625c1a9e5d67566720232212dd562d6debdf3aae6943",
+  "app\\src\\main\\assets\\legal\\personal_information_list.txt": "de608f0bcabef78405fb2169faf25d167157098fe2e4063dfe56e7662fdd84a5",
+  "app\\src\\main\\assets\\legal\\third_party_sdk_list.txt": "436da935d11c0440bfd0b2496fb103975716ecea3dfbe978185810eda1fdbe94",
+  "app\\src\\main\\assets\\legal\\permission_description.txt": "08126fdf7e01e71fc32398c73427067e667676ad8f8b9b072f4ab46e3479b3c3",
+  "app\\src\\main\\assets\\legal\\children_privacy_policy.txt": "7829d40b71a8a39028c78b7ee9d80d89da29aaf0416588499e6bfcac067a7201",
+  "app\\src\\main\\AndroidManifest.xml": "bbab5f2b6fcec60016dae477b68204fe90a1fce0ed6f3608c69ed4878f63d644",
+  "app\\src\\main\\java\\com\\aurora\\calculatorvault\\core\\privacy\\PrivacyPolicy.kt": "43bfc96d749fc097eee4abc8de5e6cd74002b1412a18bc7f205353cd0dfbcac8"
+}

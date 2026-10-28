@@ -35,7 +35,7 @@ class PrivacyWithdrawalPersistenceTest {
         val store = PreferenceDataStoreFactory.create(scope = CoroutineScope(firstJob + Dispatchers.IO)) { file }
         val source = DataStoreSecurityPreferencesDataSource(store)
         val hasher = Pbkdf2PasswordHasher()
-        source.acceptPrivacy("1.0", 123L)
+        source.acceptPrivacy(PrivacyPolicy.CURRENT_VERSION, 123L)
         source.savePasswordInitialization(hasher.hash("0123".toCharArray()), 456L)
         val guides = GuidePreferences(store)
         GuideType.entries.forEach { guides.markShown(it) }
@@ -50,7 +50,7 @@ class PrivacyWithdrawalPersistenceTest {
             val restored = DataStoreSecurityPreferencesDataSource(reopened)
             assertEquals(StartupDestination.PrivacyConsent, StartupDestinationResolver.resolve(restored.read()))
             assertNull(restored.read().privacyAcceptedAt)
-            restored.acceptPrivacy("1.0", 789L)
+            restored.acceptPrivacy(PrivacyPolicy.CURRENT_VERSION, 789L)
             assertEquals(StartupDestination.Calculator, StartupDestinationResolver.resolve(restored.read()))
             assertTrue(StoredVaultPasswordVerifier(restored, hasher).verify("0123".toCharArray()))
             GuideType.entries.forEach { assertFalse(GuidePreferences(reopened).claim(it)) }
@@ -61,14 +61,19 @@ class PrivacyWithdrawalPersistenceTest {
     }
 
     @Test
-    fun analyticsDropsEventsBeforeInitAndAfterWithdrawalWithoutReplay() {
+    fun analyticsDropsEventsBeforeInitAndAfterWithdrawalWithoutReplay() = runBlocking {
         var dispatched = 0
-        val tracker = UmengAnalyticsTracker(ApplicationProvider.getApplicationContext()) { _, _ -> dispatched++ }
+        val gate = PrivacyConsentGate {
+            com.aurora.calculatorvault.core.datastore.security.SecurityPreferences(true, PrivacyPolicy.CURRENT_VERSION, 1L)
+        }
+        gate.check()
+        val tracker = UmengAnalyticsTracker(ApplicationProvider.getApplicationContext(), gate) { _, _ -> dispatched++ }
         tracker.track(AnalyticsEvent.PrivateAlbumClick)
         assertEquals(0, dispatched)
         tracker.markInitialized()
         tracker.track(AnalyticsEvent.PrivateAlbumClick)
         assertEquals(1, dispatched)
+        gate.revoke()
         tracker.disable()
         repeat(10) { tracker.track(AnalyticsEvent.PrivateAlbumClick) }
         assertEquals(1, dispatched)

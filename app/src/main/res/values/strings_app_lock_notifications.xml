@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_lock_notification_title">显示应用锁运行通知</string>
+    <string name="app_lock_notification_rationale">允许通知后，可在通知栏查看应用锁运行状态。不允许也可继续使用应用锁，但可能无法在通知栏看到运行状态。</string>
+    <string name="app_lock_notification_request">允许通知</string>
+    <string name="app_lock_notification_later">暂不申请</string>
+    <string name="app_lock_notification_unavailable">通知尚未开启，可能无法在通知栏看到应用锁运行状态；这不代表应用锁或前台服务无法运行。</string>
+    <string name="app_lock_notification_settings">前往系统通知设置</string>
+    <string name="app_lock_notification_settings_failed">暂时无法打开通知设置，请从系统应用设置中管理通知。</string>
+</resources>

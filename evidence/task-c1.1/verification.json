@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-28",
+  "privacyVersion": "2026-10-27",
+  "totals": {
+    "tests": 320,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "privacyConsentTests": 16,
+  "apkSha256": "ecdeec500772ca5949d4033ac390ecad6404d97c968bc8e63f8601cf82aeb474",
+  "trialUploadDebug": false,
+  "trialUploadRelease": false,
+  "deviceTests": "compiled, not executed; no connected adb device"
+}

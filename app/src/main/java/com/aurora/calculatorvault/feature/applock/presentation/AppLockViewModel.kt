@@ -31,6 +31,20 @@ class AppLockViewModel(
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
 
+    private val notifications = AndroidAppLockNotifications(appContext)
+    private val notificationCoordinator = com.aurora.calculatorvault.feature.applock.domain.AppLockNotificationCoordinator(notifications)
+    val notificationState = notificationCoordinator.state
+
+    fun dismissNotificationExplanation() = notificationCoordinator.dismissExplanation()
+    fun confirmNotificationRequest() = notificationCoordinator.confirmRequest(notifications.snapshot())
+    fun notificationSettingsIntent() = notifications.settingsIntent()
+    fun onNotificationResult(granted: Boolean) {
+        val snapshot = notifications.snapshot()
+        notificationCoordinator.onResult(if (snapshot.apiLevel >= 33)
+            snapshot.copy(runtimeGranted = granted) else snapshot)
+        if (granted) AppLockMonitorService.refreshStatusNotification()
+    }
+
     private val _effects = Channel<AppLockEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
@@ -49,6 +63,12 @@ class AppLockViewModel(
     fun retryLoad() = loadApps()
 
     fun refreshPermissions() {
+        val notificationSnapshot = notifications.snapshot()
+        val notificationsWereEnabled = notificationState.value.snapshot.notificationsEnabled
+        notificationCoordinator.refresh(notificationSnapshot)
+        if (!notificationsWereEnabled && notificationSnapshot.notificationsEnabled) {
+            AppLockMonitorService.refreshStatusNotification()
+        }
         _uiState.update {
             it.copy(
                 hasUsageAccess = usagePermissionHelper.hasUsageAccess(),
@@ -92,7 +112,10 @@ class AppLockViewModel(
                         )
                     }
                     syncMonitorState()
-                    if (locked) analyticsTracker.track(AnalyticsEvent.AppLockEnable)
+                    if (locked) {
+                        notificationCoordinator.onLockEnabled(notifications.snapshot())
+                        analyticsTracker.track(AnalyticsEvent.AppLockEnable)
+                    }
                 }
                 AppLockSetResult.Rejected -> {
                     _uiState.update {

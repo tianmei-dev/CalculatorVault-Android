@@ -1,0 +1,114 @@
+{
+  "tests": {
+    "tests": 336,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "notificationTests": [
+    {
+      "name": "com.aurora.calculatorvault.feature.applock.domain.AppLockNotificationCoordinatorTest",
+      "tests": "16",
+      "failures": "0"
+    }
+  ],
+  "packages": {
+    "debug": {
+      "sha256": "79e759c1d4fd2f45c0801bd8e709d8a1315511c9df8682c7590afc5a6ba0157b",
+      "sensitiveDiagnosticPrefixes": {
+        "foreground changed: old=": false,
+        "locked target matched=": false,
+        "begin verification=": false,
+        "overlay show requested=": false,
+        "overlay already showing=": false,
+        "overlay shown=": false,
+        "temporary unlock granted=": false,
+        "unlock clear cancelled=": false,
+        "unlock clear scheduled=": false,
+        "temporary unlock cleared=": false
+      },
+      "legalAssetsMatch": true,
+      "trialUpload": false
+    },
+    "release": {
+      "sha256": "9db3cc385b5234b8321afb67a3f70454d191758b9f81e67507f2a637d7c3367e",
+      "sensitiveDiagnosticPrefixes": {
+        "foreground changed: old=": false,
+        "locked target matched=": false,
+        "begin verification=": false,
+        "overlay show requested=": false,
+        "overlay already showing=": false,
+        "overlay shown=": false,
+        "temporary unlock granted=": false,
+        "unlock clear cancelled=": false,
+        "unlock clear scheduled=": false,
+        "temporary unlock cleared=": false
+      },
+      "legalAssetsMatch": true,
+      "trialUpload": false
+    }
+  },
+  "releaseKotlinClassCount": 1332,
+  "releaseKotlinAndroidLogReferences": [],
+  "policyVersion": "2026-10-28",
+  "policyVersionDecision": "retained after assessment: existing notification permission interaction only; no new purpose, recipient or permission",
+  "changedFiles": [
+    "app\\src\\main\\assets\\legal\\permission_description.txt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\domain\\AppLockNotificationCoordinator.kt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\overlay\\AppLockOverlayController.kt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\presentation\\AndroidAppLockNotifications.kt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\presentation\\AppLockScreen.kt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\presentation\\AppLockViewModel.kt",
+    "app\\src\\main\\java\\com\\aurora\\calculatorvault\\feature\\applock\\service\\AppLockMonitorService.kt",
+    "app\\src\\main\\res\\values\\strings_app_lock_notifications.xml",
+    "app\\src\\test\\java\\com\\aurora\\calculatorvault\\feature\\applock\\domain\\AppLockNotificationCoordinatorTest.kt"
+  ],
+  "deviceTests": "compiled only; no adb device",
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.ACCESS_NETWORK_STATE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.ACCESS_WIFI_STATE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.PACKAGE_USAGE_STATS",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.SYSTEM_ALERT_WINDOW",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.FOREGROUND_SERVICE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.POST_NOTIFICATIONS",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.WRITE_EXTERNAL_STORAGE",
+      "maxSdkVersion": "29"
+    },
+    {
+      "name": "com.aurora.calculatorvault.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+      "maxSdkVersion": null
+    }
+  ],
+  "releaseApkSmaliAndroidLogCalls": {
+    "AppLockMonitorService": false,
+    "AppLockOverlayController": false
+  },
+  "foregroundStateUpdateCallRetained": true
+}

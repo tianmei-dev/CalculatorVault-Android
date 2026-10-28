@@ -37,6 +37,7 @@ class WeChatAuthorizationCoordinator(
     private val serverLogin: WeChatServerLoginEntry,
     private val clock: () -> Long = System::currentTimeMillis,
     private val newState: () -> String = ::secureWeChatState,
+    private val consentAllowed: () -> Boolean = { true },
 ) {
     private val mutableStatus = MutableStateFlow(WeChatAuthorizationStatus.Idle)
     val status = mutableStatus.asStateFlow()
@@ -44,6 +45,7 @@ class WeChatAuthorizationCoordinator(
 
     @Synchronized
     fun start() {
+        if (!consentAllowed()) { cancel(privacyWithdrawn = true); return }
         try {
             val pending = store.read()
             if (!cancelled && pending != null && isFresh(pending) &&
@@ -107,6 +109,7 @@ class WeChatAuthorizationCoordinator(
     @Synchronized
     fun onAuthorizationResponse(errorCode: Int, callbackState: String?, code: String?) {
         if (cancelled) return
+        if (!consentAllowed()) { cancel(privacyWithdrawn = true); return }
         try {
             val pending = store.read()
             // Replays after consumption must not overwrite the result or trigger another handoff.

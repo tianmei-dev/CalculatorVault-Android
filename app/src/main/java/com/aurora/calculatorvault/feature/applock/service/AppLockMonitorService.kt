@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
+import com.aurora.calculatorvault.BuildConfig
 import androidx.core.app.NotificationCompat
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
@@ -43,7 +44,7 @@ class AppLockMonitorService : Service() {
         super.onCreate()
         isRunning = true
         runningService = java.lang.ref.WeakReference(this)
-        Log.d(TAG, "service started")
+        if (BuildConfig.DEBUG) Log.d(TAG, "service started")
         val app = applicationContext as CalculatorVaultApp
         overlayController = AppLockOverlayController(
             context = applicationContext,
@@ -77,7 +78,7 @@ class AppLockMonitorService : Service() {
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "service destroyed")
+        if (BuildConfig.DEBUG) Log.d(TAG, "service destroyed")
         releaseMonitoring()
         runningService = null
         super.onDestroy()
@@ -109,8 +110,8 @@ class AppLockMonitorService : Service() {
             permissionHelper = usagePermissionHelper,
         )
         monitorJob = serviceScope.launch {
-            Log.d(TAG, "usage access granted=${usagePermissionHelper.hasUsageAccess()}")
-            Log.d(TAG, "overlay permission granted=${overlayPermissionHelper.isGranted()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "usage access granted=${usagePermissionHelper.hasUsageAccess()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay permission granted=${overlayPermissionHelper.isGranted()}")
             while (isActive) {
                 if (app.privacyWithdrawn) break
                 handleForegroundResult(
@@ -129,7 +130,7 @@ class AppLockMonitorService : Service() {
         lockedPackagesJob = serviceScope.launch {
             app.appLockRepository.observeLockedPackages().collect { packages ->
                 lockedPackages = packages.toSet()
-                Log.d(TAG, "locked packages updated count=${packages.size}")
+                if (BuildConfig.DEBUG) Log.d(TAG, "locked packages updated count=${packages.size}")
                 handleLockedPackagesChanged(app, packages)
             }
         }
@@ -144,16 +145,16 @@ class AppLockMonitorService : Service() {
         if (verifyingPackage != null && verifyingPackage !in packages) {
             app.appLockSessionManager.finishVerification(verifyingPackage)
             withContext(Dispatchers.Main) { overlayController?.hide() }
-            Log.d(TAG, "verification cleared because package disabled")
+            if (BuildConfig.DEBUG) Log.d(TAG, "verification cleared because package disabled")
         }
         if (unlockedPackage != null && unlockedPackage !in packages) {
             app.appLockSessionManager.clearUnlocked(unlockedPackage)
-            Log.d(TAG, "temporary unlock cleared because package disabled")
+            if (BuildConfig.DEBUG) Log.d(TAG, "temporary unlock cleared because package disabled")
         }
         if (packages.isEmpty()) {
             withContext(Dispatchers.Main) { overlayController?.hide() }
             app.appLockSessionManager.clearAll()
-            Log.d(TAG, "service stopped because no locked apps")
+            if (BuildConfig.DEBUG) Log.d(TAG, "service stopped because no locked apps")
             stopSelf()
         }
     }
@@ -167,9 +168,8 @@ class AppLockMonitorService : Service() {
         val packageName = (result as? ForegroundAppResult.Success)?.packageName ?: return
         val now = SystemClock.elapsedRealtime()
         val session = app.appLockSessionManager
-        val oldPackage = session.lastForegroundPackage()
         if (session.updateForegroundPackage(packageName, now)) {
-            Log.d(TAG, "foreground changed: old=$oldPackage new=$packageName")
+            if (BuildConfig.DEBUG) Log.d(TAG, "foreground state updated")
         }
 
         handleTemporaryUnlockLifecycle(app, packageName)
@@ -177,13 +177,13 @@ class AppLockMonitorService : Service() {
 
         if (packageName == packageNameSelf) return
         if (packageName !in lockedPackages) return
-        Log.d(TAG, "locked target matched=$packageName")
+        if (BuildConfig.DEBUG) Log.d(TAG, "protected target matched")
         if (session.isTemporarilyUnlocked(packageName)) return
         if (!session.beginVerification(packageName)) return
-        Log.d(TAG, "begin verification=$packageName")
+        if (BuildConfig.DEBUG) Log.d(TAG, "verification requested")
 
         if (!overlayPermissionHelper.isGranted()) {
-            Log.w(TAG, "overlay permission lost")
+            if (BuildConfig.DEBUG) Log.w(TAG, "overlay permission lost")
             withContext(Dispatchers.Main) { overlayController?.hide() }
             session.finishVerification(packageName)
             return
@@ -210,7 +210,7 @@ class AppLockMonitorService : Service() {
         if (foregroundPackage == unlockedPackage) {
             clearUnlockJob?.cancel()
             clearUnlockJob = null
-            Log.d(TAG, "unlock clear cancelled=$unlockedPackage")
+            if (BuildConfig.DEBUG) Log.d(TAG, "unlock expiry cancelled")
             return
         }
         scheduleClear(app, unlockedPackage)
@@ -234,14 +234,14 @@ class AppLockMonitorService : Service() {
         packageName: String,
     ) {
         if (clearUnlockJob?.isActive == true) return
-        Log.d(TAG, "unlock clear scheduled=$packageName")
+        if (BuildConfig.DEBUG) Log.d(TAG, "unlock expiry scheduled")
         clearUnlockJob = serviceScope.launch {
             delay(AppLockMonitorConfig.TEMPORARY_UNLOCK_CLEAR_DEBOUNCE_MILLIS)
             if (app.appLockSessionManager.lastForegroundPackage() != packageName) {
                 app.appLockSessionManager.clearUnlocked(packageName)
                 app.appLockSessionManager.finishVerification(packageName)
                 withContext(Dispatchers.Main) { overlayController?.hide() }
-                Log.d(TAG, "temporary unlock cleared=$packageName")
+                if (BuildConfig.DEBUG) Log.d(TAG, "temporary unlock cleared")
             }
         }
     }
@@ -254,7 +254,7 @@ class AppLockMonitorService : Service() {
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (error: RuntimeException) {
-            Log.w(TAG, "start foreground failed=${error::class.java.simpleName}")
+            if (BuildConfig.DEBUG) Log.w(TAG, "start foreground failed=${error::class.java.simpleName}")
         }
     }
 
@@ -283,7 +283,7 @@ class AppLockMonitorService : Service() {
 
     companion object {
         private const val TAG = "CV_APPLOCK"
-        private const val CHANNEL_ID = "app_lock_monitor"
+        internal const val CHANNEL_ID = "app_lock_monitor"
         private const val NOTIFICATION_ID = 4101
         private const val ACTION_STOP = "com.aurora.calculatorvault.action.STOP_APP_LOCK_MONITOR"
 
@@ -301,6 +301,11 @@ class AppLockMonitorService : Service() {
             } else {
                 context.startService(intent)
             }
+        }
+
+        /** Re-post the existing foreground status after a notification grant, without restarting monitoring. */
+        fun refreshStatusNotification() {
+            if (isRunning) runningService?.get()?.startAsForegroundIfPossible()
         }
 
         fun stop(context: Context) {

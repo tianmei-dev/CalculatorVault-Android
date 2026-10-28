@@ -12,13 +12,16 @@ import com.tencent.mm.opensdk.utils.ILog
 import com.tencent.mm.opensdk.utils.Log
 
 /** Created once per Application; SDK initialization is deferred until explicit consent. */
-class AndroidWeChatSdkBridge(context: Context, private val appId: String) : WeChatSdkBridge {
+class AndroidWeChatSdkBridge(context: Context, private val appId: String, private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate) : WeChatSdkBridge {
     private val applicationContext = context.applicationContext
     private var api: IWXAPI? = null
     private var registered = false
 
     @Synchronized
-    override fun prepare(): WeChatSdkAvailability {
+    override fun prepare(): WeChatSdkAvailability =
+        consent.runIfAllowed { prepareWithConsent() } ?: WeChatSdkAvailability.InitializationFailed
+
+    private fun prepareWithConsent(): WeChatSdkAvailability {
         if (appId.isBlank()) return WeChatSdkAvailability.AppIdMissing
         return try {
             // SDK diagnostics may include authorization payloads. Never send them to logcat.
@@ -39,10 +42,10 @@ class AndroidWeChatSdkBridge(context: Context, private val appId: String) : WeCh
     }
 
     @Synchronized
-    override fun sendAuthorization(scope: String, state: String): Boolean = api?.sendReq(SendAuth.Req().apply {
+    override fun sendAuthorization(scope: String, state: String): Boolean = consent.runIfAllowed { api?.sendReq(SendAuth.Req().apply {
         this.scope = scope
         this.state = state
-    }) ?: false
+    }) ?: false } ?: false
 
     fun handleIntent(intent: Intent, handler: IWXAPIEventHandler): Boolean {
         val instance = synchronized(this) { if (prepare() == WeChatSdkAvailability.Ready) api else null }

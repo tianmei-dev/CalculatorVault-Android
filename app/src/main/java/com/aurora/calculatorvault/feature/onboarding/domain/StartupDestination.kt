@@ -11,7 +11,7 @@ sealed interface StartupDestination {
 
 object StartupDestinationResolver {
     fun resolve(preferences: SecurityPreferences): StartupDestination = when {
-        !preferences.privacyAccepted -> StartupDestination.PrivacyConsent
+        !com.aurora.calculatorvault.core.privacy.PrivacyPolicy.hasValidConsent(preferences) -> StartupDestination.PrivacyConsent
         StoredPasswordMaterialValidator.validate(preferences) != null ->
             StartupDestination.Calculator
         else -> StartupDestination.CreatePassword

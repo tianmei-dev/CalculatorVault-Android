@@ -69,7 +69,7 @@ fun AppNavHost(
     val onboardingViewModel: OnboardingViewModel = viewModel(
         factory = OnboardingViewModel.Factory(
             repository = application.onboardingRepository,
-            onPrivacyAccepted = application.thirdPartySdkInitializer::initializeIfAllowed,
+            onPrivacyAccepted = application::onPrivacyAccepted,
         ),
     )
     val onboardingState by onboardingViewModel.uiState.collectAsState()

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import com.aurora.calculatorvault.BuildConfig
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -58,10 +59,10 @@ class AppLockOverlayController(
     ): Boolean = withContext(Dispatchers.Main) {
         if (targetPackageName.isBlank()) return@withContext false
         if (isShowing()) {
-            Log.d(TAG, "overlay already showing=$targetPackageName")
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay already visible")
             return@withContext true
         }
-        Log.d(TAG, "overlay show requested=$targetPackageName")
+        if (BuildConfig.DEBUG) Log.d(TAG, "overlay requested")
         wipePassword()
         _state.value = AppLockOverlayState(
             targetPackageName = targetPackageName,
@@ -94,21 +95,21 @@ class AppLockOverlayController(
             overlayView = view
             overlayOwner = owner
             val delay = SystemClock.elapsedRealtime() - detectedAtElapsed
-            Log.d(TAG, "overlay shown=$targetPackageName")
-            Log.d(TAG, "app lock overlay delay ≈ $delay ms")
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay visible")
+            if (BuildConfig.DEBUG) Log.d(TAG, "app lock overlay delay ≈ $delay ms")
             true
         } catch (error: WindowManager.BadTokenException) {
-            Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
+            if (BuildConfig.DEBUG) Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
             owner.destroy()
             _state.value = null
             false
         } catch (error: SecurityException) {
-            Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
+            if (BuildConfig.DEBUG) Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
             owner.destroy()
             _state.value = null
             false
         } catch (error: RuntimeException) {
-            Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
+            if (BuildConfig.DEBUG) Log.w(TAG, "overlay show failed=${error::class.java.simpleName}")
             owner.destroy()
             _state.value = null
             false
@@ -133,9 +134,9 @@ class AppLockOverlayController(
         view?.let {
             runCatching {
                 windowManager.removeView(it)
-                Log.d(TAG, "overlay removed")
+                if (BuildConfig.DEBUG) Log.d(TAG, "overlay removed")
             }.onFailure { error ->
-                Log.w(TAG, "overlay remove failed=${error::class.java.simpleName}")
+                if (BuildConfig.DEBUG) Log.w(TAG, "overlay remove failed=${error::class.java.simpleName}")
             }
         }
         owner?.destroy()
@@ -177,7 +178,7 @@ class AppLockOverlayController(
         val candidate = password.copyOf(passwordLength)
         wipePassword()
         _state.value = current.copy(verifying = true, enteredLength = 0, passwordIncorrect = false)
-        Log.d(TAG, "password verification started")
+        if (BuildConfig.DEBUG) Log.d(TAG, "password verification started")
         verifyJob = scope.launch {
             val verified = try {
                 vaultUnlockUseCase.verify(candidate)
@@ -189,13 +190,13 @@ class AppLockOverlayController(
             withContext(Dispatchers.Main) {
                 val latest = _state.value ?: return@withContext
                 if (verified) {
-                    Log.d(TAG, "password verification success")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "password verification success")
                     sessionManager.markUnlocked(latest.targetPackageName)
-                    Log.d(TAG, "temporary unlock granted=${latest.targetPackageName}")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "temporary unlock granted")
                     onUnlocked(latest.targetPackageName)
                     hide()
                 } else {
-                    Log.d(TAG, "password verification failed")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "password verification failed")
                     _state.value = latest.copy(
                         enteredLength = 0,
                         verifying = false,

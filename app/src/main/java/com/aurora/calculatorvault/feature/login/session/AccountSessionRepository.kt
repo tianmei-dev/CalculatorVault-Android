@@ -63,6 +63,7 @@ class AccountSessionRepository(
         scheduleExpiry(saved, version)
         try {
             val account = api.me(saved.token)
+            if (!hasConsent()) { if (version == generation) logout(); return }
             if (version == generation) {
                 if (saved.expiresAt.isAfter(Instant.now())) mutableState.value = AccountSession.Authenticated(account)
                 else expire(version)
@@ -84,7 +85,10 @@ class AccountSessionRepository(
                 if (version == generation) mutableState.value = AccountSession.LoginFailed
                 return@launch
             }
-            if (version != generation) { revoke(result.credential); return@launch }
+            if (!hasConsent() || version != generation) {
+                if (version == generation) logout()
+                revoke(result.credential); return@launch
+            }
             try { store.write(result.credential) } catch (_: Exception) {
                 credential = null
                 clearStorage(); mutableState.value = AccountSession.StorageFailed

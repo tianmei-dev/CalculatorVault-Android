@@ -42,7 +42,7 @@ class OnboardingRepository(
             val preferences = dataSource.read()
             val destination = StartupDestinationResolver.resolve(preferences)
             val hasInconsistentCompletion =
-                preferences.privacyAccepted &&
+                com.aurora.calculatorvault.core.privacy.PrivacyPolicy.hasValidConsent(preferences) &&
                     preferences.hasAnyPasswordState() &&
                     StoredPasswordMaterialValidator.validate(preferences) == null
             if (hasInconsistentCompletion) {
@@ -117,7 +117,7 @@ class OnboardingRepository(
     }
 
     companion object {
-        const val PRIVACY_VERSION = "1.0"
+        const val PRIVACY_VERSION = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION
         private const val NULL_CHAR = '\u0000'
     }
 }

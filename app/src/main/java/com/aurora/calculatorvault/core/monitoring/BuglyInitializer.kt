@@ -3,13 +3,12 @@ package com.aurora.calculatorvault.core.monitoring
 import android.content.Context
 import android.util.Log
 import com.aurora.calculatorvault.BuildConfig
-import com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSource
 import com.tencent.bugly.crashreport.CrashReport
 import java.util.concurrent.atomic.AtomicBoolean
 
 class BuglyInitializer(
     context: Context,
-    private val consentDataSource: SecurityPreferencesDataSource,
+    private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate,
 ) {
     private val appContext = context.applicationContext
     private val initialized = AtomicBoolean(false)
@@ -30,7 +29,7 @@ class BuglyInitializer(
             debugLog("bugly already initialized")
             return
         }
-        val allowed = runCatching { consentDataSource.read().privacyAccepted }.getOrElse { error ->
+        val allowed = runCatching { consent.check() }.getOrElse { error ->
             debugLog("privacy consent read failed, skip bugly init=${error.javaClass.simpleName}")
             return
         }
@@ -42,16 +41,17 @@ class BuglyInitializer(
             debugLog("bugly app id missing, skip init")
             return
         }
-        if (!initialized.compareAndSet(false, true)) return
 
         try {
-            val strategy = CrashReport.UserStrategy(appContext).apply {
-                appChannel = BuildConfig.BUGLY_CHANNEL
-                appVersion = BuildConfig.VERSION_NAME
-                setEnableNativeCrashMonitor(true)
-                setEnableANRCrashMonitor(true)
-                setEnableUserInfo(false)
-                setBuglyLogUpload(false)
+            consent.runIfAllowed {
+                if (!initialized.compareAndSet(false, true)) return@runIfAllowed
+                val strategy = CrashReport.UserStrategy(appContext).apply {
+                    appChannel = BuildConfig.BUGLY_CHANNEL
+                    appVersion = BuildConfig.VERSION_NAME
+                    setEnableNativeCrashMonitor(true)
+                    setEnableANRCrashMonitor(true)
+                    setEnableUserInfo(false)
+                    setBuglyLogUpload(false)
             }
 
             debugLog("bugly init started")
@@ -62,6 +62,7 @@ class BuglyInitializer(
                 strategy,
             )
             debugLog("bugly init success")
+            }
         } catch (error: Throwable) {
             initialized.set(false)
             debugLog("bugly init failed=${error.javaClass.simpleName}")

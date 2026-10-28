@@ -10,21 +10,30 @@ import kotlinx.coroutines.sync.withLock
 class ThirdPartySdkInitializer(
     private val analyticsInitializer: AnalyticsInitializer,
     private val buglyInitializer: BuglyInitializer,
+    private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate,
 ) {
     private val consentMutex = Mutex()
     private var withdrawn = false
 
-    suspend fun withdrawConsent(persist: suspend () -> Unit) = consentMutex.withLock {
-        persist() // A failed write must not change any runtime state.
-        withdrawn = true
-        runCatching { analyticsInitializer.withdrawConsent() }
-            .onFailure { debugLog("umeng stop failed; process replacement required", it) }
-        runCatching { buglyInitializer.withdrawConsent() }
-            .onFailure { debugLog("bugly stop failed; process replacement required", it) }
+    suspend fun withdrawConsent(persist: suspend () -> Unit) {
+        // Close the gate before waiting for an initializer or an asynchronous preference write.
+        consent.revoke()
+        consentMutex.withLock {
+            withdrawn = true
+            try {
+                persist()
+            } finally {
+                // Even if persistence fails, remain disabled in this process until retry/restart.
+                runCatching { analyticsInitializer.withdrawConsent() }
+                    .onFailure { debugLog("umeng stop failed; process replacement required", it) }
+                runCatching { buglyInitializer.withdrawConsent() }
+                    .onFailure { debugLog("bugly stop failed; process replacement required", it) }
+            }
+        }
     }
 
     suspend fun initializeIfAllowed() = consentMutex.withLock {
-        if (withdrawn) return@withLock
+        if (withdrawn || !consent.check()) return@withLock
         runCatching { analyticsInitializer.initializeIfAllowed() }
             .onFailure { error -> debugLog("umeng init dispatch failed", error) }
         runCatching { buglyInitializer.initializeIfAllowed() }

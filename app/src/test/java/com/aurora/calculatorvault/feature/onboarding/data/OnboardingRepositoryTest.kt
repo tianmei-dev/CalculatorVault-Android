@@ -30,7 +30,7 @@ class OnboardingRepositoryTest {
     fun `valid password is hashed before atomic persistence and input copy is cleared`() =
         runBlocking {
             val dataSource = FakeSecurityDataSource(
-                preferences = SecurityPreferences(privacyAccepted = true),
+                preferences = SecurityPreferences(privacyAccepted = true, privacyVersion = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION, privacyAcceptedAt = 1L),
             )
             val input = "4826".toCharArray()
             val repository = repository(dataSource = dataSource, now = 99L)
@@ -83,6 +83,8 @@ class OnboardingRepositoryTest {
         val dataSource = FakeSecurityDataSource(
             preferences = SecurityPreferences(
                 privacyAccepted = true,
+                privacyVersion = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION,
+                privacyAcceptedAt = 1L,
                 passwordConfigured = true,
                 onboardingCompleted = true,
             ),

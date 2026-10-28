@@ -20,7 +20,7 @@ class StartupDestinationResolverTest {
     fun `accepted privacy without password routes to creation`() {
         assertEquals(
             StartupDestination.CreatePassword,
-            StartupDestinationResolver.resolve(SecurityPreferences(privacyAccepted = true)),
+            StartupDestinationResolver.resolve(SecurityPreferences(privacyAccepted = true, privacyVersion = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION, privacyAcceptedAt = 1L)),
         )
     }
 
@@ -39,6 +39,8 @@ class StartupDestinationResolverTest {
             StartupDestinationResolver.resolve(
                 SecurityPreferences(
                     privacyAccepted = true,
+                    privacyVersion = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION,
+                    privacyAcceptedAt = 1L,
                     passwordConfigured = true,
                     onboardingCompleted = true,
                 ),
@@ -114,7 +116,7 @@ class StartupDestinationResolverTest {
 
     private fun completePreferences() = SecurityPreferences(
         privacyAccepted = true,
-        privacyVersion = "1.0",
+        privacyVersion = com.aurora.calculatorvault.core.privacy.PrivacyPolicy.CURRENT_VERSION,
         privacyAcceptedAt = 1L,
         passwordConfigured = true,
         passwordHash = Base64.getEncoder().encodeToString(ByteArray(32) { 1 }),

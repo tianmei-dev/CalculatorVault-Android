@@ -75,13 +75,13 @@ class CalculatorVaultApp : Application() {
     }
 
     val analyticsTracker by lazy {
-        UmengAnalyticsTracker(applicationContext)
+        UmengAnalyticsTracker(applicationContext, privacyConsent)
     }
 
     private val analyticsInitializer by lazy {
         AnalyticsInitializer(
             context = applicationContext,
-            consentDataSource = securityPreferencesDataSource,
+            consent = privacyConsent,
             tracker = analyticsTracker,
         )
     }
@@ -89,7 +89,7 @@ class CalculatorVaultApp : Application() {
     private val buglyInitializer by lazy {
         BuglyInitializer(
             context = applicationContext,
-            consentDataSource = securityPreferencesDataSource,
+            consent = privacyConsent,
         )
     }
 
@@ -97,7 +97,12 @@ class CalculatorVaultApp : Application() {
         ThirdPartySdkInitializer(
             analyticsInitializer = analyticsInitializer,
             buglyInitializer = buglyInitializer,
+            consent = privacyConsent,
         )
+    }
+
+    val privacyConsent by lazy {
+        com.aurora.calculatorvault.core.privacy.PrivacyConsentGate { securityPreferencesDataSource.read() }
     }
 
     @Volatile
@@ -105,7 +110,14 @@ class CalculatorVaultApp : Application() {
         private set
 
     suspend fun hasPrivacyConsent(): Boolean =
-        !privacyWithdrawn && securityPreferencesDataSource.read().privacyAccepted
+        !privacyWithdrawn && privacyConsent.check()
+
+    suspend fun onPrivacyAccepted() {
+        if (!hasPrivacyConsent()) return
+        thirdPartySdkInitializer.initializeIfAllowed()
+        accountSession.restore()
+        deviceTrial.sync()
+    }
 
     val privacyWithdrawalController by lazy {
         PrivacyWithdrawalController(
@@ -326,7 +338,7 @@ class CalculatorVaultApp : Application() {
         com.aurora.calculatorvault.feature.trial.DeviceTrialRepository(
             com.aurora.calculatorvault.feature.trial.EncryptedTrialStore(applicationContext),
             com.aurora.calculatorvault.feature.trial.AndroidTrialClock(applicationContext),
-            com.aurora.calculatorvault.feature.trial.AndroidDeviceIdentityProvider(applicationContext),
+            com.aurora.calculatorvault.feature.trial.AndroidDeviceIdentityProvider(applicationContext, privacyConsent),
             HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG), applicationScope, ::hasPrivacyConsent,
             { BuildConfig.TRIAL_DEVICE_UPLOAD_ENABLED })
     }
@@ -336,13 +348,14 @@ class CalculatorVaultApp : Application() {
             KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent)
     }
 
-    val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID) }
+    val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID, privacyConsent) }
 
     val wechatAuthorization by lazy {
         WeChatAuthorizationCoordinator(
             sdk = wechatSdk,
             store = SharedPreferencesWeChatAuthorizationStore(applicationContext),
             serverLogin = accountSession,
+            consentAllowed = privacyConsent::isAllowedNow,
         )
     }
 

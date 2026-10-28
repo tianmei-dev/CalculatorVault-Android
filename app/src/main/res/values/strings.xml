@@ -7,8 +7,8 @@
     <string name="startup_read_failed">无法读取本地初始化状态，请重试</string>
     <string name="retry">重试</string>
     <string name="privacy_title">用户隐私保护提示</string>
-    <string name="privacy_intro">欢迎使用 "应用加密计算器"。我们依法保护您的个人信息，在使用前，请阅读并同意以下协议：</string>
-    <string name="privacy_local_note">本应用不收集您的账号、通讯录、位置等信息，功能数据仅保存在设备本地；仅在确有必要时申请设备权限（详见《隐私政策》）。点击 "同意并继续" 前，我们不收集任何个人信息、不申请任何权限。</string>
+    <string name="privacy_intro">欢迎使用 "应用加密计算器"。我们依法保护您的个人信息，请阅读以下协议及隐私告知；如政策有更新，请重新选择是否同意：</string>
+    <string name="privacy_local_note">计算器密码、私密相册和应用锁配置主要保存在本地；首次启动会在本地记录设备试用时间和状态。微信登录由你主动发起，需处理必要的服务端账号和会话信息；设备试用联网校验启用后，可能向服务器发送 Android ID。取得当前版本隐私政策的有效同意前，不初始化需要同意的统计和异常 SDK，不上传设备试用标识。请查看完整《隐私政策》后选择是否同意。</string>
     <string name="user_agreement">用户协议</string>
     <string name="privacy_policy">隐私政策</string>
     <string name="children_privacy_policy">儿童个人信息保护规则</string>

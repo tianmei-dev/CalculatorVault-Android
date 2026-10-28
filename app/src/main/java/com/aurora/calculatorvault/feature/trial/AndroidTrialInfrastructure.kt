@@ -9,11 +9,11 @@ import org.json.JSONObject
 import java.io.File
 import java.time.Instant
 
-class AndroidDeviceIdentityProvider(private val context: Context) : DeviceIdentityProvider {
-    override fun deviceKey(): String? = try {
+class AndroidDeviceIdentityProvider(private val context: Context, private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate) : DeviceIdentityProvider {
+    override fun deviceKey(): String? = consent.runIfAllowed { try {
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             ?.lowercase()?.takeIf { it.matches(Regex("[0-9a-f]{16}")) && it != "0000000000000000" && it != "9774d56d682e549c" }
-    } catch (_: Exception) { null }
+    } catch (_: Exception) { null } }
 }
 class AndroidTrialClock(private val context: Context) : TrialClock {
     override fun wall() = System.currentTimeMillis()

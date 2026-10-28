@@ -1,0 +1,72 @@
+{
+  "policyVersion": "2026-10-28",
+  "documents": {
+    "privacy_policy.txt": "version/date/company/contact/response-period verified",
+    "personal_information_list.txt": "version/date/company/contact/response-period verified",
+    "third_party_sdk_list.txt": "version/date/company/contact/response-period verified",
+    "permission_description.txt": "version/date/company/contact/response-period verified",
+    "children_privacy_policy.txt": "version/date/company/contact/response-period verified"
+  },
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.ACCESS_NETWORK_STATE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.ACCESS_WIFI_STATE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.PACKAGE_USAGE_STATS",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.SYSTEM_ALERT_WINDOW",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.FOREGROUND_SERVICE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.POST_NOTIFICATIONS",
+      "maxSdkVersion": null
+    },
+    {
+      "name": "android.permission.WRITE_EXTERNAL_STORAGE",
+      "maxSdkVersion": "29"
+    },
+    {
+      "name": "com.aurora.calculatorvault.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+      "maxSdkVersion": null
+    }
+  ],
+  "testTotals": {
+    "tests": 320,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "packages": {
+    "debug": {
+      "sha256": "1eee35867dd42687664001f2fe00523c9b4288ccfbc5c4b5bf3258792c0dda86",
+      "legalAssetsMatch": true,
+      "signed": true
+    },
+    "release": {
+      "sha256": "63f3885d7ea45bc0516dac295c28148274cff4ff62c21c9b199d9631ec5decf1",
+      "legalAssetsMatch": true,
+      "signed": false
+    }
+  },
+  "deviceTests": "compiled only, no connected device",
+  "trialUpload": false
+}

@@ -3,14 +3,13 @@ package com.aurora.calculatorvault.core.analytics
 import android.content.Context
 import android.util.Log
 import com.aurora.calculatorvault.BuildConfig
-import com.aurora.calculatorvault.core.datastore.security.SecurityPreferencesDataSource
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
 import java.util.concurrent.atomic.AtomicBoolean
 
 class AnalyticsInitializer(
     context: Context,
-    private val consentDataSource: SecurityPreferencesDataSource,
+    private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate,
     private val tracker: UmengAnalyticsTracker,
 ) {
     private val appContext = context.applicationContext
@@ -25,7 +24,7 @@ class AnalyticsInitializer(
 
     suspend fun initializeIfAllowed() {
         if (initialized.get()) return
-        val allowed = runCatching { consentDataSource.read().privacyAccepted }.getOrElse {
+        val allowed = runCatching { consent.check() }.getOrElse {
             debugLog("analytics consent read failed, skip init", it)
             return
         }
@@ -37,20 +36,22 @@ class AnalyticsInitializer(
             debugLog("analytics app key missing, skip init")
             return
         }
-        if (!initialized.compareAndSet(false, true)) return
 
         runCatching {
-            UMConfigure.setLogEnabled(BuildConfig.DEBUG)
-            MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.MANUAL)
-            UMConfigure.init(
-                appContext,
-                BuildConfig.UMENG_APP_KEY,
-                BuildConfig.UMENG_CHANNEL,
-                UMConfigure.DEVICE_TYPE_PHONE,
-                null,
-            )
-            tracker.markInitialized()
-            debugLog("analytics init success")
+            consent.runIfAllowed {
+                if (!initialized.compareAndSet(false, true)) return@runIfAllowed
+                UMConfigure.setLogEnabled(BuildConfig.DEBUG)
+                MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.MANUAL)
+                UMConfigure.init(
+                    appContext,
+                    BuildConfig.UMENG_APP_KEY,
+                    BuildConfig.UMENG_CHANNEL,
+                    UMConfigure.DEVICE_TYPE_PHONE,
+                    null,
+                )
+                tracker.markInitialized()
+                debugLog("analytics init success")
+            }
         }.onFailure { error ->
             initialized.set(false)
             debugLog("analytics init failed", error)

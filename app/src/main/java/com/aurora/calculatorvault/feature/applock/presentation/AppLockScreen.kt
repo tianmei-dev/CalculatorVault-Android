@@ -1,5 +1,13 @@
 package com.aurora.calculatorvault.feature.applock.presentation
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.aurora.calculatorvault.app.CalculatorVaultApp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +73,22 @@ fun AppLockScreen(
     onGuideTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
+    val notificationState by viewModel.notificationState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notificationWarning = stringResource(R.string.app_lock_notification_unavailable)
+    val notificationSettingsFailed = stringResource(R.string.app_lock_notification_settings_failed)
+    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        viewModel.onNotificationResult(granted)
+        if (!granted) onMessage(AppMessage(notificationWarning, AppMessageType.Warning))
+    }
+    fun openNotificationSettings() {
+        try { context.startActivity(viewModel.notificationSettingsIntent()) }
+        catch (_: RuntimeException) {
+            try { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", context.packageName, null))) }
+            catch (_: RuntimeException) { onMessage(AppMessage(notificationSettingsFailed, AppMessageType.Warning)) }
+        }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     val usageHelper = UsageAccessPermissionHelper(
         androidx.compose.ui.platform.LocalContext.current.applicationContext,
@@ -117,6 +141,18 @@ fun AppLockScreen(
                 },
             )
         }
+        if (state.lockedCount > 0 && notificationState.showSettingsHint) {
+            item {
+                VaultCard(modifier = Modifier.fillMaxWidth().testTag("app_lock_notification_hint")) {
+                    Column {
+                        Text(notificationWarning, style = AppTextStyles.BodySecondary, color = AppColors.TextSecondary)
+                        TextButton(onClick = { openNotificationSettings() }) {
+                            Text(stringResource(R.string.app_lock_notification_settings))
+                        }
+                    }
+                }
+            }
+        }
         item {
             HiddenAppSearchField(
                 query = state.query,
@@ -156,6 +192,31 @@ fun AppLockScreen(
                 )
             }
         }
+    }
+
+    if (notificationState.showExplanation) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissNotificationExplanation,
+            title = { Text(stringResource(R.string.app_lock_notification_title)) },
+            text = { Text(stringResource(R.string.app_lock_notification_rationale)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val allowed = (context.applicationContext as CalculatorVaultApp).privacyConsent.isAllowedNow()
+                    if (allowed && Build.VERSION.SDK_INT >= 33 && viewModel.confirmNotificationRequest()) {
+                        try { notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                        catch (_: RuntimeException) {
+                            viewModel.onNotificationResult(false)
+                            onMessage(AppMessage(notificationWarning, AppMessageType.Warning))
+                        }
+                    } else viewModel.dismissNotificationExplanation()
+                }) { Text(stringResource(R.string.app_lock_notification_request)) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissNotificationExplanation) {
+                    Text(stringResource(R.string.app_lock_notification_later))
+                }
+            },
+        )
     }
 
     state.pendingPermissionTarget?.let { target ->

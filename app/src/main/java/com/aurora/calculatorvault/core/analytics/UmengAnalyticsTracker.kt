@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class UmengAnalyticsTracker(
     context: Context,
+    private val consent: com.aurora.calculatorvault.core.privacy.PrivacyConsentGate,
     private val dispatchEvent: (Context, String) -> Unit = { appContext, id ->
         MobclickAgent.onEvent(appContext, id)
     },
@@ -25,11 +26,10 @@ class UmengAnalyticsTracker(
         initialized.set(false)
     }
 
-    @Synchronized
     override fun track(event: AnalyticsEvent) {
-        if (!initialized.get()) return
+        if (!initialized.get() || !consent.isAllowedNow()) return
         runCatching {
-            dispatchEvent(appContext, event.id)
+            consent.runIfAllowed { dispatchEvent(appContext, event.id) }
             if (BuildConfig.DEBUG) Log.d(LOG_TAG, "analytics event=${event.id}")
         }.onFailure { error ->
             if (BuildConfig.DEBUG) Log.w(LOG_TAG, "analytics event failed=${event.id}", error)
