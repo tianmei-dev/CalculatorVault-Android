@@ -1,0 +1,8 @@
+{
+  "parameter": "-PTRIAL_DEVICE_UPLOAD_ENABLED=true",
+  "generated_constants": {
+    "debug": true,
+    "release": false
+  },
+  "assertion": "PASS"
+}

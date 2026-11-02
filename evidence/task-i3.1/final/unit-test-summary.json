@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-29",
+  "command": ".\\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease",
+  "result": {
+    "tests": 345,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_cap_tests": 9,
+  "real_server_integration": "NOT_VERIFIED",
+  "device_tests": "NOT_EXECUTED",
+  "actual_device_identifier_read": false
+}

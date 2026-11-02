@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "target_confirmed_by_user": "currently connected phone",
+  "installed_version": "1.0.0",
+  "last_update_device_time": "2026-10-29 21:17:20",
+  "certificate_md5": "d74060446c4b077172f355285d43cebb",
+  "apk_sha256": "18570afbaa084e97a9c977b0160a4f9d52bec0f706f268c468b20a4ee0100f14",
+  "installed_dex_buildconfig": {
+    "API_BASE_URL": "",
+    "LOCAL_HTTP_BASE_URL": "",
+    "BUILD_TYPE": "release",
+    "APPLICATION_ID": "com.aurora.calculatorvault",
+    "WECHAT_APP_ID": "wxa4c721130ed106c9",
+    "DEBUG": false,
+    "TRIAL_DEVICE_UPLOAD_ENABLED": false
+  },
+  "installed_manifest_observation": [
+    "A: http://schemas.android.com/apk/res/android:versionName(0x0101021c)=\"1.0.0\" (Raw: \"1.0.0\")",
+    "A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=false"
+  ],
+  "existing_app_log_whitelisted_exception_names_found": [],
+  "runtime_exception_captured": false,
+  "static_failure": "IllegalArgumentException at base.host != null for empty base URL, before openConnection",
+  "real_wechat_code_replayed": false,
+  "business_code_changed": false,
+  "diagnostic_code_added": false,
+  "server_received_this_attempt": "No POST can be sent by this configuration; no independent server access log",
+  "database_counts": "User reports zero users/identities/sessions; not queried in this run"
+}

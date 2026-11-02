@@ -24,12 +24,15 @@ class HttpAuthApi(
     private val baseUrl: String, private val debug: Boolean,
     private val connectTimeoutMillis: Int = 10_000,
     private val readTimeoutMillis: Int = 15_000,
+    private val localHttpBaseUrl: String = "",
 ) : AuthApi, com.aurora.calculatorvault.feature.trial.TrialApi {
     private suspend fun request(path: String, token: String? = null, body: JSONObject? = null,
                                 post: Boolean = false, trial: Boolean = false): JSONObject = withContext(Dispatchers.IO) {
+        if (path == "wechat/login" && !trial) AuthTrace.event(3)
         val base = URI(baseUrl)
         require(base.host != null && base.userInfo == null && base.query == null && base.fragment == null)
-        require(base.scheme == "https" || (debug && base.scheme == "http"))
+        require(base.scheme == "https" || (base.scheme == "http" &&
+            (debug || (localHttpBaseUrl.isNotEmpty() && base == URI(localHttpBaseUrl)))))
         val connection = URI(baseUrl.trimEnd('/') + (if (trial) "/api/v1/trial/device/" else "/api/v1/auth/") + path).toURL().openConnection() as HttpURLConnection
         try {
             connection.instanceFollowRedirects = false
@@ -44,25 +47,29 @@ class HttpAuthApi(
                 connection.setFixedLengthStreamingMode(body.toString().toByteArray(Charsets.UTF_8).size)
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                if (path == "wechat/login" && !trial) AuthTrace.event(4)
             } else if (post) {
                 connection.doOutput = true
                 connection.setFixedLengthStreamingMode(0)
                 connection.outputStream.use { }
             }
             val status = connection.responseCode
+            if (path == "wechat/login" && !trial) AuthTrace.event(5, status)
             if (status == 429 && trial) throw com.aurora.calculatorvault.feature.trial.TrialRateLimited()
             if (status == 401) throw AuthFailure(true)
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readBounded() } ?: throw AuthFailure()
             val envelope = JSONObject(raw)
             val code = envelope.getInt("code")
+            if (path == "wechat/login" && !trial) AuthTrace.event(6, code)
             if (code != 0 || status !in 200..299) throw AuthFailure(
                 code in setOf(40100, 40101, 40102, 40300, 40301, 40001, 40002))
             envelope
         } finally { connection.disconnect() }
     }
-    override suspend fun activate(deviceKey: String): com.aurora.calculatorvault.feature.trial.TrialReply {
-        val data = request("activate", body = JSONObject().put("deviceKey", deviceKey), post = true, trial = true).getJSONObject("data")
+    override suspend fun activate(deviceKey: String, remainingSecondsCap: Long): com.aurora.calculatorvault.feature.trial.TrialReply {
+        require(remainingSecondsCap in 0..259200)
+        val data = request("activate", body = JSONObject().put("deviceKey", deviceKey).put("remainingSecondsCap", remainingSecondsCap), post = true, trial = true).getJSONObject("data")
         return com.aurora.calculatorvault.feature.trial.TrialReply(data.getString("status"),
             Instant.parse(data.getString("trialStartedAt")).toEpochMilli(),
             Instant.parse(data.getString("trialExpiresAt")).toEpochMilli(),

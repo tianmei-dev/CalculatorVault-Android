@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.login.LoginPromptTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-29T12:23:01.904Z" hostname="PAOPAO" time="0.044">
+  <properties/>
+  <testcase name="home prompt remains consumed after datastore and viewmodel restart" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.018"/>
+  <testcase name="authorization code does not close prompt or create a signed in state" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.004"/>
+  <testcase name="repeated home entry while dialog is open does not reset agreement" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.008"/>
+  <testcase name="first home opens once and settings can reopen with fresh consent" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.008"/>
+  <testcase name="unchecked submit is blocked and checked submit reports missing AppID without login" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.003"/>
+  <testcase name="SDK is never invoked before the login agreement is accepted" classname="com.aurora.calculatorvault.feature.login.LoginPromptTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

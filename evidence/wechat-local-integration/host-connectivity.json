@@ -1,0 +1,7 @@
+{
+  "http_status": 401,
+  "endpoint": "GET /api/v1/auth/me",
+  "host": "192.168.0.107:8080",
+  "credentials_sent": false,
+  "response_body_logged": false
+}

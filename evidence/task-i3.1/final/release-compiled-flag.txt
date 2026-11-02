@@ -1,0 +1,1 @@
+  public static final boolean TRIAL_DEVICE_UPLOAD_ENABLED = false;

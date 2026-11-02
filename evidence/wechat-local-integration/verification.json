@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-29",
+  "trial_flag_parameter": "-PTRIAL_DEVICE_UPLOAD_ENABLED=true",
+  "variants": {
+    "localIntegration": {
+      "API_BASE_URL": "http://192.168.0.107:8080",
+      "LOCAL_HTTP_BASE_URL": "http://192.168.0.107:8080",
+      "WECHAT_APP_ID": "wxa4c721130ed106c9",
+      "APPLICATION_ID": "com.aurora.calculatorvault",
+      "VERSION_NAME": "1.0.0-local-integration",
+      "debuggable": false,
+      "trial_upload_enabled": false,
+      "network_security_config": "@xml/local_integration_network_security",
+      "apk_sha256": "1f8a59b66b0957f421318a6adfbdd739b7f8a3601394296fe30234bbba5e88a6",
+      "contains_local_xml": true,
+      "dex_contains_local_url": true
+    },
+    "release": {
+      "API_BASE_URL": "",
+      "LOCAL_HTTP_BASE_URL": "",
+      "WECHAT_APP_ID": "wxa4c721130ed106c9",
+      "APPLICATION_ID": "com.aurora.calculatorvault",
+      "VERSION_NAME": "1.0.0",
+      "debuggable": false,
+      "trial_upload_enabled": false,
+      "network_security_config": null,
+      "apk_sha256": "2963a112519c90b9f469ea8597c83e4fe73845c63356cdcd55ea1d854d119ae4",
+      "contains_local_xml": false,
+      "dex_contains_local_url": false
+    }
+  },
+  "unit_tests": {
+    "testDebugUnitTest": {
+      "tests": 347,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testLocalIntegrationUnitTest": {
+      "tests": 335,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "manual_signing": "NOT_EXECUTED",
+  "phone_login_e2e": "NOT_EXECUTED"
+}

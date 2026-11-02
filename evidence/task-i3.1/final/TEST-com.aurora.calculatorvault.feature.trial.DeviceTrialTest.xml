@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-29T12:16:42.852Z" hostname="PAOPAO" time="0.057">
+  <properties/>
+  <testcase name="consentBeforeIdentityOrNetwork" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.002"/>
+  <testcase name="firstOfflineOpenCreatesContinuousTrial" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="malformedServerDataDoesNotGrant" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="corruptOrKeystoreFailureNeverRegrants" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.0"/>
+  <testcase name="serverExpiredCannotBeReactivated" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="repeatedStartupAndColdStartNeverReset" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="consumedUpperBoundNeverIncreases" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="accountLoginAndLogoutCannotChangeDeviceTrial" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.006"/>
+  <testcase name="guestSyncUsesLocalServerMinimum" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.003"/>
+  <testcase name="lostEncryptedRecordWithMarkerNeverRegrantsOffline" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.002"/>
+  <testcase name="rebootRollbackRequiresVerification" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="trialHttpContractIsGuestOnlyAndRecognizes429" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.024"/>
+  <testcase name="missingDeviceIdentityDoesNotCrashOrCallApi" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="sameBootElapsedIgnoresWallRollbackAndForwardChanges" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="complianceGatePreventsUploadsEvenAfterConsent" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="rebootForwardBeyondDeadlinePersistsExpired" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="normalRebootUsesWallAnchor" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.0"/>
+  <testcase name="laterPrivacyConsentDoesNotRestartFirstOpen" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.002"/>
+  <testcase name="concurrentSyncTriggersMerge" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="missingLocalRecordCannotRegrantAnUnknownConsumedInterval" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.0"/>
+  <testcase name="noAccountDependencyOrPinMutation" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="existingServerRecordWins" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="missingBootMarkerRequiresVerificationOnRestart" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="expiryIsPersistentAcrossRestartAndNetworkFailure" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="networkFailureIsNotExpiryAndBacksOff" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.001"/>
+  <testcase name="writeFailurePersistsMarkerAndFailsClosed" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.0"/>
+  <testcase name="rateLimitBacksOffFifteenMinutes" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -344,7 +344,7 @@ class CalculatorVaultApp : Application() {
     }
 
     val accountSession by lazy {
-        AccountSessionRepository(HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG),
+        AccountSessionRepository(HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG, localHttpBaseUrl = BuildConfig.LOCAL_HTTP_BASE_URL),
             KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent)
     }
 

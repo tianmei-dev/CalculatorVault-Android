@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.login.session.LocalIntegrationHttpTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T13:10:14.185Z" hostname="PAOPAO" time="0.025">
+  <properties/>
+  <testcase name="localExceptionCannotAuthorizeOtherHostsPortsOrPaths" classname="com.aurora.calculatorvault.feature.login.session.LocalIntegrationHttpTest" time="0.006"/>
+  <testcase name="explicitLocalOriginSupportsLoginWithoutDebugOrSensitiveExtraFields" classname="com.aurora.calculatorvault.feature.login.session.LocalIntegrationHttpTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

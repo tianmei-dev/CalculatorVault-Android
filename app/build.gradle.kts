@@ -47,16 +47,18 @@ android {
         buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
         buildConfigField("String", "BUGLY_APP_ID", "\"${buglyAppId.get()}\"")
         buildConfigField("String", "BUGLY_CHANNEL", "\"${buglyChannel.get()}\"")
-        buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", providers.gradleProperty("TRIAL_DEVICE_UPLOAD_ENABLED").orElse("false").get().toBoolean().toString())
+        buildConfigField("String", "LOCAL_HTTP_BASE_URL", "\"\"")
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
     }
 
     buildTypes {
         debug {
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", providers.gradleProperty("TRIAL_DEVICE_UPLOAD_ENABLED").orElse("false").get().toBoolean().toString())
             buildConfigField("String", "API_BASE_URL", quotedUrl(debugApiUrl))
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
             manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
@@ -64,6 +66,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        create("localIntegration") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            // Deliberately unsigned: use the existing certificate in Android Studio's signing wizard.
+            signingConfig = null
+            isDebuggable = false
+            versionNameSuffix = "-local-integration"
+            buildConfigField("String", "API_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
+            buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
         }
     }
 

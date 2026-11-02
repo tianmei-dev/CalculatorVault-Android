@@ -1,0 +1,2 @@
+  public static final boolean TRIAL_DEVICE_UPLOAD_ENABLED = false;
+  public static final java.lang.String WECHAT_APP_ID = "wxa4c721130ed106c9";

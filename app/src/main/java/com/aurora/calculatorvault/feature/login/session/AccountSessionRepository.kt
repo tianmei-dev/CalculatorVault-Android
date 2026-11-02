@@ -75,13 +75,15 @@ class AccountSessionRepository(
         }
     }
     override fun acceptAuthorization(request: WeChatServerLoginRequest) {
+        AuthTrace.event(1)
         if (mutableState.value == AccountSession.Authenticating || mutableState.value is AccountSession.Authenticated) return
         if (credential != null) logout()
         val version = ++generation
         mutableState.value = AccountSession.Authenticating
         scope.launch {
             if (!hasConsent() || version != generation) { if (version == generation) mutableState.value = AccountSession.Guest; return@launch }
-            val result = try { api.login(request.code) } catch (_: Exception) {
+            val result = try { AuthTrace.event(2); api.login(request.code) } catch (failure: Exception) {
+                AuthTrace.failure(failure)
                 if (version == generation) mutableState.value = AccountSession.LoginFailed
                 return@launch
             }
@@ -90,12 +92,14 @@ class AccountSessionRepository(
                 revoke(result.credential); return@launch
             }
             try { store.write(result.credential) } catch (_: Exception) {
+                AuthTrace.event(7)
                 credential = null
                 clearStorage(); mutableState.value = AccountSession.StorageFailed
                 revoke(result.credential); return@launch
             }
             credential = result.credential
             mutableState.value = AccountSession.Authenticated(result.account)
+            AuthTrace.event(8)
             scheduleExpiry(result.credential, version)
         }
     }

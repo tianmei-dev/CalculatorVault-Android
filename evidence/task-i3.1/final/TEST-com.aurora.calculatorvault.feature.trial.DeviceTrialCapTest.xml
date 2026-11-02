@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-29T12:16:42.820Z" hostname="PAOPAO" time="0.03">
+  <properties/>
+  <testcase name="offline48HoursUploads24HoursAndReinstallAfterExpiryStaysExpired" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.003"/>
+  <testcase name="delayedResponseCannotExtendCurrentLocalCountdown" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.001"/>
+  <testcase name="expiredFirstNetworkSendsZeroAndEqualTimestampsPersistAcrossColdStart" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.0"/>
+  <testcase name="revokedConsentDiscardsDelayedResponseAndStopsNewUploads" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.001"/>
+  <testcase name="malformedReplyDoesNotPersistServerConfirmation" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.001"/>
+  <testcase name="httpZeroCapExpiredAndInvalidCapErrorAreHandled" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.02"/>
+  <testcase name="missingOrUncertainHistoryNeverSendsFullGrant" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.001"/>
+  <testcase name="floorSecondsAndRetryRecomputesInsteadOfRegranting" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.001"/>
+  <testcase name="serverSmallerCapAndSameCapLaterNeverExtend" classname="com.aurora.calculatorvault.feature.trial.DeviceTrialCapTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

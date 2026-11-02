@@ -1,0 +1,1 @@
+package: name='com.aurora.calculatorvault' versionCode='1' versionName='1.0.0' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'

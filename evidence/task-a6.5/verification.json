@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "appid": "wxa4c721130ed106c9",
+  "package": "com.aurora.calculatorvault",
+  "debug_trial_upload_enabled": false,
+  "wx_entry_activity": {
+    "name": "com.aurora.calculatorvault.wxapi.WXEntryActivity",
+    "excludeFromRecents": "true",
+    "exported": "true",
+    "launchMode": "singleTask",
+    "taskAffinity": "com.aurora.calculatorvault",
+    "theme": "@android:style/Theme.Translucent.NoTitleBar"
+  },
+  "jvm_tests": {
+    "tests": 345,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "selected_suites": {
+    "com.aurora.calculatorvault.feature.login.LoginPromptTest": 6,
+    "com.aurora.calculatorvault.feature.login.session.AccountSessionTest": 16,
+    "com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest": 22
+  },
+  "platform_registered_package": "NOT_PROVIDED",
+  "platform_registered_md5": "NOT_PROVIDED",
+  "platform_match": "UNVERIFIED",
+  "debug_apk_sha256": "5cfc58d678171cdfc1dbd0904116ee2b73a9ec1d8a62b84df5860e36c46b5da3",
+  "existing_release_apk_sha256": "48623dbbc70dc039cf2998f4f5ff9d4fb8c966f833806b0343c1827cb9ed0383",
+  "real_wechat_authorization": "NOT_EXECUTED"
+}

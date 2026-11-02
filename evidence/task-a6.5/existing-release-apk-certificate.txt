@@ -1,0 +1,4 @@
+V2 Signer: certificate DN: C=86, ST=86, L=chengdu, O=ztmay, OU=ztmay, CN=ztmay
+V2 Signer: certificate SHA-256 digest: 8dac665d3698aa51340c30b66d45220790e73c25b470e387c68b189cf14be093
+V2 Signer: certificate SHA-1 digest: 10bc6f54c6612c32e33a31c6584393cfeb81a957
+V2 Signer: certificate MD5 digest: d74060446c4b077172f355285d43cebb

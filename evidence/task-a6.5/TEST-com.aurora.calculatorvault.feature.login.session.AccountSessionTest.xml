@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-29T12:23:01.980Z" hostname="PAOPAO" time="0.366">
+  <properties/>
+  <testcase name="coldStartMeAndInvalidation" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.009"/>
+  <testcase name="expiredTokenIsNeverRestored" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.001"/>
+  <testcase name="successfulLogoutRevokesOnlyCurrentSession" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.003"/>
+  <testcase name="secureStorageFailuresFailClosed" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.001"/>
+  <testcase name="duplicateAndLateLoginCannotUndoLogout" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.003"/>
+  <testcase name="delayedStartupRestoreCannotSupersedeLogout" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.001"/>
+  <testcase name="transportTimeoutAndStoppedServerFailWithoutRetry" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.255"/>
+  <testcase name="lateMeCannotRestoreSessionAfterExpiryWatchdog" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="failedStorageClearStillStopsLocalIdentity" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="cancellationDuringConsentNeverSubmitsCode" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="releaseRejectsCleartextAndEmbeddedCredentials" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="authorizationStateValidationAndReplayStillGateServerLogin" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="temporaryServerFailureDoesNotDeleteSavedToken" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="loginSavesOnlySuccess" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="logoutOfflineStaysGuest" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.002"/>
+  <testcase name="httpContractAndAppIsolation" classname="com.aurora.calculatorvault.feature.login.session.AccountSessionTest" time="0.077"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

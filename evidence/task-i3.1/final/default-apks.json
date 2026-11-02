@@ -1,0 +1,10 @@
+{
+  "app\\build\\outputs\\apk\\debug\\app-debug.apk": {
+    "sha256": "a04998ef5350fadbe7952dfd572059ce23f17e4f0cb8d7f86d1db2a2538a16a7",
+    "bytes": 22269620
+  },
+  "app\\build\\outputs\\apk\\release\\app-release-unsigned.apk": {
+    "sha256": "8e27723ba527e85d8cd128e642099d1843f9ac6b48118764897f6794cba2f667",
+    "bytes": 15440954
+  }
+}

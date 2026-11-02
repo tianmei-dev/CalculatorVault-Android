@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-29T12:23:01.951Z" hostname="PAOPAO" time="0.027">
+  <properties/>
+  <testcase name="successful authorization durably consumes before handing off exact code once" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="uninstalled or unusable WeChat has a distinct outcome" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="nonces differ between fresh requests and never appear in debug strings" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.017"/>
+  <testcase name="concurrent callback delivery still hands off only once" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.002"/>
+  <testcase name="request without callback times out and can be restarted" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="SDK send rejection or exception clears the pending request" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="handoff exception does not replay a consumed code" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="S2_1 contract is fixed without real network or token generation" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="dismissal still rejects callback if storage clear temporarily fails" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="empty successful code is a failure and never reaches Server entry" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="closing prompt or withdrawing consent invalidates in flight state" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="cancel and denial consume state without any handoff and allow a fresh request" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="failed durable consumption prevents Server handoff" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="callback without a pending request cannot log in or hand off a code" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="storage save failure prevents SDK dispatch" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="process restoration accepts persisted nonce but replay after recreation is rejected" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="explicit retry after invalid callback replaces nonce and rejects old callback" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="missing AppID never sends or persists a request" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="expired or future-dated requests fail closed" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.001"/>
+  <testcase name="mismatching or missing state cannot consume the valid pending authorization" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="failed registration and SDK exceptions do not crash" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <testcase name="ready SDK sends correct scope and unpredictable state just once" classname="com.aurora.calculatorvault.feature.login.WeChatAuthorizationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -18,7 +18,7 @@ data class TrialRecord(
     val verified: Boolean = false, val uncertain: Boolean = false,
 )
 data class TrialReply(val status: String, val started: Long, val expires: Long, val serverTime: Long, val remaining: Long)
-fun interface TrialApi { suspend fun activate(deviceKey: String): TrialReply }
+fun interface TrialApi { suspend fun activate(deviceKey: String, remainingSecondsCap: Long): TrialReply }
 class TrialRateLimited : Exception("Trial rate limited")
 enum class TrialStatus { NOT_INITIALIZED, ACTIVE, EXPIRED, PENDING_SYNC, TEMPORARILY_UNAVAILABLE, VERIFICATION_REQUIRED }
 data class DeviceTrialState(val status: TrialStatus = TrialStatus.NOT_INITIALIZED, val remainingMillis: Long = 0)
@@ -89,9 +89,14 @@ class DeviceTrialRepository(
                 if (!uploadEnabled() || !consent()) return@launch
                 val key = try { identity.deviceKey() } catch (_: Exception) { null }
                 if (key.isNullOrBlank()) { restricted(); return@launch }
+                if (!consent() || !uploadEnabled()) return@launch
                 refresh()
                 val requestStarted = clock.elapsed()
-                val response = api.activate(key)
+                // Floor seconds; unavailable/corrupt/uncertain history cannot grant a new interval.
+                val current = record
+                val cap = if (current == null || current.expired || current.uncertain) 0L
+                    else (current.remaining.coerceIn(0, TRIAL_MILLIS) / 1000)
+                val response = api.activate(key, cap)
                 if (!consent() || !uploadEnabled()) return@launch
                 validate(response)
                 refresh()
@@ -104,16 +109,19 @@ class DeviceTrialRepository(
                     if (!old.expired) restricted()
                     return@launch
                 }
-                val serverRemaining = (response.remaining - (clock.elapsed() - requestStarted).coerceAtLeast(0)).coerceAtLeast(0)
+                val serverRemaining = (min(response.remaining, cap * 1000) - (clock.elapsed() - requestStarted).coerceAtLeast(0)).coerceAtLeast(0)
                 val remaining = if (old == null) serverRemaining else min(old.remaining, serverRemaining)
                 val expired = old?.expired == true || response.status == "EXPIRED" || remaining == 0L
                 val updated = TrialRecord(old?.firstOpened ?: response.started, if (expired) 0 else remaining,
                     clock.wall(), clock.elapsed(), clock.boot(), expired, response.serverTime,
-                    response.started, response.expires, verified = old?.uncertain != true || old.verified, uncertain = old?.uncertain == true && !old.verified && !expired)
+                    response.started, min(old?.serverExpires ?: response.expires, response.expires), verified = old?.uncertain != true || old.verified, uncertain = old?.uncertain == true && !old.verified && !expired)
                 store.markSeen(); store.write(updated); record = updated; processAnchor = true
                 lastSync = clock.elapsed(); failures = 0; unavailable = false
                 refresh()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (failure: Exception) {
+                refresh() // Network time is consumed even when no response can be used.
                 unavailable = true
                 failures = (failures + 1).coerceAtMost(8)
                 nextAttempt = clock.elapsed() + if (failure is TrialRateLimited) 15 * 60_000 else min(15 * 60_000L, 30_000L * (1L shl failures))
@@ -124,7 +132,7 @@ class DeviceTrialRepository(
     }
     private fun validate(reply: TrialReply) {
         require(reply.status in setOf("ACTIVE", "EXPIRED"))
-        require(reply.expires > reply.started && reply.expires - reply.started <= TRIAL_MILLIS)
+        require(reply.expires >= reply.started && reply.expires - reply.started <= TRIAL_MILLIS)
         require(reply.remaining in 0..TRIAL_MILLIS)
         require(reply.remaining <= (reply.expires - reply.serverTime).coerceAtLeast(0))
         require(if (reply.status == "EXPIRED") reply.remaining == 0L && reply.serverTime >= reply.expires

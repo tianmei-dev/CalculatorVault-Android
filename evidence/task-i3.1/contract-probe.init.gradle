@@ -1,0 +1,6 @@
+gradle.afterProject { project ->
+    if (project.path == ':app') {
+        project.android.sourceSets.getByName('test').kotlin.srcDir(
+            new File(project.rootProject.projectDir, 'evidence/task-i3.1/contract-probe'))
+    }
+}

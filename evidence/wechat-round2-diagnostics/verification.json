@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-02",
+  "variants": {
+    "debug": {
+      "AuthTrace_references_android_Log": false,
+      "diagnostic_tag_in_apk": false,
+      "sha256": "2fb3c36e607044b2605a5b8767d297b85b12e62226b593b6c7a775d10914e217"
+    },
+    "release": {
+      "AuthTrace_references_android_Log": false,
+      "diagnostic_tag_in_apk": false,
+      "sha256": "34844f68f574858897e3fb10bae43e39838ac4ed814a6ab2e710d805f9d210e8"
+    },
+    "localIntegration": {
+      "AuthTrace_references_android_Log": true,
+      "diagnostic_tag_in_apk": true,
+      "sha256": "97b4d6a0cf831f545f116819b95572ade1563d53bf49457586dde3bc4e754440"
+    }
+  },
+  "tests": {
+    "testDebugUnitTest": {
+      "tests": 347,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testLocalIntegrationUnitTest": {
+      "tests": 335,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

@@ -29,7 +29,7 @@ class DeviceTrialTest {
         private val began = clock.time
         var calls = 0; var failure: Exception? = null; var reply: TrialReply? = null
         var gate: CompletableDeferred<Unit>? = null
-        override suspend fun activate(deviceKey: String): TrialReply {
+        override suspend fun activate(deviceKey: String, remainingSecondsCap: Long): TrialReply {
             calls++; gate?.await(); failure?.let { throw it }
             return reply ?: TrialReply("ACTIVE", began, began + TRIAL_MILLIS, clock.time, (began + TRIAL_MILLIS - clock.time).coerceAtLeast(0))
         }
@@ -149,11 +149,11 @@ class DeviceTrialTest {
         c.advance(3600000); accepted=true; r.sync(); runCurrent()
         assertEquals(first,s.value!!.firstOpened); assertEquals(TRIAL_MILLIS-3600000,r.state.value.remainingMillis)
     }
-    @Test fun missingLocalRecordRecoversOnlyFromServer() = runTest {
+    @Test fun missingLocalRecordCannotRegrantAnUnknownConsumedInterval() = runTest {
         val s=Store().apply { marker=true }; val c=Clock(); val api=Api(c).apply {
             reply=TrialReply("ACTIVE",c.time-TRIAL_MILLIS+1000,c.time+1000,c.time,1000)
         }
-        val r=repo(s,c,api); r.sync(); runCurrent(); assertEquals(1000,r.state.value.remainingMillis)
+        val r=repo(s,c,api); r.sync(); runCurrent(); assertEquals(0,r.state.value.remainingMillis)
     }
     @Test fun rebootForwardBeyondDeadlinePersistsExpired() = runTest {
         val s=Store(); val c=Clock(); repo(s,c).initialize()
@@ -173,11 +173,12 @@ class DeviceTrialTest {
         server.start()
         try {
             val api=com.aurora.calculatorvault.feature.login.session.HttpAuthApi("http://127.0.0.1:${server.address.port}",true)
-            assertEquals(TRIAL_MILLIS,api.activate("0123456789abcdef").remaining)
+            assertEquals(TRIAL_MILLIS,api.activate("0123456789abcdef", 259200).remaining)
+            assertEquals(259200,org.json.JSONObject(body).getLong("remainingSecondsCap"))
             assertNull(auth); assertEquals("calculator_vault",app)
-            assertEquals(setOf("deviceKey"),org.json.JSONObject(body).keys().asSequence().toSet())
+            assertEquals(setOf("deviceKey", "remainingSecondsCap"),org.json.JSONObject(body).keys().asSequence().toSet())
             rateLimited=true
-            try { api.activate("0123456789abcdef"); fail() } catch (_:TrialRateLimited) { }
+            try { api.activate("0123456789abcdef", 259200); fail() } catch (_:TrialRateLimited) { }
         } finally { server.stop(0) }
     }
 

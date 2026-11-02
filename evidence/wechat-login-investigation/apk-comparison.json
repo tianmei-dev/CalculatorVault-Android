@@ -1,0 +1,10 @@
+{
+  "app/release/app-release.apk": {
+    "apk_byte_identical": true,
+    "dex_identical": true
+  },
+  "app/build/outputs/apk/localIntegration/app-localIntegration-unsigned.apk": {
+    "apk_byte_identical": false,
+    "dex_identical": false
+  }
+}

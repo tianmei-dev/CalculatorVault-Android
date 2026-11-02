@@ -1,0 +1,28 @@
+{
+  "status": "blocked pending contract decision; not an I3.1 completion",
+  "tests": 2,
+  "failures": 1,
+  "failureMessages": [
+    "java.lang.AssertionError: Expired at original first-open + 72h must remain expired; observed remaining=169200000 expected:<EXPIRED> but was:<ACTIVE>"
+  ],
+  "scenarioHours": {
+    "offlineFirstUse": 48,
+    "originalExpiry": 72,
+    "firstActivationServerExpiry": 120,
+    "reinstallAt": 73,
+    "unexpectedRemaining": 47
+  },
+  "realServerRequests": 0,
+  "realDeviceIdReads": 0,
+  "androidSourceChanged": false,
+  "trialUploadStillDisabled": {
+    "debug": true,
+    "release": true
+  },
+  "baselineTests": {
+    "tests": 336,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}
