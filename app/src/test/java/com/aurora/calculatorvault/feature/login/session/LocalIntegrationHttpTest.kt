@@ -50,4 +50,18 @@ class LocalIntegrationHttpTest {
             catch (_:IllegalArgumentException) { }
         }
     }
+    @Test fun trialOnlyClientRejectsWrongPortHostAndAccountCalls() = runTest {
+        val allowed="http://192.168.0.107:8081"
+        for (url in listOf("http://192.168.0.107:8080", "http://192.168.0.108:8081", "https://192.168.0.107:8081")) {
+            try {
+                HttpAuthApi(url,false,localHttpBaseUrl=allowed,trialOnlyBaseUrl=allowed).activate("synthetic-fixture",0)
+                fail("Trial origin must be rejected")
+            } catch (_:IllegalArgumentException) { }
+        }
+        try {
+            HttpAuthApi(allowed,false,localHttpBaseUrl=allowed,trialOnlyBaseUrl=allowed).login("synthetic-code")
+            fail("Trial-only client must reject account requests")
+        } catch (_:IllegalArgumentException) { }
+    }
+
 }

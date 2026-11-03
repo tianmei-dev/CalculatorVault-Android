@@ -122,4 +122,13 @@ class DeviceTrialCapTest {
         } finally { server.stop(0) }
     }
 
+    @Test fun sixtySecondUpperBoundExpiresUsingInjectedClock() = runTest {
+        val c=DeviceTrialTest.Clock();val s=DeviceTrialTest.Store();val api=Server(c)
+        api.activate("i31-synthetic-device",60)
+        val r=repo(s,c,api);r.sync();runCurrent()
+        assertEquals(60000,r.state.value.remainingMillis)
+        c.advance(61000);r.refresh();assertEquals(TrialStatus.EXPIRED,r.state.value.status)
+        assertTrue(s.value!!.expired)
+    }
+
 }

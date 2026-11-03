@@ -1,0 +1,37 @@
+{
+  "task": "I3.3.3-C",
+  "status": "PASS",
+  "releaseDexNeedles": {
+    "EntitlementTestHooks": false,
+    "EntitlementInstrumentationBridge": false,
+    "ForceVip": false,
+    "ForceNone": false,
+    "InstrumentationEntitlementOverride": false,
+    "SYNTHETIC_ACCOUNT": false,
+    "9001333": false
+  },
+  "debugApkNeedlesSame": {
+    "ForceVip": false,
+    "ForceNone": false,
+    "EntitlementInstrumentationBridge": false
+  },
+  "androidTestApkContainsFake": true,
+  "jvmTests": "PASS (entitlement.* + applock.*)",
+  "builds": ["assembleDebug", "assembleLocalIntegration", "assembleRelease", "assembleDebugAndroidTest"],
+  "instrumentation": {
+    "runner": "am instrument",
+    "result": "OK (4 tests)",
+    "cases": {
+      "repeatedRevokeRestore_noResidue": "PASS",
+      "backgroundFgs_defersWithoutWipingLocks_foregroundRecovers": "PASS",
+      "fakeVip_overlayLifecycle_roomPreserved_disabledStaysOff": "PASS",
+      "pinVerifyDuringRevoke_discardsSuccess": "PASS"
+    },
+    "packageRetained": true,
+    "emulator": {
+      "serial": "emulator-5554",
+      "avd": "CalculatorVault_Test",
+      "qemu": "1"
+    }
+  }
+}

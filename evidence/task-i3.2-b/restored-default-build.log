@@ -1,0 +1,59 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preLocalIntegrationBuild UP-TO-DATE
+> Task :app:mergeLocalIntegrationJniLibFolders UP-TO-DATE
+> Task :app:mergeLocalIntegrationNativeLibs UP-TO-DATE
+> Task :app:stripLocalIntegrationDebugSymbols UP-TO-DATE
+> Task :app:extractLocalIntegrationNativeSymbolTables UP-TO-DATE
+> Task :app:mergeLocalIntegrationNativeDebugMetadata NO-SOURCE
+> Task :app:checkLocalIntegrationDuplicateClasses UP-TO-DATE
+> Task :app:generateLocalIntegrationBuildConfig
+> Task :app:generateLocalIntegrationResources UP-TO-DATE
+> Task :app:packageLocalIntegrationResources UP-TO-DATE
+> Task :app:processLocalIntegrationNavigationResources UP-TO-DATE
+> Task :app:parseLocalIntegrationLocalResources UP-TO-DATE
+> Task :app:generateLocalIntegrationRFile UP-TO-DATE
+> Task :app:javaPreCompileLocalIntegration UP-TO-DATE
+> Task :app:checkLocalIntegrationAarMetadata UP-TO-DATE
+> Task :app:mapLocalIntegrationSourceSetPaths UP-TO-DATE
+> Task :app:compileLocalIntegrationNavigationResources UP-TO-DATE
+> Task :app:mergeLocalIntegrationResources UP-TO-DATE
+> Task :app:createLocalIntegrationCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksLocalIntegration UP-TO-DATE
+> Task :app:processLocalIntegrationMainManifest UP-TO-DATE
+> Task :app:processLocalIntegrationManifest UP-TO-DATE
+> Task :app:processLocalIntegrationManifestForPackage UP-TO-DATE
+> Task :app:processLocalIntegrationResources UP-TO-DATE
+> Task :app:desugarLocalIntegrationFileDependencies UP-TO-DATE
+> Task :app:mergeLocalIntegrationStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexLocalIntegration UP-TO-DATE
+> Task :app:mergeLocalIntegrationArtProfile UP-TO-DATE
+> Task :app:generateLocalIntegrationAssets UP-TO-DATE
+> Task :app:mergeLocalIntegrationAssets UP-TO-DATE
+> Task :app:compressLocalIntegrationAssets UP-TO-DATE
+> Task :app:extractLocalIntegrationVersionControlInfo UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:optimizeLocalIntegrationResources UP-TO-DATE
+> Task :app:collectLocalIntegrationDependencies UP-TO-DATE
+> Task :app:sdkLocalIntegrationDependencyData UP-TO-DATE
+> Task :app:writeLocalIntegrationAppMetadata UP-TO-DATE
+> Task :app:writeLocalIntegrationSigningConfigVersions UP-TO-DATE
+> Task :app:kspLocalIntegrationKotlin
+> Task :app:compileLocalIntegrationKotlin
+> Task :app:compileLocalIntegrationJavaWithJavac
+> Task :app:dexBuilderLocalIntegration
+> Task :app:mergeLocalIntegrationGlobalSynthetics UP-TO-DATE
+> Task :app:generateLocalIntegrationLintVitalReportModel
+> Task :app:processLocalIntegrationJavaRes UP-TO-DATE
+> Task :app:mergeLocalIntegrationJavaResource UP-TO-DATE
+> Task :app:mergeDexLocalIntegration
+> Task :app:compileLocalIntegrationArtProfile
+> Task :app:lintVitalAnalyzeLocalIntegration
+> Task :app:lintVitalReportLocalIntegration UP-TO-DATE
+> Task :app:lintVitalLocalIntegration
+> Task :app:packageLocalIntegration
+> Task :app:createLocalIntegrationApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleLocalIntegration
+
+BUILD SUCCESSFUL in 56s
+50 actionable tasks: 11 executed, 39 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

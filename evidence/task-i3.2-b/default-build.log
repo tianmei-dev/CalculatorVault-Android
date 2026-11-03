@@ -1,0 +1,216 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:preLocalIntegrationBuild UP-TO-DATE
+> Task :app:generateLocalIntegrationBuildConfig
+> Task :app:generateLocalIntegrationResources UP-TO-DATE
+> Task :app:packageLocalIntegrationResources UP-TO-DATE
+> Task :app:processLocalIntegrationNavigationResources UP-TO-DATE
+> Task :app:parseLocalIntegrationLocalResources UP-TO-DATE
+> Task :app:generateLocalIntegrationRFile UP-TO-DATE
+> Task :app:javaPreCompileLocalIntegration UP-TO-DATE
+> Task :app:checkLocalIntegrationAarMetadata UP-TO-DATE
+> Task :app:mapLocalIntegrationSourceSetPaths UP-TO-DATE
+> Task :app:compileLocalIntegrationNavigationResources UP-TO-DATE
+> Task :app:mergeLocalIntegrationResources UP-TO-DATE
+> Task :app:createLocalIntegrationCompatibleScreenManifests
+> Task :app:extractDeepLinksLocalIntegration UP-TO-DATE
+> Task :app:processLocalIntegrationMainManifest UP-TO-DATE
+> Task :app:processLocalIntegrationManifest
+> Task :app:processLocalIntegrationManifestForPackage UP-TO-DATE
+> Task :app:preLocalIntegrationUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileLocalIntegrationUnitTest UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeLocalIntegrationJniLibFolders UP-TO-DATE
+> Task :app:mergeLocalIntegrationNativeLibs UP-TO-DATE
+> Task :app:stripLocalIntegrationDebugSymbols UP-TO-DATE
+> Task :app:extractLocalIntegrationNativeSymbolTables UP-TO-DATE
+> Task :app:mergeLocalIntegrationNativeDebugMetadata NO-SOURCE
+> Task :app:checkLocalIntegrationDuplicateClasses UP-TO-DATE
+> Task :app:desugarLocalIntegrationFileDependencies UP-TO-DATE
+> Task :app:mergeLocalIntegrationStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexLocalIntegration UP-TO-DATE
+> Task :app:mergeLocalIntegrationArtProfile UP-TO-DATE
+> Task :app:generateLocalIntegrationAssets UP-TO-DATE
+> Task :app:mergeLocalIntegrationAssets UP-TO-DATE
+> Task :app:compressLocalIntegrationAssets UP-TO-DATE
+> Task :app:extractLocalIntegrationVersionControlInfo
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:collectLocalIntegrationDependencies UP-TO-DATE
+> Task :app:sdkLocalIntegrationDependencyData UP-TO-DATE
+> Task :app:writeLocalIntegrationAppMetadata UP-TO-DATE
+> Task :app:writeLocalIntegrationSigningConfigVersions UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols UP-TO-DATE
+> Task :app:extractReleaseNativeSymbolTables UP-TO-DATE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :app:generateReleaseBuildConfig
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:processReleaseNavigationResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:generateReleaseRFile UP-TO-DATE
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:compileReleaseNavigationResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :app:desugarReleaseFileDependencies UP-TO-DATE
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexRelease UP-TO-DATE
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets UP-TO-DATE
+> Task :app:compressReleaseAssets UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:optimizeReleaseResources UP-TO-DATE
+> Task :app:collectReleaseDependencies UP-TO-DATE
+> Task :app:sdkReleaseDependencyData UP-TO-DATE
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:writeReleaseSigningConfigVersions UP-TO-DATE
+> Task :app:processLocalIntegrationResources
+> Task :app:optimizeLocalIntegrationResources
+> Task :app:kspReleaseKotlin
+> Task :app:kspDebugKotlin
+> Task :app:kspLocalIntegrationKotlin
+> Task :app:compileReleaseKotlin
+> Task :app:compileDebugKotlin
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:compileDebugJavaWithJavac
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:dexBuilderDebug
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:dexBuilderRelease
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileLocalIntegrationKotlin
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:38:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:49:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:71:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:96:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:112:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:153:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/ForegroundAppDetector.kt:40:39 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/ForegroundAppDetector.kt:43:39 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/UsageAccessPermissionHelper.kt:17:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/presentation/AppLockScreen.kt:92:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/calculator/presentation/CalculatorScreen.kt:47:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/calculator/presentation/CalculatorScreen.kt:48:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/disguise/presentation/AppDisguiseScreen.kt:134:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/legal/presentation/LegalDocumentType.kt:8:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/privatemedia/presentation/PrivateMediaScreen.kt:1351:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/vault/presentation/VaultMainTab.kt:11:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/ui/component/VaultNumericKeypad.kt:31:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/ui/component/VaultNumericKeypad.kt:32:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:testDebugUnitTest
+> Task :app:compileLocalIntegrationJavaWithJavac
+> Task :app:processLocalIntegrationJavaRes UP-TO-DATE
+> Task :app:bundleLocalIntegrationClassesToRuntimeJar
+> Task :app:bundleLocalIntegrationClassesToCompileJar
+> Task :app:dexBuilderLocalIntegration
+> Task :app:kspLocalIntegrationUnitTestKotlin SKIPPED
+> Task :app:mergeLocalIntegrationGlobalSynthetics UP-TO-DATE
+> Task :app:generateLocalIntegrationLintVitalReportModel
+> Task :app:mergeLocalIntegrationJavaResource UP-TO-DATE
+> Task :app:mergeReleaseGlobalSynthetics UP-TO-DATE
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:processReleaseJavaRes UP-TO-DATE
+> Task :app:mergeReleaseJavaResource UP-TO-DATE
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+> Task :app:compileLocalIntegrationUnitTestKotlin
+> Task :app:compileLocalIntegrationUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processLocalIntegrationUnitTestJavaRes UP-TO-DATE
+> Task :app:mergeDexLocalIntegration
+> Task :app:mergeDexRelease
+> Task :app:testLocalIntegrationUnitTest
+> Task :app:compileLocalIntegrationArtProfile
+> Task :app:compileReleaseArtProfile
+> Task :app:lintVitalAnalyzeLocalIntegration
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:lintVitalReportLocalIntegration
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalLocalIntegration
+> Task :app:lintVitalRelease
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleRelease
+> Task :app:packageLocalIntegration
+> Task :app:createLocalIntegrationApkListingFileRedirect
+> Task :app:assembleLocalIntegration
+
+BUILD SUCCESSFUL in 2m 24s
+150 actionable tasks: 46 executed, 104 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

@@ -1,0 +1,13 @@
+{
+  "jvm": {
+    "tests": 348,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "instrumentation": "COMPILE_ONLY_NOT_EXECUTED",
+  "actual_s32_http": "NOT_EXECUTED_NO_CONFIRMED_ISOLATED_ENDPOINT",
+  "database_persistence": "NOT_VERIFIED",
+  "real_android_id_read": false,
+  "normal_startup_upload_enabled": false
+}

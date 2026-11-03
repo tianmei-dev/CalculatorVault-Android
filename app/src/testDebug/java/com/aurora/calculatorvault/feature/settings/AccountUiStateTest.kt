@@ -69,6 +69,24 @@ class AccountUiStateTest {
         assertEquals(listOf(1L, 1L), membershipText(guest).arguments)
     }
 
+    @Test fun `signed-in user without VIP still shows active device trial`() {
+        val trial = MembershipStatus.TrialActive(Duration.ofHours(25))
+        val state = AccountUiState(
+            account = AccountStatus.WeChatLoggedIn("测试用户"),
+            accountMembership = MembershipStatus.NotSubscribed,
+            deviceTrial = trial,
+        )
+        assertEquals(trial, state.visibleMembership)
+        assertEquals(R.string.account_trial_active, membershipText(state).title)
+    }
+
+    @Test fun `signed-in VIP outranks device trial for display`() {
+        val trial = MembershipStatus.TrialActive(Duration.ofHours(25))
+        val vip = MembershipStatus.VipPermanent
+        val state = AccountUiState(AccountStatus.WeChatLoggedIn(), vip, trial)
+        assertEquals(vip, state.visibleMembership)
+    }
+
     @Test fun `guest cannot display stale VIP after trial expires`() {
         val guest = AccountUiState(accountMembership = MembershipStatus.VipPermanent,
             deviceTrial = MembershipStatus.TrialExpired)

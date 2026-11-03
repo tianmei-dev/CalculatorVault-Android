@@ -1,0 +1,38 @@
+{
+  "task": "I3.3.3-B3",
+  "status": "PASS",
+  "runner": "adb shell am instrument (not connectedDebugAndroidTest)",
+  "emulator": {
+    "serial": "emulator-5554",
+    "avd": "CalculatorVault_Test",
+    "qemu": "1",
+    "api": 35,
+    "packageRetainedAfterRun": true
+  },
+  "buildConfig": {
+    "TRIAL_DEVICE_UPLOAD_ENABLED": false
+  },
+  "apks": {
+    "debugSha256": "537AE88B11DD3010C7F8515EA360840F1062D3F029702ADE1E953ADDD52B137E",
+    "androidTestSha256": "F13100787F4E4A24C954BE64015DA6229D6D38982ACE178ACE8D91B5A5DC5724",
+    "releaseUnsignedSha256": "3D992AB5ED2CC431D13A23CA61A2899BB2A4954AEF6053635B45149B2AAFE521"
+  },
+  "instrumentation": {
+    "class": "com.aurora.calculatorvault.feature.applock.AppLockEntitlementInstrumentationTest",
+    "result": "OK (4 tests)",
+    "cases": {
+      "repeatedRevokeRestore_noResidue": "PASS",
+      "backgroundFgs_defersWithoutWipingLocks_foregroundRecovers": "PASS",
+      "fakeVip_overlayLifecycle_roomPreserved_disabledStaysOff": "PASS",
+      "pinVerifyDuringRevoke_discardsSuccess": "PASS"
+    },
+    "log": "evidence/task-i3.3.3-b3/am-instrument-r4.txt",
+    "evidenceLog": "evidence/task-i3.3.3-b3/logcat-r4-evidence.txt"
+  },
+  "releaseIsolation": {
+    "symbolsPresentInReleaseDex": true,
+    "runtimeActivatableWithoutInstrumentation": false,
+    "publicTestEntryActivityOrBroadcast": false,
+    "note": "EntitlementTestHooks.setProvider no-ops unless InstrumentationRegistry is present"
+  }
+}

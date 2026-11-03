@@ -1,0 +1,18 @@
+{
+  "release": {
+    "upload": "false",
+    "trial_log_reference": false
+  },
+  "localIntegration": {
+    "upload": "true",
+    "trial_log_reference": true
+  },
+  "debug": {
+    "trial_log_reference": false
+  },
+  "enabled_apk": {
+    "path": ".local-tools\\i32b-enabled-emulator-only\\app-localIntegration-trial-enabled-unsigned.apk",
+    "sha256": "1e8d88205a6055a1b8b3cbefe715986811fdb20e88530677494eb5cc8e92c366",
+    "install_target": "CONFIRMED_DISPOSABLE_EMULATOR_ONLY"
+  }
+}

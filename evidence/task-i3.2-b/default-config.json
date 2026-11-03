@@ -1,0 +1,20 @@
+{
+  "debug": {
+    "API_BASE_URL": "http://10.0.2.2:8080",
+    "TRIAL_API_BASE_URL": "http://10.0.2.2:8080",
+    "TRIAL_HTTP_BASE_URL": "",
+    "upload": "false"
+  },
+  "release": {
+    "API_BASE_URL": "",
+    "TRIAL_API_BASE_URL": "",
+    "TRIAL_HTTP_BASE_URL": "",
+    "upload": "false"
+  },
+  "localIntegration": {
+    "API_BASE_URL": "http://192.168.0.107:8080",
+    "TRIAL_API_BASE_URL": "http://192.168.0.107:8081",
+    "TRIAL_HTTP_BASE_URL": "http://192.168.0.107:8081",
+    "upload": "false"
+  }
+}

@@ -14,6 +14,8 @@ data class AppLockUiState(
     val hasUsageAccess: Boolean = false,
     val hasOverlayPermission: Boolean = false,
     val isMonitorRunning: Boolean = false,
+    /** Live entitlement for app-lock protection; does not gate browsing or disabling locks. */
+    val protectionEntitled: Boolean = true,
     val pendingPermissionTarget: AppLockPermissionTarget? = null,
     val error: AppLockError? = null,
 ) {
@@ -32,6 +34,7 @@ data class AppLockUiState(
     val protectionStatus: AppLockProtectionStatus
         get() = when {
             lockedPackages.isEmpty() -> AppLockProtectionStatus.NoLockedApps
+            !protectionEntitled -> AppLockProtectionStatus.NotRunning
             !hasUsageAccess || !hasOverlayPermission -> AppLockProtectionStatus.NeedsPermission
             !isMonitorRunning -> AppLockProtectionStatus.NotRunning
             else -> AppLockProtectionStatus.Protecting
@@ -47,4 +50,5 @@ sealed interface AppLockError {
 sealed interface AppLockEffect {
     data object SaveFailed : AppLockEffect
     data object PackageRejected : AppLockEffect
+    data object NavigateToVip : AppLockEffect
 }

@@ -25,11 +25,14 @@ class HttpAuthApi(
     private val connectTimeoutMillis: Int = 10_000,
     private val readTimeoutMillis: Int = 15_000,
     private val localHttpBaseUrl: String = "",
+    private val trialOnlyBaseUrl: String = "",
 ) : AuthApi, com.aurora.calculatorvault.feature.trial.TrialApi {
     private suspend fun request(path: String, token: String? = null, body: JSONObject? = null,
                                 post: Boolean = false, trial: Boolean = false): JSONObject = withContext(Dispatchers.IO) {
         if (path == "wechat/login" && !trial) AuthTrace.event(3)
+        if (trial) TrialTrace.event(3)
         val base = URI(baseUrl)
+        if (trialOnlyBaseUrl.isNotEmpty()) require(trial && base == URI(trialOnlyBaseUrl))
         require(base.host != null && base.userInfo == null && base.query == null && base.fragment == null)
         require(base.scheme == "https" || (base.scheme == "http" &&
             (debug || (localHttpBaseUrl.isNotEmpty() && base == URI(localHttpBaseUrl)))))
@@ -47,6 +50,7 @@ class HttpAuthApi(
                 connection.setFixedLengthStreamingMode(body.toString().toByteArray(Charsets.UTF_8).size)
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                if (trial) TrialTrace.event(4)
                 if (path == "wechat/login" && !trial) AuthTrace.event(4)
             } else if (post) {
                 connection.doOutput = true
@@ -54,6 +58,7 @@ class HttpAuthApi(
                 connection.outputStream.use { }
             }
             val status = connection.responseCode
+            if (trial) TrialTrace.event(5, status)
             if (path == "wechat/login" && !trial) AuthTrace.event(5, status)
             if (status == 429 && trial) throw com.aurora.calculatorvault.feature.trial.TrialRateLimited()
             if (status == 401) throw AuthFailure(true)
@@ -61,6 +66,7 @@ class HttpAuthApi(
             val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readBounded() } ?: throw AuthFailure()
             val envelope = JSONObject(raw)
             val code = envelope.getInt("code")
+            if (trial) TrialTrace.event(6, code)
             if (path == "wechat/login" && !trial) AuthTrace.event(6, code)
             if (code != 0 || status !in 200..299) throw AuthFailure(
                 code in setOf(40100, 40101, 40102, 40300, 40301, 40001, 40002))

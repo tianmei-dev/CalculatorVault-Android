@@ -72,6 +72,7 @@ class AppLockVerificationActivity : ComponentActivity() {
                 targetPackageName = targetPackageName,
                 unlockUseCase = app.vaultUnlockUseCase,
                 sessionManager = app.appLockSessionManager,
+                protectionCoordinator = app.appLockProtectionCoordinator,
             ) as T
     }
 

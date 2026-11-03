@@ -47,6 +47,8 @@ android {
         buildConfigField("String", "UMENG_CHANNEL", "\"${umengChannel.get()}\"")
         buildConfigField("String", "BUGLY_APP_ID", "\"${buglyAppId.get()}\"")
         buildConfigField("String", "BUGLY_CHANNEL", "\"${buglyChannel.get()}\"")
+        buildConfigField("String", "TRIAL_HTTP_BASE_URL", "\"\"")
+        buildConfigField("String", "TRIAL_API_BASE_URL", "\"\"")
         buildConfigField("String", "LOCAL_HTTP_BASE_URL", "\"\"")
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
     }
@@ -54,11 +56,13 @@ android {
     buildTypes {
         debug {
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", providers.gradleProperty("TRIAL_DEVICE_UPLOAD_ENABLED").orElse("false").get().toBoolean().toString())
+            buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(debugApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(debugApiUrl))
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
+            buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
             manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
@@ -74,9 +78,13 @@ android {
             signingConfig = null
             isDebuggable = false
             versionNameSuffix = "-local-integration"
+            val trialOptIn = providers.gradleProperty("LOCAL_TRIAL_UPLOAD_ENABLED").orElse("false").get()
+            require(trialOptIn in listOf("true", "false"))
+            buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl("http://192.168.0.107:8081"))
+            buildConfigField("String", "TRIAL_HTTP_BASE_URL", quotedUrl("http://192.168.0.107:8081"))
             buildConfigField("String", "API_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
             buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
-            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", trialOptIn)
         }
     }
 
@@ -127,6 +135,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.core.ktx)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.compose.ui.tooling)

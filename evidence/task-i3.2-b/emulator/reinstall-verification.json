@@ -1,0 +1,9 @@
+{
+  "http200": true,
+  "business0": true,
+  "active": true,
+  "same_record": true,
+  "same_start": true,
+  "deadline_not_extended": true,
+  "no_new_record": true
+}

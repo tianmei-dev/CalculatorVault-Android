@@ -1,0 +1,42 @@
+{
+  "task": "I3.3.3-B2",
+  "status": "BLOCKED",
+  "reason": "connectedDebugAndroidTest uninstalled target package and wiped /data/user/0/com.aurora.calculatorvault; stopped per no-uninstall/no-clear rule",
+  "emulator": {
+    "serial": "emulator-5554",
+    "qemu": "1",
+    "avd": "CalculatorVault_Test",
+    "api": 35,
+    "packagePresentAfterRun": false,
+    "dataDirPresentAfterRun": false
+  },
+  "apks": [
+    {
+      "path": "app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 22288496,
+      "sha256Prefix": "67A7B0F6DC625E77"
+    },
+    {
+      "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "bytes": 744365,
+      "sha256Prefix": "B3B027C201A565EC"
+    }
+  ],
+  "instrumentationPartial": {
+    "ran": 2,
+    "failed": 2,
+    "notCompleted": [
+      "fakeVip_overlayLifecycle_roomPreserved_disabledStaysOff",
+      "pinVerifyDuringRevoke_discardsSuccess"
+    ],
+    "failures": [
+      "repeatedRevokeRestore_noResidue: cycle=0 service",
+      "backgroundFgs_defersWithoutWipingLocks_foregroundRecovers: service/pending assert"
+    ],
+    "crash": "ForegroundServiceDidNotStartInTimeException"
+  },
+  "nextRequiresConfirmation": [
+    "approve adb install -r onto wiped emulator, or restore AVD snapshot",
+    "rerun via adb am instrument without Gradle connected uninstall"
+  ]
+}

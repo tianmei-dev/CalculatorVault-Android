@@ -7,12 +7,16 @@ import androidx.lifecycle.viewModelScope
 import com.aurora.calculatorvault.core.analytics.AnalyticsEvent
 import com.aurora.calculatorvault.core.analytics.AnalyticsTracker
 import com.aurora.calculatorvault.feature.applock.domain.AppLockPermissionTarget
+import com.aurora.calculatorvault.feature.applock.domain.AppLockProtectionCoordinator
 import com.aurora.calculatorvault.feature.applock.domain.AppLockRepository
 import com.aurora.calculatorvault.feature.applock.domain.AppLockSetResult
 import com.aurora.calculatorvault.feature.applock.domain.LockableApp
 import com.aurora.calculatorvault.feature.applock.domain.OverlayPermissionHelper
 import com.aurora.calculatorvault.feature.applock.domain.UsageAccessPermissionHelper
 import com.aurora.calculatorvault.feature.applock.service.AppLockMonitorService
+import com.aurora.calculatorvault.feature.entitlement.domain.ActionDecision
+import com.aurora.calculatorvault.feature.entitlement.domain.ActionPolicy
+import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementCapability
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +31,8 @@ class AppLockViewModel(
     private val overlayPermissionHelper: OverlayPermissionHelper,
     private val appContext: Context,
     private val analyticsTracker: AnalyticsTracker,
+    private val actionPolicy: ActionPolicy,
+    private val protectionCoordinator: AppLockProtectionCoordinator,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
@@ -74,10 +80,13 @@ class AppLockViewModel(
                 hasUsageAccess = usagePermissionHelper.hasUsageAccess(),
                 hasOverlayPermission = overlayPermissionHelper.isGranted(),
                 isMonitorRunning = AppLockMonitorService.isRunning,
+                protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
+                    is ActionDecision.Allowed,
                 isRefreshingPermissions = false,
             )
         }
-        syncMonitorState()
+        protectionCoordinator.onPermissionsOrPrivacyChanged()
+        viewModelScope.launch { syncMonitorState() }
     }
 
     fun dismissPermissionPrompt() {
@@ -87,26 +96,35 @@ class AppLockViewModel(
     fun toggleLock(app: LockableApp, locked: Boolean) {
         val state = _uiState.value
         if (state.updatingPackage != null) return
-        if (locked && !state.hasUsageAccess) {
-            _uiState.update { it.copy(pendingPermissionTarget = AppLockPermissionTarget.UsageAccess) }
-            return
-        }
-        if (locked && !state.hasOverlayPermission) {
-            _uiState.update { it.copy(pendingPermissionTarget = AppLockPermissionTarget.Overlay) }
-            return
+        if (locked) {
+            when (actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)) {
+                is ActionDecision.Denied -> {
+                    viewModelScope.launch { _effects.send(AppLockEffect.NavigateToVip) }
+                    return
+                }
+                ActionDecision.Allowed -> Unit
+            }
+            if (!state.hasUsageAccess) {
+                _uiState.update { it.copy(pendingPermissionTarget = AppLockPermissionTarget.UsageAccess) }
+                return
+            }
+            if (!state.hasOverlayPermission) {
+                _uiState.update { it.copy(pendingPermissionTarget = AppLockPermissionTarget.Overlay) }
+                return
+            }
         }
         _uiState.update { it.copy(updatingPackage = app.packageName, error = null) }
         viewModelScope.launch {
             when (repository.setLocked(app.packageName, app.appName, locked)) {
                 AppLockSetResult.Success -> {
-                    _uiState.update { state ->
-                        state.copy(
+                    _uiState.update { current ->
+                        current.copy(
                             updatingPackage = null,
-                            apps = state.apps.map { current ->
-                                if (current.packageName == app.packageName) {
-                                    current.copy(locked = locked)
+                            apps = current.apps.map { item ->
+                                if (item.packageName == app.packageName) {
+                                    item.copy(locked = locked)
                                 } else {
-                                    current
+                                    item
                                 }
                             },
                         )
@@ -147,6 +165,8 @@ class AppLockViewModel(
                         lockedPackages = packages,
                         apps = state.apps.map { it.copy(locked = it.packageName in packages) },
                         isMonitorRunning = AppLockMonitorService.isRunning,
+                        protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
+                            is ActionDecision.Allowed,
                     )
                 }
                 syncMonitorState()
@@ -174,25 +194,23 @@ class AppLockViewModel(
         }
     }
 
-    private fun syncMonitorState() {
-        val state = _uiState.value
-        if (state.lockedPackages.isNotEmpty() &&
-            state.hasUsageAccess &&
-            state.hasOverlayPermission
-        ) {
-            if (!AppLockMonitorService.isRunning) {
-                AppLockMonitorService.start(appContext)
-            }
-        } else if (state.lockedPackages.isEmpty() && AppLockMonitorService.isRunning) {
-            AppLockMonitorService.stop(appContext)
+    private suspend fun syncMonitorState() {
+        protectionCoordinator.reconcile()
+        _uiState.update {
+            it.copy(
+                isMonitorRunning = AppLockMonitorService.isRunning,
+                protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
+                    is ActionDecision.Allowed,
+            )
         }
-        _uiState.update { it.copy(isMonitorRunning = AppLockMonitorService.isRunning) }
     }
 
     class Factory(
         private val repository: AppLockRepository,
         private val appContext: Context,
         private val analyticsTracker: AnalyticsTracker,
+        private val actionPolicy: ActionPolicy,
+        private val protectionCoordinator: AppLockProtectionCoordinator,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -203,6 +221,8 @@ class AppLockViewModel(
                 overlayPermissionHelper = OverlayPermissionHelper(appContext),
                 appContext = appContext,
                 analyticsTracker = analyticsTracker,
+                actionPolicy = actionPolicy,
+                protectionCoordinator = protectionCoordinator,
             ) as T
         }
     }

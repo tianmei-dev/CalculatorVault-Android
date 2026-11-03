@@ -70,6 +70,7 @@ fun AppLockScreen(
     viewModel: AppLockViewModel = viewModel(),
     iconProvider: AppIconProvider,
     onMessage: (AppMessage) -> Unit,
+    onNavigateToVip: () -> Unit = {},
     onGuideTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -116,6 +117,7 @@ fun AppLockScreen(
                 AppLockEffect.PackageRejected -> onMessage(
                     AppMessage(rejectedMessage, AppMessageType.Warning),
                 )
+                AppLockEffect.NavigateToVip -> onNavigateToVip()
             }
         }
     }

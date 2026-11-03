@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.min
+import com.aurora.calculatorvault.feature.login.session.TrialTrace
 
 const val TRIAL_MILLIS = 72L * 60 * 60 * 1000
 interface TrialClock { fun wall(): Long; fun elapsed(): Long; fun boot(): String? }
@@ -76,10 +77,12 @@ class DeviceTrialRepository(
                 updated.verified -> TrialStatus.ACTIVE
                 else -> TrialStatus.PENDING_SYNC
             }, if (uncertain) 0 else remaining)
+            TrialTrace.event(9, mutableState.value.status.ordinal)
         } catch (_: Exception) { record = null; restricted() }
     }
     fun startTicker() { scope.launch { while (true) { delay(30_000); refresh() } } }
     fun sync() {
+        TrialTrace.event(0)
         initialize()
         if (syncing || clock.elapsed() < nextAttempt ||
             (lastSync != Long.MIN_VALUE && clock.elapsed() - lastSync < 15 * 60_000)) return
@@ -96,8 +99,10 @@ class DeviceTrialRepository(
                 val current = record
                 val cap = if (current == null || current.expired || current.uncertain) 0L
                     else (current.remaining.coerceIn(0, TRIAL_MILLIS) / 1000)
+                TrialTrace.event(2)
                 val response = api.activate(key, cap)
                 if (!consent() || !uploadEnabled()) return@launch
+                TrialTrace.event(7)
                 validate(response)
                 refresh()
                 val old = record
@@ -121,6 +126,14 @@ class DeviceTrialRepository(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
+                TrialTrace.event(8, when (failure) {
+                    is java.net.SocketTimeoutException -> 1
+                    is java.net.ConnectException -> 2
+                    is java.net.UnknownHostException -> 3
+                    is IllegalArgumentException -> 4
+                    is java.io.IOException -> 5
+                    else -> 0
+                })
                 refresh() // Network time is consumed even when no response can be used.
                 unavailable = true
                 failures = (failures + 1).coerceAtMost(8)

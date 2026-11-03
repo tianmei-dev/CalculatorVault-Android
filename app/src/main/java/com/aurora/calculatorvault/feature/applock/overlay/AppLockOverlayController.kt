@@ -2,12 +2,16 @@ package com.aurora.calculatorvault.feature.applock.overlay
 
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import com.aurora.calculatorvault.BuildConfig
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.WindowManager
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -35,6 +39,10 @@ class AppLockOverlayController(
     private val sessionManager: AppLockSessionManager,
     private val scope: CoroutineScope,
     private val onUnlocked: (String) -> Unit = {},
+    private val protectionStillAllowed: () -> Boolean = { true },
+    private val expectedGeneration: () -> Long = { 0L },
+    /** Optional verifier for androidTest PIN races; production always leaves null. */
+    private val passwordVerifierOverride: (suspend (CharArray) -> Boolean)? = null,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val password = CharArray(MAX_PASSWORD_LENGTH)
@@ -43,6 +51,7 @@ class AppLockOverlayController(
     private var overlayView: ComposeView? = null
     private var overlayOwner: OverlayViewTreeOwner? = null
     private var verifyJob: Job? = null
+    private var shownProtectionGeneration: Long = -1L
 
     val state = _state.asStateFlow()
 
@@ -56,14 +65,24 @@ class AppLockOverlayController(
         targetPackageName: String,
         targetAppName: String?,
         detectedAtElapsed: Long,
+        protectionGeneration: Long = expectedGeneration(),
     ): Boolean = withContext(Dispatchers.Main) {
         if (targetPackageName.isBlank()) return@withContext false
+        if (!protectionStillAllowed()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay refused: entitlement inactive")
+            return@withContext false
+        }
+        if (protectionGeneration != expectedGeneration()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "overlay refused: generation mismatch")
+            return@withContext false
+        }
         if (isShowing()) {
             if (BuildConfig.DEBUG) Log.d(TAG, "overlay already visible")
             return@withContext true
         }
         if (BuildConfig.DEBUG) Log.d(TAG, "overlay requested")
         wipePassword()
+        shownProtectionGeneration = protectionGeneration
         _state.value = AppLockOverlayState(
             targetPackageName = targetPackageName,
             targetAppName = targetAppName,
@@ -117,6 +136,23 @@ class AppLockOverlayController(
     }
 
     fun hide() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            val done = CountDownLatch(1)
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    hideOnMainThread()
+                } finally {
+                    done.countDown()
+                }
+            }
+            runCatching { done.await(3, TimeUnit.SECONDS) }
+            return
+        }
+        hideOnMainThread()
+    }
+
+    private fun hideOnMainThread() {
+        val targetForFinish = synchronized(this) { _state.value?.targetPackageName }
         val owner = synchronized(this) {
             overlayOwner.also {
                 overlayOwner = null
@@ -140,6 +176,8 @@ class AppLockOverlayController(
             }
         }
         owner?.destroy()
+        // Drop verifying latch so a later foreground match can beginVerification again.
+        targetForFinish?.let { sessionManager.finishVerification(it) }
     }
 
     private fun inputDigit(digit: Int) {
@@ -181,7 +219,12 @@ class AppLockOverlayController(
         if (BuildConfig.DEBUG) Log.d(TAG, "password verification started")
         verifyJob = scope.launch {
             val verified = try {
-                vaultUnlockUseCase.verify(candidate)
+                val override = passwordVerifierOverride
+                if (override != null) {
+                    override(candidate)
+                } else {
+                    vaultUnlockUseCase.verify(candidate)
+                }
             } catch (_: Exception) {
                 false
             } finally {
@@ -189,11 +232,17 @@ class AppLockOverlayController(
             }
             withContext(Dispatchers.Main) {
                 val latest = _state.value ?: return@withContext
-                if (verified) {
+                val generationOk = shownProtectionGeneration == expectedGeneration()
+                val allowed = protectionStillAllowed() && generationOk
+                if (verified && allowed) {
                     if (BuildConfig.DEBUG) Log.d(TAG, "password verification success")
                     sessionManager.markUnlocked(latest.targetPackageName)
                     if (BuildConfig.DEBUG) Log.d(TAG, "temporary unlock granted")
                     onUnlocked(latest.targetPackageName)
+                    hide()
+                } else if (verified && !allowed) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "password verification discarded: entitlement lost")
+                    sessionManager.finishVerification(latest.targetPackageName)
                     hide()
                 } else {
                     if (BuildConfig.DEBUG) Log.d(TAG, "password verification failed")

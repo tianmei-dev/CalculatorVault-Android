@@ -4,8 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.aurora.calculatorvault.feature.entitlement.domain.ActionPolicy
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaRepository
 import com.aurora.calculatorvault.feature.privatemedia.domain.OriginalMediaRemovalResult
+import com.aurora.calculatorvault.feature.privatemedia.domain.PrivateAlbumImportAccess
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumDeleteResult
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaMoveResult
@@ -59,7 +61,12 @@ data class PrivateMediaUiState(
 
 sealed interface PrivateMediaEffect {
     data class OpenMediaPicker(val albumId: Long) : PrivateMediaEffect
-    data class ImportCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
+    data object NavigateToVip : PrivateMediaEffect
+    data class ImportCompleted(
+        val successCount: Int,
+        val failureCount: Int,
+        val skippedDueToEntitlement: Int = 0,
+    ) : PrivateMediaEffect
     data object ImportFailed : PrivateMediaEffect
     data class DeleteCompleted(val successCount: Int, val failureCount: Int) : PrivateMediaEffect
     data object DeleteFailed : PrivateMediaEffect
@@ -83,6 +90,7 @@ sealed interface PrivateMediaEffect {
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrivateMediaViewModel(
     private val repository: VaultMediaRepository,
+    private val actionPolicy: ActionPolicy,
 ) : ViewModel() {
     private val transientState = MutableStateFlow(TransientState())
 
@@ -134,6 +142,10 @@ class PrivateMediaViewModel(
 
     fun requestImportToAlbum(albumId: Long) {
         if (transientState.value.isImporting) return
+        if (!PrivateAlbumImportAccess.allowsImport(actionPolicy)) {
+            effects.tryEmit(PrivateMediaEffect.NavigateToVip)
+            return
+        }
         effects.tryEmit(PrivateMediaEffect.OpenMediaPicker(albumId))
     }
 
@@ -144,6 +156,11 @@ class PrivateMediaViewModel(
     fun importMedia(albumId: Long, uris: List<Uri>) {
         val uniqueUris = uris.distinct().take(MAX_IMPORT_BATCH_SIZE)
         if (uniqueUris.isEmpty() || transientState.value.isImporting) return
+        // Command-boundary check: picker may have been open while entitlement expired.
+        if (!PrivateAlbumImportAccess.allowsImport(actionPolicy)) {
+            effects.tryEmit(PrivateMediaEffect.NavigateToVip)
+            return
+        }
         viewModelScope.launch {
             transientState.update {
                 it.copy(
@@ -167,8 +184,19 @@ class PrivateMediaViewModel(
                     }
                 }
                 effects.tryEmit(
-                    PrivateMediaEffect.ImportCompleted(summary.successCount, summary.failureCount),
+                    PrivateMediaEffect.ImportCompleted(
+                        successCount = summary.successCount,
+                        failureCount = summary.failureCount,
+                        skippedDueToEntitlement = summary.skippedDueToEntitlement,
+                    ),
                 )
+                // After releasing import work: if nothing imported solely due to entitlement, open VIP.
+                if (summary.successCount == 0 &&
+                    summary.skippedDueToEntitlement > 0 &&
+                    summary.failureCount == 0
+                ) {
+                    effects.tryEmit(PrivateMediaEffect.NavigateToVip)
+                }
             } catch (_: Exception) {
                 effects.tryEmit(PrivateMediaEffect.ImportFailed)
             } finally {
@@ -228,7 +256,13 @@ class PrivateMediaViewModel(
             }
             effects.tryEmit(PrivateMediaEffect.AlbumCreated)
             when {
-                importAfterCreate -> effects.tryEmit(PrivateMediaEffect.OpenMediaPicker(album.id))
+                importAfterCreate -> {
+                    if (PrivateAlbumImportAccess.allowsImport(actionPolicy)) {
+                        effects.tryEmit(PrivateMediaEffect.OpenMediaPicker(album.id))
+                    } else {
+                        effects.tryEmit(PrivateMediaEffect.NavigateToVip)
+                    }
+                }
                 moveSelectionAfterCreate -> moveSelectedToAlbum(album.id)
             }
         }
@@ -493,10 +527,11 @@ class PrivateMediaViewModel(
 
     class Factory(
         private val repository: VaultMediaRepository,
+        private val actionPolicy: ActionPolicy,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return PrivateMediaViewModel(repository) as T
+            return PrivateMediaViewModel(repository, actionPolicy) as T
         }
     }
 

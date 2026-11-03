@@ -6,12 +6,14 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import com.aurora.calculatorvault.BuildConfig
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.feature.applock.domain.AppLockMonitorConfig
@@ -51,6 +53,8 @@ class AppLockMonitorService : Service() {
             vaultUnlockUseCase = app.vaultUnlockUseCase,
             sessionManager = app.appLockSessionManager,
             scope = serviceScope,
+            protectionStillAllowed = { app.appLockProtectionCoordinator.allowsLiveProtection() },
+            expectedGeneration = { app.appLockProtectionCoordinator.protectionGeneration() },
         )
         startAsForegroundIfPossible()
     }
@@ -63,18 +67,32 @@ class AppLockMonitorService : Service() {
             }
             else -> serviceScope.launch {
                 val app = applicationContext as CalculatorVaultApp
-                val allowed = runCatching { app.hasPrivacyConsent() }.getOrDefault(false)
+                val privacyAllowed = runCatching { app.hasPrivacyConsent() }.getOrDefault(false)
+                val entitled = app.appLockProtectionCoordinator.allowsLiveProtection()
                 withContext(Dispatchers.Main) {
-                    if (allowed && !app.privacyWithdrawn) {
+                    if (privacyAllowed && !app.privacyWithdrawn && entitled) {
                         observeLockedPackages()
                         startMonitoring()
                     } else {
+                        if (BuildConfig.DEBUG) {
+                            Log.d(TAG, "onStartCommand refused privacy=$privacyAllowed entitled=$entitled")
+                        }
+                        app.appLockProtectionCoordinator.bumpGeneration()
+                        overlayController?.hide()
+                        app.appLockSessionManager.clearAll()
                         stopSelf()
                     }
                 }
             }
         }
-        return START_STICKY
+        // Sticky only while entitled; otherwise avoid restart loops without protection rights.
+        return if ((applicationContext as CalculatorVaultApp)
+                .appLockProtectionCoordinator.allowsLiveProtection()
+        ) {
+            START_STICKY
+        } else {
+            START_NOT_STICKY
+        }
     }
 
     override fun onDestroy() {
@@ -114,6 +132,15 @@ class AppLockMonitorService : Service() {
             if (BuildConfig.DEBUG) Log.d(TAG, "overlay permission granted=${overlayPermissionHelper.isGranted()}")
             while (isActive) {
                 if (app.privacyWithdrawn) break
+                if (!app.appLockProtectionCoordinator.allowsLiveProtection()) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "monitor loop stopped: entitlement lost")
+                    withContext(Dispatchers.Main) {
+                        overlayController?.hide()
+                        app.appLockSessionManager.clearAll()
+                        stopSelf()
+                    }
+                    break
+                }
                 handleForegroundResult(
                     app = app,
                     overlayPermissionHelper = overlayPermissionHelper,
@@ -165,6 +192,7 @@ class AppLockMonitorService : Service() {
         result: ForegroundAppResult,
     ) {
         if (app.privacyWithdrawn) return
+        if (!app.appLockProtectionCoordinator.allowsLiveProtection()) return
         val packageName = (result as? ForegroundAppResult.Success)?.packageName ?: return
         val now = SystemClock.elapsedRealtime()
         val session = app.appLockSessionManager
@@ -178,6 +206,8 @@ class AppLockMonitorService : Service() {
         if (packageName == packageNameSelf) return
         if (packageName !in lockedPackages) return
         if (BuildConfig.DEBUG) Log.d(TAG, "protected target matched")
+        // Re-check entitlement immediately before beginning verification / overlay.
+        if (!app.appLockProtectionCoordinator.allowsLiveProtection()) return
         if (session.isTemporarilyUnlocked(packageName)) return
         if (!session.beginVerification(packageName)) return
         if (BuildConfig.DEBUG) Log.d(TAG, "verification requested")
@@ -189,13 +219,23 @@ class AppLockMonitorService : Service() {
             return
         }
 
+        if (!app.appLockProtectionCoordinator.allowsLiveProtection()) {
+            session.finishVerification(packageName)
+            return
+        }
+
+        val generationAtShow = app.appLockProtectionCoordinator.protectionGeneration()
         val targetName = runCatching { app.hiddenAppRuntime.resolve(packageName).appName }.getOrNull()
         val shown = withContext(Dispatchers.Main) {
-            !app.privacyWithdrawn && overlayController?.show(
-                targetPackageName = packageName,
-                targetAppName = targetName,
-                detectedAtElapsed = now,
-            ) == true
+            !app.privacyWithdrawn &&
+                app.appLockProtectionCoordinator.allowsLiveProtection() &&
+                app.appLockProtectionCoordinator.protectionGeneration() == generationAtShow &&
+                overlayController?.show(
+                    targetPackageName = packageName,
+                    targetAppName = targetName,
+                    detectedAtElapsed = now,
+                    protectionGeneration = generationAtShow,
+                ) == true
         }
         if (!shown) {
             session.finishVerification(packageName)
@@ -252,9 +292,20 @@ class AppLockMonitorService : Service() {
     private fun startAsForegroundIfPossible() {
         createNotificationChannel()
         try {
-            startForeground(NOTIFICATION_ID, buildNotification())
+            // API 34+ requires the declared specialUse type or startForeground fails / times out.
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
         } catch (error: RuntimeException) {
             if (BuildConfig.DEBUG) Log.w(TAG, "start foreground failed=${error::class.java.simpleName}")
+            // Must not leave a half-started FGS: Android kills the process with
+            // ForegroundServiceDidNotStartInTimeException if startForeground never succeeds.
+            isRunning = false
+            runningService = null
+            stopSelf()
         }
     }
 
@@ -293,13 +344,38 @@ class AppLockMonitorService : Service() {
 
         private var runningService: java.lang.ref.WeakReference<AppLockMonitorService>? = null
 
-        fun start(context: Context) {
-            if ((context.applicationContext as CalculatorVaultApp).privacyWithdrawn) return
+        /** True when the live monitor Overlay is attached (instrumentation / diagnostics). */
+        fun isOverlayShowing(): Boolean =
+            runningService?.get()?.overlayController?.isShowing() == true
+
+        fun overlayTargetPackage(): String? =
+            runningService?.get()?.overlayController?.currentTargetPackage()
+
+        /**
+         * @return true if a start was requested without an immediate rejection;
+         * false if privacy withdrawn or the platform refused background FGS start.
+         * Room configuration is never cleared on failure.
+         */
+        fun start(context: Context): Boolean {
+            if ((context.applicationContext as CalculatorVaultApp).privacyWithdrawn) return false
             val intent = Intent(context, AppLockMonitorService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            return try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                true
+            } catch (error: IllegalStateException) {
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "FGS start refused=${error::class.java.simpleName}; config retained")
+                }
+                false
+            } catch (error: RuntimeException) {
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "service start failed=${error::class.java.simpleName}; config retained")
+                }
+                false
             }
         }
 
@@ -311,6 +387,12 @@ class AppLockMonitorService : Service() {
         fun stop(context: Context) {
             runningService?.get()?.releaseMonitoring()
             context.stopService(Intent(context, AppLockMonitorService::class.java))
+        }
+
+        fun hideOverlayAndClearSession(context: Context) {
+            val app = context.applicationContext as CalculatorVaultApp
+            runningService?.get()?.overlayController?.hide()
+            app.appLockSessionManager.clearAll()
         }
     }
 }

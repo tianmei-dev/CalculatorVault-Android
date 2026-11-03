@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-02",
+  "endpoint": "http://192.168.0.107:8081",
+  "total_tests": {
+    "tests": 352,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "real_http_tests": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "other_fake_tests": 348,
+  "instrumentation": "COMPILED_NOT_INSTALLED",
+  "database_aggregate": {
+    "rows": 324,
+    "expired": 318,
+    "zero_length": 4
+  },
+  "per_fixture_sql_correlation": "NOT_VERIFIED",
+  "server_restart_persistence": "NOT_EXECUTED",
+  "real_android_id_read": false,
+  "production_data_modified": false
+}

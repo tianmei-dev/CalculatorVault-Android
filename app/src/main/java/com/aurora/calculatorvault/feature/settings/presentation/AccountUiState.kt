@@ -45,9 +45,25 @@ data class AccountUiState(
             deviceTrial == MembershipStatus.TrialExpired || deviceTrial == MembershipStatus.NotSubscribed)
     }
 
-    // A guest must never display membership belonging to a previously signed-in account.
+    /**
+     * Display priority aligned with product entitlement:
+     * account VIP (signed-in only) > device trial > free/not subscribed.
+     * Guests never surface a stale account VIP; signed-in users may still show an active device trial
+     * when no real VIP claim is present.
+     */
     val visibleMembership: MembershipStatus
-        get() = if (account == AccountStatus.Guest) deviceTrial else accountMembership
+        get() {
+            val accountVip = account != AccountStatus.Guest &&
+                (accountMembership is MembershipStatus.VipActive ||
+                    accountMembership is MembershipStatus.VipPermanent)
+            if (accountVip) return accountMembership
+            if (deviceTrial is MembershipStatus.TrialActive ||
+                deviceTrial is MembershipStatus.TrialExpired
+            ) {
+                return deviceTrial
+            }
+            return if (account == AccountStatus.Guest) deviceTrial else accountMembership
+        }
 }
 
 internal data class MembershipText(val title: Int, val subtitle: Int, val arguments: List<Any> = emptyList())

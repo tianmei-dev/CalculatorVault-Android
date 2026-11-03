@@ -109,6 +109,7 @@ fun PrivateMediaScreen(
     onImportClick: () -> Unit,
     onCreateFolderClick: () -> Unit,
     onRestoreClick: () -> Unit,
+    onNavigateToVip: () -> Unit = {},
     onGuideTargetBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -118,6 +119,7 @@ fun PrivateMediaScreen(
     val importFailed = stringResource(R.string.private_media_import_failed)
     val importSuccess = stringResource(R.string.private_media_import_success)
     val importPartial = stringResource(R.string.private_media_import_partial)
+    val importEntitlementPartial = stringResource(R.string.private_media_import_entitlement_partial)
     val deleteSuccess = stringResource(R.string.private_media_delete_success)
     val deletePartial = stringResource(R.string.private_media_delete_partial)
     val deleteFailed = stringResource(R.string.private_media_delete_failed)
@@ -269,10 +271,21 @@ fun PrivateMediaScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is PrivateMediaEffect.OpenMediaPicker -> launchPickerForAlbum(effect.albumId)
+                PrivateMediaEffect.NavigateToVip -> onNavigateToVip()
                 PrivateMediaEffect.ImportFailed ->
                     messageController.showError(importFailed)
                 is PrivateMediaEffect.ImportCompleted -> {
                     when {
+                        effect.skippedDueToEntitlement > 0 && effect.successCount > 0 ->
+                            messageController.show(
+                                AppMessage(
+                                    message = importEntitlementPartial.format(
+                                        effect.successCount,
+                                        effect.skippedDueToEntitlement,
+                                    ),
+                                    type = AppMessageType.Warning,
+                                ),
+                            )
                         effect.successCount > 0 && effect.failureCount == 0 ->
                             messageController.show(
                                 AppMessage(
@@ -287,6 +300,7 @@ fun PrivateMediaScreen(
                                     type = AppMessageType.Warning,
                                 ),
                             )
+                        effect.skippedDueToEntitlement > 0 -> Unit // NavigateToVip emitted separately
                         else -> messageController.showError(importFailed)
                     }
                 }
@@ -372,6 +386,7 @@ fun PrivateMediaScreen(
         onGuideTargetBoundsChanged = onGuideTargetBoundsChanged,
         onImportFromHome = {
             onImportClick()
+            // Album picker then requestImportToAlbum — entitlement gated at ViewModel.
             showImportAlbumPicker = true
         },
         onImportCurrentAlbum = {

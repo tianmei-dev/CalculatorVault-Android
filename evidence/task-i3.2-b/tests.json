@@ -1,0 +1,14 @@
+{
+  "testDebugUnitTest": {
+    "tests": 353,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4
+  },
+  "testLocalIntegrationUnitTest": {
+    "tests": 341,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4
+  }
+}

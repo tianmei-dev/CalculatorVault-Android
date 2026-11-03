@@ -2,6 +2,7 @@ package com.aurora.calculatorvault.feature.applock.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aurora.calculatorvault.feature.applock.domain.AppLockProtectionCoordinator
 import com.aurora.calculatorvault.feature.applock.domain.AppLockSessionManager
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
 import kotlinx.coroutines.channels.Channel
@@ -17,6 +18,8 @@ class AppLockVerificationViewModel(
     private val targetPackageName: String,
     private val unlockUseCase: VaultUnlockUseCase,
     private val sessionManager: AppLockSessionManager,
+    private val protectionCoordinator: AppLockProtectionCoordinator,
+    private val generationAtCreate: Long = protectionCoordinator.protectionGeneration(),
 ) : ViewModel() {
     private val passwordBuffer = CharArray(MAX_PASSWORD_LENGTH)
     private var passwordLength = 0
@@ -31,6 +34,22 @@ class AppLockVerificationViewModel(
 
     private val effectChannel = Channel<AppLockVerificationEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            // Close if entitlement drops while this spare verification UI is open.
+            while (true) {
+                kotlinx.coroutines.delay(500)
+                if (!protectionCoordinator.allowsLiveProtection() ||
+                    protectionCoordinator.protectionGeneration() != generationAtCreate
+                ) {
+                    sessionManager.finishVerification(targetPackageName)
+                    effectChannel.send(AppLockVerificationEffect.Finish)
+                    return@launch
+                }
+            }
+        }
+    }
 
     fun inputDigit(value: Int) {
         if (value !in 0..9 || passwordLength >= MAX_PASSWORD_LENGTH || _state.value.isVerifying) return
@@ -68,14 +87,29 @@ class AppLockVerificationViewModel(
 
     fun confirmPassword() {
         if (_state.value.isVerifying || _state.value.invalidRequest || passwordLength !in 4..8) return
+        if (!protectionCoordinator.allowsLiveProtection() ||
+            protectionCoordinator.protectionGeneration() != generationAtCreate
+        ) {
+            viewModelScope.launch {
+                sessionManager.finishVerification(targetPackageName)
+                effectChannel.send(AppLockVerificationEffect.Finish)
+            }
+            return
+        }
         val candidate = passwordBuffer.copyOf(passwordLength)
         _state.update { it.copy(isVerifying = true, passwordIncorrect = false) }
         viewModelScope.launch {
             val verified = runCatching { unlockUseCase.verify(candidate) }.getOrDefault(false)
             Arrays.fill(candidate, '\u0000')
-            if (verified) {
+            val stillAllowed = protectionCoordinator.allowsLiveProtection() &&
+                protectionCoordinator.protectionGeneration() == generationAtCreate
+            if (verified && stillAllowed) {
                 clearPasswordBuffer()
                 sessionManager.markUnlocked(targetPackageName)
+                effectChannel.send(AppLockVerificationEffect.Finish)
+            } else if (verified) {
+                clearPasswordBuffer()
+                sessionManager.finishVerification(targetPackageName)
                 effectChannel.send(AppLockVerificationEffect.Finish)
             } else {
                 clearPasswordBuffer()

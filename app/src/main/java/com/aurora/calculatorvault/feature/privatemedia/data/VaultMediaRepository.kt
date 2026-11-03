@@ -39,6 +39,8 @@ class VaultMediaRepository(
     private val restoreManager: SystemMediaRestoreManager,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
+    /** Live import gate; must re-evaluate ActionPolicy (not a cached UI ticker flag). */
+    private val importAllowed: () -> Boolean = { true },
 ) {
     suspend fun ensureDefaultAlbum(): VaultAlbum = withContext(ioDispatcher) {
         albumDao.getDefaultAlbum()?.toDomain() ?: run {
@@ -135,38 +137,41 @@ class VaultMediaRepository(
         uris: List<Uri>,
         onProgress: ((current: Int, total: Int) -> Unit)? = null,
     ): VaultMediaImportSummary = withContext(ioDispatcher) {
-        val album = albumDao.getAlbum(albumId) ?: return@withContext VaultMediaImportSummary(0, uris.distinct().size)
-        var successes = 0
-        var failures = 0
-        val importedIds = mutableListOf<Long>()
+        val album = albumDao.getAlbum(albumId)
+            ?: return@withContext VaultMediaImportSummary(0, uris.distinct().size)
         val uniqueUris = uris.distinct()
         debugLog("batch import started count=${uniqueUris.size}")
-        uniqueUris.forEachIndexed { index, uri ->
+        val summary = com.aurora.calculatorvault.feature.privatemedia.domain.PrivateAlbumImportBatch.run(
+            itemCount = uniqueUris.size,
+            importAllowed = importAllowed,
+        ) { index ->
             onProgress?.invoke(index + 1, uniqueUris.size)
+            val uri = uniqueUris[index]
             val result = importer.importToPrivateFile(uri, album.id)
             val entity = result.getOrNull()
             if (entity == null) {
-                failures += 1
                 debugLog("batch import failed reason=copy")
+                com.aurora.calculatorvault.feature.privatemedia.domain.PrivateAlbumImportItemResult.Failure
             } else {
                 try {
                     val id = mediaDao.insertMedia(entity)
-                    importedIds += id
-                    successes += 1
                     debugLog("batch import success mediaId=$id")
+                    com.aurora.calculatorvault.feature.privatemedia.domain.PrivateAlbumImportItemResult.Success(id)
                 } catch (_: Exception) {
                     storage.deleteQuietly(entity.privateFileName)
-                    failures += 1
                     debugLog("batch import failed reason=database")
+                    com.aurora.calculatorvault.feature.privatemedia.domain.PrivateAlbumImportItemResult.Failure
                 }
             }
-            debugLog("batch import progress current=${index + 1} total=${uniqueUris.size}")
         }
-        if (successes > 0) {
+        if (summary.successCount > 0) {
             albumDao.touchAlbum(album.id, currentTimeMillis())
         }
-        debugLog("batch import completed success=$successes failed=$failures")
-        VaultMediaImportSummary(successes, failures, importedIds)
+        debugLog(
+            "batch import completed success=${summary.successCount} " +
+                "failed=${summary.failureCount} entitlementSkipped=${summary.skippedDueToEntitlement}",
+        )
+        summary
     }
 
     suspend fun createAlbum(name: String): Result<VaultAlbum> = withContext(ioDispatcher) {
@@ -268,6 +273,11 @@ class VaultMediaRepository(
         if (mediaIds.isEmpty()) 0 else mediaDao.updateOriginalRemovalState(mediaIds.distinct(), state.name)
     }
 
+    /**
+     * Removes DB rows whose private files are physically missing.
+     * Entitlement expiry must never be treated as "missing media" — this path only
+     * inspects file existence and does not consult ActionPolicy / membership.
+     */
     suspend fun cleanupMissingMediaRecords(): Int = withContext(ioDispatcher) {
         val missingIds = mediaDao.observeAllMediaSnapshot()
             .filter { entity ->

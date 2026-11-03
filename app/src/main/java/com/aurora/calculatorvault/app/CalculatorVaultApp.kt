@@ -56,12 +56,24 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import com.aurora.calculatorvault.feature.login.data.LoginPromptPreferences
 import com.aurora.calculatorvault.BuildConfig
 import com.aurora.calculatorvault.feature.login.data.AndroidWeChatSdkBridge
 import com.aurora.calculatorvault.feature.login.data.SharedPreferencesWeChatAuthorizationStore
 import com.aurora.calculatorvault.feature.login.session.*
 import com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationCoordinator
+import com.aurora.calculatorvault.feature.entitlement.domain.ActionDecision
+import com.aurora.calculatorvault.feature.entitlement.domain.DefaultMembershipProvider
+import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementCapability
+import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementRepository
+import com.aurora.calculatorvault.feature.entitlement.domain.MembershipProvider
+import com.aurora.calculatorvault.feature.applock.domain.AppLockProtectionCoordinator
+import com.aurora.calculatorvault.feature.applock.domain.OverlayPermissionHelper
+import com.aurora.calculatorvault.feature.applock.domain.UsageAccessPermissionHelper
+import android.os.SystemClock
+import androidx.lifecycle.Lifecycle
 
 class CalculatorVaultApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -132,6 +144,7 @@ class CalculatorVaultApp : Application() {
                 wechatAuthorization.cancel(privacyWithdrawn = true)
                 accountSession.logout()
                 vaultSessionManager.lock()
+                appLockProtectionCoordinator.bumpGeneration()
                 appLockSessionManager.clearAll()
                 AppLockMonitorService.stop(this)
             },
@@ -302,6 +315,12 @@ class CalculatorVaultApp : Application() {
             importer = vaultMediaImporter,
             storage = vaultMediaStorage,
             restoreManager = systemMediaRestoreManager,
+            importAllowed = {
+                val decision = entitlementRepository.actionPolicy.evaluate(
+                    EntitlementCapability.PRIVATE_ALBUM_IMPORT,
+                )
+                decision is ActionDecision.Allowed
+            },
         )
     }
 
@@ -339,7 +358,7 @@ class CalculatorVaultApp : Application() {
             com.aurora.calculatorvault.feature.trial.EncryptedTrialStore(applicationContext),
             com.aurora.calculatorvault.feature.trial.AndroidTrialClock(applicationContext),
             com.aurora.calculatorvault.feature.trial.AndroidDeviceIdentityProvider(applicationContext, privacyConsent),
-            HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG), applicationScope, ::hasPrivacyConsent,
+            HttpAuthApi(BuildConfig.TRIAL_API_BASE_URL, BuildConfig.DEBUG, localHttpBaseUrl = BuildConfig.TRIAL_HTTP_BASE_URL, trialOnlyBaseUrl = BuildConfig.TRIAL_HTTP_BASE_URL), applicationScope, ::hasPrivacyConsent,
             { BuildConfig.TRIAL_DEVICE_UPLOAD_ENABLED })
     }
 
@@ -356,6 +375,49 @@ class CalculatorVaultApp : Application() {
             store = SharedPreferencesWeChatAuthorizationStore(applicationContext),
             serverLogin = accountSession,
             consentAllowed = privacyConsent::isAllowedNow,
+        )
+    }
+
+    /**
+     * Production VIP source reservation. Never fabricates membership.
+     * JVM unit tests inject FakeMembershipProvider directly; androidTest overrides
+     * [EntitlementRepository.stateOverride] from the test source set only.
+     */
+    val membershipProvider: MembershipProvider by lazy { DefaultMembershipProvider() }
+
+    val entitlementRepository by lazy {
+        EntitlementRepository(
+            deviceTrial = deviceTrial,
+            accountSession = accountSession,
+            membershipProvider = membershipProvider,
+            elapsedRealtime = { SystemClock.elapsedRealtime() },
+            wallClockEpochMillis = { System.currentTimeMillis() },
+            scope = applicationScope,
+        )
+    }
+
+    val appLockProtectionCoordinator by lazy {
+        AppLockProtectionCoordinator(
+            entitlementState = entitlementRepository.state,
+            actionPolicy = entitlementRepository.actionPolicy,
+            observeLockedPackages = { appLockRepository.observeLockedPackages() },
+            lockedPackageCount = {
+                appLockRepository.observeLockedPackages().first().size
+            },
+            privacyOk = { hasPrivacyConsent() },
+            privacyWithdrawn = { privacyWithdrawn },
+            usageAccessGranted = { UsageAccessPermissionHelper(applicationContext).hasUsageAccess() },
+            overlayPermissionGranted = { OverlayPermissionHelper(applicationContext).isGranted() },
+            processForeground = {
+                ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            },
+            isMonitorRunning = { AppLockMonitorService.isRunning },
+            startMonitor = { AppLockMonitorService.start(this) },
+            stopMonitor = { AppLockMonitorService.stop(this) },
+            revokeRuntimeProtection = {
+                AppLockMonitorService.hideOverlayAndClearSession(this)
+            },
+            scope = applicationScope,
         )
     }
 
@@ -400,13 +462,20 @@ class CalculatorVaultApp : Application() {
             AppLifecycleObserver(vaultSessionManager),
         )
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
-            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) { accountSession.revalidate(); deviceTrial.refresh(); deviceTrial.sync() }
+            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                accountSession.revalidate()
+                deviceTrial.refresh()
+                deviceTrial.sync()
+                appLockProtectionCoordinator.onProcessForeground()
+            }
         })
+        appLockProtectionCoordinator.start()
         applicationScope.launch {
             // Persisted consent is read before either third-party SDK is touched.
             thirdPartySdkInitializer.initializeIfAllowed()
             if (hasPrivacyConsent()) accountSession.restore()
             deviceTrial.sync()
+            appLockProtectionCoordinator.reconcile()
         }
     }
 

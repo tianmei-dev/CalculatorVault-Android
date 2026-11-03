@@ -54,6 +54,8 @@ data class VaultMediaImportSummary(
     val successCount: Int,
     val failureCount: Int,
     val importedMediaIds: List<Long> = emptyList(),
+    /** Remaining items not started because [PRIVATE_ALBUM_IMPORT] became denied mid-batch. */
+    val skippedDueToEntitlement: Int = 0,
 )
 
 data class VaultMediaDeleteSummary(
