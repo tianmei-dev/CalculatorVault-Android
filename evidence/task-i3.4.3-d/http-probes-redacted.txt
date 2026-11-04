@@ -1,0 +1,29 @@
+# Host-side read-only probes against running :8080 (aurora_app / 3308)
+# Tokens never real; Authorization values are placeholders only.
+
+GET http://127.0.0.1:8080/api/v1/membership/me
+Header: X-App-Code: calculator_vault
+Authorization: (absent)
+→ HTTP 401  (empty body observed)
+
+GET http://127.0.0.1:8080/api/v1/membership/me
+Header: X-App-Code: calculator_vault
+Authorization: Bearer REDACTED_INVALID
+→ HTTP 401  (empty body observed)
+
+POST http://127.0.0.1:8080/api/v1/membership/grant
+Header: X-App-Code: calculator_vault
+Authorization: Bearer REDACTED_INVALID
+Body: {}
+→ HTTP 401
+
+# Authenticated grant/revoke absence is proven by MembershipApiIT on aurora_app_test:
+#   clientCannotGrantViaHttp  → HTTP 404 + code 40400
+#   clientCannotRevokeViaHttp → HTTP 404 + code 40400
+#
+# ACTIVE YEARLY /me shape (from MembershipApiIT expectations, clock fixed 2026-01-01):
+#   status=ACTIVE planType=YEARLY isLifetime=false
+#   membershipStartedAt=2026-01-01T00:00:00Z
+#   membershipExpiresAt=2027-01-01T00:00:00Z
+#   serverTime=2026-01-01T00:00:00Z
+# Token / userId omitted from this evidence file.

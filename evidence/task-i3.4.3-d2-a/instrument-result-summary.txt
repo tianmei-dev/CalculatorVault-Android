@@ -1,0 +1,15 @@
+IsolatedTestSessionInstrumentationTest on CalculatorVault_Test / emulator-5554
+Build: -PISOLATED_MEMBERSHIP_TEST=true → API_BASE_URL=http://10.0.2.2:8081
+Runner: adb install -r + am instrument (not connectedDebugAndroidTest)
+Result: OK (7 tests)
+Cases:
+- installTriggersMembershipRefresh_noneHasNoVip PASS
+- invalidToken_sessionExpired PASS
+- logout_clearsVip PASS (lifetime fixture; tearDown uses abandonLocalSession)
+- installValidSession_reachesAuthenticated_andPersistsInKeystorePath PASS
+- monthlyAccount_realMeGrantsVip PASS (real /me → VIP)
+- switchAccount_clearsPreviousVip PASS
+- revalidate_keepsAuthenticated_sameRestoreValidatePath PASS
+Tokens: not printed.
+Server: 8081 s32it / aurora_app_test@3307
+Note: am force-stop process-death check omitted (crashes harness); Keystore+me path covered.

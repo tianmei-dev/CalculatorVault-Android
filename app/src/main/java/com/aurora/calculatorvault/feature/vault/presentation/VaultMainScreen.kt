@@ -338,8 +338,9 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.Settings.path) {
+                val membershipSync by application.membershipRefreshCoordinator.syncState.collectAsState()
                 val entitlementAccount = com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
-                    .toAccountUiState(sessionState, entitlementState, trialState)
+                    .toAccountUiState(sessionState, entitlementState, trialState, membershipSync)
                 SettingsScreen(
                     sessionPending = sessionState == AccountSession.TemporarilyUnavailable,
                     onRetrySession = application.accountSession::revalidate,
@@ -361,6 +362,9 @@ fun VaultMainScreen(
                         navController.navigate(VaultTabRoute.VipMembership.createRoute(VipPurchaseSource.Settings)) {
                             launchSingleTop = true
                         }
+                    },
+                    onRefreshMembership = {
+                        application.membershipRefreshCoordinator.refreshManual()
                     },
                     onChangePassword = {
                         application.analyticsTracker.track(AnalyticsEvent.ChangePasswordClick)

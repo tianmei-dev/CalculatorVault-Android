@@ -122,6 +122,76 @@ class AccountSessionRepository(
         mutableLogoutWarning.value = !clearStorage()
         if (previous != null) scope.launch { revoke(previous) }
     }
+
+    /**
+     * Drop local session + Keystore without calling server logout.
+     * Used by isolation test tear-down / account switch so fixture Bearer tokens stay valid.
+     */
+    fun abandonLocalSession() {
+        expiryJob?.cancel()
+        ++generation
+        credential = null
+        clearStorage()
+        mutableState.value = AccountSession.Guest
+    }
+
+    /** Current access token for authenticated membership queries; never logged. */
+    fun peekAccessToken(): String? = credential?.token
+
+    /**
+     * Install a server-issued Bearer session (I3.4.3-D2-A).
+     *
+     * Writes through [TokenStore] (production [KeystoreTokenStore]), then validates via
+     * [AuthApi.me] — the same path as cold-start [restore]. Does **not** invent VIP.
+     *
+     * Previous in-memory / stored credentials are cleared **without** calling server logout,
+     * so other isolation test tokens remain usable when switching fixtures.
+     *
+     * Callers must be Debug-gated (see debug [com.aurora.calculatorvault.app] helpers);
+     * production UI / WeChat login never invoke this.
+     */
+    fun installServerIssuedSession(credential: SessionCredential) {
+        require(credential.token.isNotBlank()) { "blank session token" }
+        require(credential.token.none { it.isWhitespace() || it.isISOControl() }) {
+            "invalid session token characters"
+        }
+        require(credential.expiresAt.isAfter(Instant.now())) { "session already expired locally" }
+        expiryJob?.cancel()
+        val version = ++generation
+        this.credential = null
+        clearStorage()
+        mutableState.value = AccountSession.Validating
+        scope.launch {
+            if (version != generation) return@launch
+            try {
+                store.write(credential)
+            } catch (_: Exception) {
+                if (version == generation) {
+                    this@AccountSessionRepository.credential = null
+                    clearStorage()
+                    mutableState.value = AccountSession.StorageFailed
+                }
+                return@launch
+            }
+            if (version != generation) return@launch
+            this@AccountSessionRepository.credential = credential
+            validate(credential, version)
+        }
+    }
+
+    /**
+     * Membership-layer SessionInvalid entry (I3.4.3-C).
+     * Only expires when [accountId] still matches the current Authenticated session —
+     * a late 401 from a previous account cannot log out the new session.
+     * Does not clear device trial, private album, or app-lock Room config.
+     */
+    fun notifyRemoteSessionInvalid(accountId: Long) {
+        val current = mutableState.value
+        if (current !is AccountSession.Authenticated) return
+        if (current.account.userId != accountId) return
+        expire(generation)
+    }
+
     private suspend fun revoke(value: SessionCredential) {
         try { api.logout(value.token) } catch (_: Exception) { mutableLogoutWarning.value = true }
     }

@@ -17,6 +17,11 @@
     <string name="account_open_vip">开通VIP</string>
     <string name="account_open_vip_description">解锁应用锁和私密相册高级功能</string>
     <string name="account_vip_expires">有效期至 %1$s</string>
-    <string name="account_vip_permanent">永久VIP</string>
+    <string name="account_vip_permanent">永久会员</string>
+    <string name="account_vip_monthly">月卡会员</string>
+    <string name="account_vip_annual">年卡会员</string>
+    <string name="account_membership_refresh">刷新会员状态</string>
+    <string name="account_membership_syncing">会员状态同步中</string>
+    <string name="account_membership_sync_failed">会员状态暂时无法同步</string>
     <string name="account_trial_pending">设备试用等待验证</string>
 </resources>

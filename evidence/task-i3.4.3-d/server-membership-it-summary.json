@@ -1,0 +1,43 @@
+{
+  "profile": "test",
+  "database": "aurora_app_test@127.0.0.1:3307",
+  "executedAt": "2026-11-04T20:30:21+08:00",
+  "result": "BUILD SUCCESSFUL",
+  "suites": [
+    {
+      "name": "MembershipApiIT",
+      "tests": 11,
+      "failures": 0,
+      "highlights": [
+        "meReturnsNoneForNewUser",
+        "meReturnsActiveMembership (YEARLY via MembershipService.grant ADMIN)",
+        "clientCannotGrantViaHttp → 40400",
+        "clientCannotRevokeViaHttp → 40400",
+        "unauthenticated / invalid / expired token → 401",
+        "appTokenMismatch → 40301",
+        "crossAppMembershipNotVisible",
+        "clientCannotSpecifyExpiryOnMe"
+      ]
+    },
+    {
+      "name": "MembershipServiceIT",
+      "tests": 21,
+      "failures": 0,
+      "highlights": [
+        "NONE / MONTHLY / YEARLY / LIFETIME ACTIVE",
+        "monthly+yearly stack",
+        "EXPIRED after clock advance",
+        "revoke → recalculate / REVOKED paths",
+        "cross-app isolation",
+        "idempotent grant"
+      ]
+    },
+    {
+      "name": "MembershipEntitlementCalculatorTest",
+      "tests": 10,
+      "failures": 0
+    }
+  ],
+  "httpEvidenceClassification": "隔离 Server 集成测试（MockMvc + TestWechatAuthClient + MembershipService 内部 grant）",
+  "notEquivalentTo": "Android 模拟器 ↔ 常驻 HTTP 进程真实双端联调"
+}

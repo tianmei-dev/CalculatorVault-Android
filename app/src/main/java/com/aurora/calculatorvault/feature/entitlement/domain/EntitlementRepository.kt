@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -64,7 +65,10 @@ class EntitlementRepository(
     }
 
     init {
-        combine(deviceTrial.state, accountSession.state) { trial, session ->
+        // Optional membership revision ticks (ServerMembershipProvider); Default/Fake ignore.
+        val membershipRevision =
+            (membershipProvider as? MembershipStateSignal)?.membershipStateRevision ?: flowOf(0L)
+        combine(deviceTrial.state, accountSession.state, membershipRevision) { trial, session, _ ->
             computeState(trial, session, elapsedRealtime(), wallClockEpochMillis())
         }.onEach { mutableState.value = it }.launchIn(scope)
     }
@@ -136,6 +140,8 @@ class EntitlementRepository(
             accountGeneration = accountGeneration,
             vipExpiresAtEpochMillis = (vip as? EntitlementSource.Vip)?.expiresAtEpochMillis,
             vipPermanent = (vip as? EntitlementSource.Vip)?.permanent == true,
+            vipPlanType = (vip as? EntitlementSource.Vip)?.planType,
+            vipContributingPlanTypes = (vip as? EntitlementSource.Vip)?.contributingPlanTypes.orEmpty(),
             evaluatedAtElapsedMillis = nowElapsed,
         )
     }
@@ -158,6 +164,8 @@ class EntitlementRepository(
                     accountId = accountId,
                     expiresAtEpochMillis = result.expiresAtEpochMillis,
                     permanent = result.permanent,
+                    planType = result.planType,
+                    contributingPlanTypes = result.contributingPlanTypes,
                 )
             }
             MembershipResult.NotEntitled,

@@ -23,6 +23,10 @@ sealed interface MembershipResult {
         val accountId: Long,
         val expiresAtEpochMillis: Long?,
         val generation: Long,
+        /** Server planType for display; never used as authorization input. */
+        val planType: String? = null,
+        /** Active contributing plans when stacked; display-only. */
+        val contributingPlanTypes: List<String> = emptyList(),
     ) : MembershipResult {
         val permanent: Boolean get() = expiresAtEpochMillis == null
     }
@@ -34,6 +38,14 @@ sealed interface MembershipResult {
  */
 fun interface MembershipProvider {
     fun membershipFor(accountId: Long?, generation: Long): MembershipResult
+}
+
+/**
+ * Optional signal so [EntitlementRepository] can recompute when an async membership
+ * provider updates or a sticky VIP window expires. Production Default never implements this.
+ */
+interface MembershipStateSignal {
+    val membershipStateRevision: kotlinx.coroutines.flow.StateFlow<Long>
 }
 
 /** Production default: never grants VIP. */
@@ -73,7 +85,15 @@ class FakeMembershipProvider : MembershipProvider {
         accountId: Long,
         generation: Long,
         expiresAtEpochMillis: Long? = null,
+        planType: String? = if (expiresAtEpochMillis == null) "LIFETIME" else "MONTHLY",
+        contributingPlanTypes: List<String> = listOfNotNull(planType),
     ) {
-        result = MembershipResult.VerifiedActive(accountId, expiresAtEpochMillis, generation)
+        result = MembershipResult.VerifiedActive(
+            accountId = accountId,
+            expiresAtEpochMillis = expiresAtEpochMillis,
+            generation = generation,
+            planType = planType,
+            contributingPlanTypes = contributingPlanTypes,
+        )
     }
 }

@@ -23,6 +23,7 @@ internal fun SettingsAccountContent(
     onLogin: () -> Unit,
     onVipMembership: () -> Unit,
     onLogoutConfirmed: () -> Unit,
+    onRefreshMembership: (() -> Unit)? = null,
 ) {
     var showLogout by rememberSaveable { mutableStateOf(false) }
     val loggedIn = state.account as? AccountStatus.WeChatLoggedIn
@@ -37,15 +38,45 @@ internal fun SettingsAccountContent(
         adaptiveHeight = true,
     )
     val membership = membershipText(state)
+    val membershipSubtitle = buildString {
+        append(stringResource(membership.subtitle, *membership.arguments.toTypedArray()))
+        state.membershipSyncHint?.let { hint ->
+            if (isNotEmpty()) append('\n')
+            append(hint)
+        }
+    }
     VaultSettingItem(
         title = stringResource(membership.title),
-        subtitle = stringResource(membership.subtitle, *membership.arguments.toTypedArray()),
+        subtitle = membershipSubtitle,
         icon = VaultIcons.Security,
         onClick = onVipMembership,
         showDivider = loggedIn != null,
         modifier = Modifier.testTag("settings_membership"),
         adaptiveHeight = true,
     )
+    if (loggedIn != null && onRefreshMembership != null) {
+        TextButton(
+            onClick = onRefreshMembership,
+            enabled = !state.membershipRefreshing,
+            modifier = Modifier.testTag("settings_membership_refresh"),
+        ) {
+            Text(
+                text = stringResource(
+                    if (state.membershipRefreshing) {
+                        R.string.account_membership_syncing
+                    } else {
+                        R.string.account_membership_refresh
+                    },
+                ),
+                style = AppTextStyles.Button,
+                color = if (state.membershipRefreshing) {
+                    AppColors.AccentPrimary.copy(alpha = 0.5f)
+                } else {
+                    AppColors.AccentPrimary
+                },
+            )
+        }
+    }
     if (loggedIn != null) {
         TextButton(onClick = { showLogout = true }, modifier = Modifier.testTag("settings_logout")) {
             Text(stringResource(R.string.account_logout), style = AppTextStyles.Button, color = AppColors.AccentPrimary)

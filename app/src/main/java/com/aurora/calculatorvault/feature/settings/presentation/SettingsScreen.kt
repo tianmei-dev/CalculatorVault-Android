@@ -41,6 +41,7 @@ fun SettingsScreen(
     sessionMessage: String = "",
     onRetrySession: () -> Unit = {},
     sessionPending: Boolean = false,
+    onRefreshMembership: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val messageController = LocalAppMessageController.current
@@ -57,7 +58,13 @@ fun SettingsScreen(
             description = stringResource(R.string.settings_description),
         )
         SettingsGroup(title = stringResource(R.string.settings_account_group)) {
-            SettingsAccountContent(accountState, onLogin, onVipMembership, onLogoutConfirmed)
+            SettingsAccountContent(
+                state = accountState,
+                onLogin = onLogin,
+                onVipMembership = onVipMembership,
+                onLogoutConfirmed = onLogoutConfirmed,
+                onRefreshMembership = onRefreshMembership,
+            )
             if (sessionMessage.isNotEmpty()) Text(sessionMessage)
             if (sessionPending) {
                 androidx.compose.material3.TextButton(onClick = onRetrySession) { Text("重新校验账号") }

@@ -1,0 +1,64 @@
+{
+  "capturedAt": "2026-11-04T20:35:00+08:00",
+  "emulator": {
+    "avd": "CalculatorVault_Test",
+    "serial": "emulator-5554",
+    "qemu": true,
+    "packagesPresent": [
+      "com.aurora.calculatorvault",
+      "com.aurora.calculatorvault.test"
+    ],
+    "appVersionName": "1.0.0",
+    "appVersionCode": 1,
+    "lastUpdateTimeObserved": "2026-11-04 11:15:00",
+    "note": "No uninstall / clear-data performed this task."
+  },
+  "servers": {
+    "8080": {
+      "reachable": true,
+      "role": "local/dev bootRun → aurora_app @ MySQL 3308 (aurora-mysql-dev)",
+      "membershipWritesAllowed": false,
+      "probes": {
+        "GET /api/v1/membership/me without Authorization": "HTTP 401",
+        "POST /api/v1/membership/grant without valid session": "HTTP 401 (auth filter; IT asserts authenticated client grant → 40400)"
+      }
+    },
+    "8081": {
+      "reachable": false,
+      "role": "s32it isolation profile → aurora_app_test @ MySQL 3307",
+      "status": "DOWN during this task; not started (WeChat placeholders; no public grant HTTP)"
+    }
+  },
+  "databases": {
+    "aurora-mysql-dev": {
+      "port": 3308,
+      "database": "aurora_app",
+      "status": "Up (healthy)",
+      "touched": false
+    },
+    "aurora-mysql-it": {
+      "port": 3307,
+      "database": "aurora_app_test",
+      "status": "Restarted from Exited → Up for Membership* IT only",
+      "touched": "Integration tests only via Spring @ActiveProfiles(test)"
+    }
+  },
+  "androidBaseUrls": {
+    "debug": "http://10.0.2.2:8080 (login + membership /me share this host)",
+    "localIntegration_login": "http://192.168.0.107:8080",
+    "localIntegration_trial": "http://192.168.0.107:8081",
+    "release": "RELEASE_API_BASE_URL (empty by default)"
+  },
+  "membershipGrantCapability": {
+    "publicHttpGrantRevoke": false,
+    "internalMembershipService": true,
+    "testFixtures": "MembershipApiIT / MembershipServiceIT against aurora_app_test",
+    "s32itAllowsGrantSourceTypeTest": false,
+    "safeDualEndOn8080": false
+  },
+  "testSessionIssuance": {
+    "realWeChatOpenSdkOnEmulator": "not available / not used",
+    "TestWechatAuthClient": "available only inside Server @SpringBootTest profile=test",
+    "injectSessionIntoInstalledAppWithoutClearData": "no approved channel this task"
+  }
+}

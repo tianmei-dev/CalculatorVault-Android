@@ -25,7 +25,8 @@ class AccountUiStateTest {
     @Test fun `six debug scenarios map to required headings`() {
         assertEquals(6, AccountPreviewScenes.scenes.size)
         assertEquals(listOf(R.string.account_trial_active, R.string.account_vip_inactive,
-            R.string.account_open_vip, R.string.vip_title, R.string.vip_title, R.string.account_vip_permanent),
+            R.string.account_open_vip, R.string.account_vip_monthly, R.string.account_vip_annual,
+            R.string.account_vip_permanent),
             AccountPreviewScenes.scenes.map { membershipText(it.state).title })
     }
 

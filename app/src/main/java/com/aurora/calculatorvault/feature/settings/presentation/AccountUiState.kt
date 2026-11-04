@@ -23,8 +23,12 @@ sealed interface MembershipStatus {
         init { require(!trialRemaining.isNegative) }
     }
     data object TrialExpired : MembershipStatus
+    /**
+     * Time-limited VIP. [planType] null means stacked / unknown → generic「VIP会员」.
+     * Lifetime must use [VipPermanent], never [VipPlan.Lifetime] here.
+     */
     data class VipActive(
-        override val planType: VipPlan,
+        override val planType: VipPlan? = null,
         override val expiresAt: LocalDate,
     ) : MembershipStatus {
         init { require(planType != VipPlan.Lifetime) }
@@ -39,6 +43,9 @@ data class AccountUiState(
     val accountMembership: MembershipStatus = MembershipStatus.NotSubscribed,
     // Independent device trial snapshot; no clock, device ID or persistence in this task.
     val deviceTrial: MembershipStatus = MembershipStatus.NotSubscribed,
+    /** Signed-in membership sync hint (同步中 / 暂时无法同步); never authorizes. */
+    val membershipSyncHint: String? = null,
+    val membershipRefreshing: Boolean = false,
 ) {
     init {
         require(deviceTrial is MembershipStatus.TrialActive ||
@@ -80,7 +87,14 @@ internal fun membershipText(state: AccountUiState): MembershipText = when (val s
         MembershipText(R.string.account_open_vip, R.string.account_open_vip_description)
     }
     is MembershipStatus.VipActive -> MembershipText(
-        R.string.vip_title, R.string.account_vip_expires, listOf(status.expiresAt.toString()),
+        title = when (status.planType) {
+            VipPlan.Monthly -> R.string.account_vip_monthly
+            VipPlan.Annual -> R.string.account_vip_annual
+            null -> R.string.vip_title
+            VipPlan.Lifetime -> R.string.vip_title
+        },
+        subtitle = R.string.account_vip_expires,
+        arguments = listOf(status.expiresAt.toString()),
     )
     MembershipStatus.VipPermanent -> MembershipText(R.string.account_vip_permanent, R.string.vip_duration_lifetime)
 }

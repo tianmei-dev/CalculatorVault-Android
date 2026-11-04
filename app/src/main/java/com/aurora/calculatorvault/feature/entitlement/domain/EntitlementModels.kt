@@ -32,6 +32,9 @@ sealed interface EntitlementSource {
         /** Wall-clock epoch millis; null means permanent. */
         val expiresAtEpochMillis: Long?,
         val permanent: Boolean = expiresAtEpochMillis == null,
+        /** Server planType for UI mapping only. */
+        val planType: String? = null,
+        val contributingPlanTypes: List<String> = emptyList(),
     ) : EntitlementSource
 }
 
@@ -49,6 +52,8 @@ data class EntitlementState(
     val accountGeneration: Long = 0L,
     val vipExpiresAtEpochMillis: Long? = null,
     val vipPermanent: Boolean = false,
+    val vipPlanType: String? = null,
+    val vipContributingPlanTypes: List<String> = emptyList(),
     val evaluatedAtElapsedMillis: Long = 0L,
 ) {
     val hasPaidEntitlement: Boolean

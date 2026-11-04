@@ -65,10 +65,12 @@ import com.aurora.calculatorvault.feature.login.data.SharedPreferencesWeChatAuth
 import com.aurora.calculatorvault.feature.login.session.*
 import com.aurora.calculatorvault.feature.login.domain.WeChatAuthorizationCoordinator
 import com.aurora.calculatorvault.feature.entitlement.domain.ActionDecision
-import com.aurora.calculatorvault.feature.entitlement.domain.DefaultMembershipProvider
 import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementCapability
 import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementRepository
 import com.aurora.calculatorvault.feature.entitlement.domain.MembershipProvider
+import com.aurora.calculatorvault.feature.membership.data.HttpMembershipApi
+import com.aurora.calculatorvault.feature.membership.data.MembershipRefreshCoordinator
+import com.aurora.calculatorvault.feature.membership.data.ServerMembershipProvider
 import com.aurora.calculatorvault.feature.applock.domain.AppLockProtectionCoordinator
 import com.aurora.calculatorvault.feature.applock.domain.OverlayPermissionHelper
 import com.aurora.calculatorvault.feature.applock.domain.UsageAccessPermissionHelper
@@ -379,11 +381,25 @@ class CalculatorVaultApp : Application() {
     }
 
     /**
-     * Production VIP source reservation. Never fabricates membership.
-     * JVM unit tests inject FakeMembershipProvider directly; androidTest overrides
+     * Production VIP source: server /me only. Never fabricates membership.
+     * JVM unit tests may inject FakeMembershipProvider directly; androidTest overrides
      * [EntitlementRepository.stateOverride] from the test source set only.
+     * Debug / localIntegration / Release all use [ServerMembershipProvider] —
+     * only server-confirmed ACTIVE grants VIP.
      */
-    val membershipProvider: MembershipProvider by lazy { DefaultMembershipProvider() }
+    val serverMembershipProvider: ServerMembershipProvider by lazy {
+        ServerMembershipProvider(
+            api = HttpMembershipApi(
+                baseUrl = BuildConfig.API_BASE_URL,
+                debug = BuildConfig.DEBUG,
+                localHttpBaseUrl = BuildConfig.LOCAL_HTTP_BASE_URL,
+            ),
+            scope = applicationScope,
+            elapsedRealtime = { SystemClock.elapsedRealtime() },
+        )
+    }
+
+    val membershipProvider: MembershipProvider by lazy { serverMembershipProvider }
 
     val entitlementRepository by lazy {
         EntitlementRepository(
@@ -393,6 +409,17 @@ class CalculatorVaultApp : Application() {
             elapsedRealtime = { SystemClock.elapsedRealtime() },
             wallClockEpochMillis = { System.currentTimeMillis() },
             scope = applicationScope,
+        )
+    }
+
+    val membershipRefreshCoordinator by lazy {
+        MembershipRefreshCoordinator(
+            accountSession = accountSession,
+            entitlementRepository = entitlementRepository,
+            serverMembership = serverMembershipProvider,
+            scope = applicationScope,
+            elapsedRealtime = { SystemClock.elapsedRealtime() },
+            baseUrlConfigured = { BuildConfig.API_BASE_URL.isNotBlank() },
         )
     }
 
@@ -466,10 +493,12 @@ class CalculatorVaultApp : Application() {
                 accountSession.revalidate()
                 deviceTrial.refresh()
                 deviceTrial.sync()
+                membershipRefreshCoordinator.onForeground()
                 appLockProtectionCoordinator.onProcessForeground()
             }
         })
         appLockProtectionCoordinator.start()
+        membershipRefreshCoordinator.start()
         applicationScope.launch {
             // Persisted consent is read before either third-party SDK is touched.
             thirdPartySdkInitializer.initializeIfAllowed()

@@ -16,7 +16,15 @@ require(wechatAppId.isEmpty() || wechatAppId.matches(Regex("wx[0-9a-fA-F]{16}"))
     "WECHAT_APP_ID must be empty or a valid WeChat mobile AppID (wx + 16 hexadecimal characters)"
 }
 
-val debugApiUrl = providers.gradleProperty("DEBUG_API_BASE_URL").orElse("http://10.0.2.2:8080").get()
+/**
+ * I3.4.3-D2-A: dedicated Debug builds for isolated membership Session injection.
+ * `-PISOLATED_MEMBERSHIP_TEST=true` defaults API hosts to emulator → host :8081 (s32it),
+ * enables [BuildConfig.TEST_SESSION_INSTALL_ENABLED], and does not change Release / 8080 defaults.
+ */
+val isolatedMembershipTest =
+    providers.gradleProperty("ISOLATED_MEMBERSHIP_TEST").orElse("false").get() == "true"
+val debugApiUrlDefault = if (isolatedMembershipTest) "http://10.0.2.2:8081" else "http://10.0.2.2:8080"
+val debugApiUrl = providers.gradleProperty("DEBUG_API_BASE_URL").orElse(debugApiUrlDefault).get()
 val releaseApiUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orElse("").get()
 fun quotedUrl(value: String): String {
     require(value.none { it == '"' || it == '\\' || it.isISOControl() })
@@ -57,13 +65,18 @@ android {
         debug {
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", providers.gradleProperty("TRIAL_DEVICE_UPLOAD_ENABLED").orElse("false").get().toBoolean().toString())
             buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(debugApiUrl))
+            buildConfigField("String", "TRIAL_HTTP_BASE_URL", quotedUrl(debugApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(debugApiUrl))
+            // Align cleartext local allow-list with the active Debug API host (8080 or isolated 8081).
+            buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl(debugApiUrl))
+            buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", isolatedMembershipTest.toString())
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
             buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
+            buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
             manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
             proguardFiles(
@@ -85,6 +98,7 @@ android {
             buildConfigField("String", "API_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
             buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", trialOptIn)
+            buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
         }
     }
 

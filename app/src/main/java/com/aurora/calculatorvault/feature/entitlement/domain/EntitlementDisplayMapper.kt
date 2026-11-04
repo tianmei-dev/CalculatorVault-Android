@@ -1,6 +1,8 @@
 package com.aurora.calculatorvault.feature.entitlement.domain
 
 import com.aurora.calculatorvault.feature.login.session.AccountSession
+import com.aurora.calculatorvault.feature.membership.data.MembershipSyncUi
+import com.aurora.calculatorvault.feature.membership.domain.VipPlan
 import com.aurora.calculatorvault.feature.settings.presentation.AccountStatus
 import com.aurora.calculatorvault.feature.settings.presentation.AccountUiState
 import com.aurora.calculatorvault.feature.settings.presentation.MembershipStatus
@@ -20,6 +22,7 @@ object EntitlementDisplayMapper {
         session: AccountSession,
         entitlement: EntitlementState,
         trial: DeviceTrialState = DeviceTrialState(entitlement.trialStatus, entitlement.trialRemainingMillis),
+        sync: MembershipSyncUi = MembershipSyncUi.Idle,
     ): AccountUiState {
         val account = when (session) {
             is AccountSession.Authenticated -> AccountStatus.WeChatLoggedIn()
@@ -29,21 +32,48 @@ object EntitlementDisplayMapper {
             account = account,
             accountMembership = toAccountMembership(entitlement),
             deviceTrial = toDeviceTrialMembership(trial),
+            membershipSyncHint = syncHint(session, entitlement, sync),
+            membershipRefreshing = sync is MembershipSyncUi.Syncing &&
+                session is AccountSession.Authenticated,
         )
     }
 
     fun toAccountMembership(entitlement: EntitlementState): MembershipStatus {
         val vip = entitlement.source as? EntitlementSource.Vip ?: return MembershipStatus.NotSubscribed
-        return if (vip.permanent || vip.expiresAtEpochMillis == null) {
-            MembershipStatus.VipPermanent
-        } else {
-            // Plan type is display-only; Monthly is a stable label until real catalog wiring exists.
-            MembershipStatus.VipActive(
-                planType = com.aurora.calculatorvault.feature.membership.domain.VipPlan.Monthly,
-                expiresAt = Instant.ofEpochMilli(vip.expiresAtEpochMillis)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate(),
-            )
+        if (vip.permanent || vip.expiresAtEpochMillis == null) {
+            return MembershipStatus.VipPermanent
+        }
+        val expiresAt = Instant.ofEpochMilli(vip.expiresAtEpochMillis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+        val plan = resolveDisplayPlan(vip.planType, vip.contributingPlanTypes, permanent = false)
+        return MembershipStatus.VipActive(planType = plan, expiresAt = expiresAt)
+    }
+
+    /**
+     * Maps server plan codes to purchase-catalog [VipPlan] for display.
+     * YEARLY → Annual (年卡). Multiple contributing plans → null (generic VIP会员).
+     */
+    fun resolveDisplayPlan(
+        planType: String?,
+        contributingPlanTypes: List<String>,
+        permanent: Boolean,
+    ): VipPlan? {
+        if (permanent) return VipPlan.Lifetime
+        val distinct = contributingPlanTypes
+            .map { it.trim().uppercase() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+        if (distinct.size > 1) return null
+        val code = when {
+            distinct.size == 1 -> distinct[0]
+            else -> planType?.trim()?.uppercase().orEmpty()
+        }
+        return when (code) {
+            "MONTHLY" -> VipPlan.Monthly
+            "YEARLY", "ANNUAL" -> VipPlan.Annual
+            "LIFETIME" -> VipPlan.Lifetime
+            else -> null
         }
     }
 
@@ -73,6 +103,24 @@ object EntitlementDisplayMapper {
             "设备试用需重新验证后才能继续计时"
         TrialStatus.NOT_INITIALIZED ->
             "设备试用尚未就绪"
+    }
+
+    private fun syncHint(
+        session: AccountSession,
+        entitlement: EntitlementState,
+        sync: MembershipSyncUi,
+    ): String? {
+        if (session !is AccountSession.Authenticated) return null
+        val hasVip = entitlement.source is EntitlementSource.Vip
+        return when (sync) {
+            MembershipSyncUi.Syncing ->
+                if (!hasVip) "会员状态同步中" else null
+            MembershipSyncUi.Failed ->
+                "会员状态暂时无法同步"
+            MembershipSyncUi.Anomaly ->
+                "会员状态暂时无法同步"
+            MembershipSyncUi.Idle -> null
+        }
     }
 
     private fun remainingSuffix(remainingMillis: Long): String {
