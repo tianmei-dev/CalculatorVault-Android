@@ -1,6 +1,7 @@
 package com.aurora.calculatorvault.feature.entitlement.domain
 
 import com.aurora.calculatorvault.feature.login.session.AccountSession
+import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import com.aurora.calculatorvault.feature.membership.data.MembershipSyncUi
 import com.aurora.calculatorvault.feature.membership.domain.VipPlan
 import com.aurora.calculatorvault.feature.settings.presentation.AccountStatus
@@ -24,10 +25,8 @@ object EntitlementDisplayMapper {
         trial: DeviceTrialState = DeviceTrialState(entitlement.trialStatus, entitlement.trialRemainingMillis),
         sync: MembershipSyncUi = MembershipSyncUi.Idle,
     ): AccountUiState {
-        val account = when (session) {
-            is AccountSession.Authenticated -> AccountStatus.WeChatLoggedIn()
-            else -> AccountStatus.Guest
-        }
+        // A trusted account under re-validation stays signed-in for display, matching entitlement.
+        val account = if (session.entitlementAccount != null) AccountStatus.WeChatLoggedIn() else AccountStatus.Guest
         return AccountUiState(
             account = account,
             accountMembership = toAccountMembership(entitlement),
@@ -110,7 +109,7 @@ object EntitlementDisplayMapper {
         entitlement: EntitlementState,
         sync: MembershipSyncUi,
     ): String? {
-        if (session !is AccountSession.Authenticated) return null
+        if (session.entitlementAccount == null) return null
         val hasVip = entitlement.source is EntitlementSource.Vip
         return when (sync) {
             MembershipSyncUi.Syncing ->

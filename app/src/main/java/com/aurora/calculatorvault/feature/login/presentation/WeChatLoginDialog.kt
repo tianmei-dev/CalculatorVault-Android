@@ -110,8 +110,8 @@ fun WeChatLoginDialog(
                 )
                 Text(when (sessionState) {
                     AccountSession.Authenticating -> "正在登录服务器…"
-                    AccountSession.Validating -> "正在校验账号…"
-                    AccountSession.TemporarilyUnavailable -> "网络暂不可用，账号待验证"
+                    is AccountSession.Validating -> "正在校验账号…"
+                    is AccountSession.TemporarilyUnavailable -> "网络暂不可用，账号待验证"
                     AccountSession.LoginFailed -> "登录失败，请重新发起微信授权"
                     AccountSession.StorageFailed -> "安全存储不可用，请重试"
                     AccountSession.SessionExpired -> "会话已失效，请重新登录"

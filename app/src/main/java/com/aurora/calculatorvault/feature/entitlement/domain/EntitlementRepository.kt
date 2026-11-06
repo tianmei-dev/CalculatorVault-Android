@@ -2,6 +2,7 @@ package com.aurora.calculatorvault.feature.entitlement.domain
 
 import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.AccountSessionRepository
+import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import com.aurora.calculatorvault.feature.trial.DeviceTrialRepository
 import com.aurora.calculatorvault.feature.trial.DeviceTrialState
 import com.aurora.calculatorvault.feature.trial.TrialStatus
@@ -105,14 +106,31 @@ class EntitlementRepository(
                     lastAuthenticatedAccountId = null
                 }
             }
-            AccountSession.Authenticating,
-            AccountSession.Validating,
-            AccountSession.TemporarilyUnavailable,
+            is AccountSession.Validating,
+            is AccountSession.TemporarilyUnavailable,
             -> {
-                // VIP candidate paused; keep generation so a Fake claim for this generation
-                // cannot apply until Authenticated again, and logout still bumps generation.
+                val trusted = session.entitlementAccount
+                if (trusted == null || trusted.userId != lastAuthenticatedAccountId) {
+                    // Unknown identity (cold start / new credential): a session boundary, so the
+                    // previous account's generation and claims can never carry over.
+                    if (lastAuthenticatedAccountId != null) {
+                        accountGeneration++
+                        lastAuthenticatedAccountId = null
+                    }
+                }
+                // Same trusted account under re-validation keeps its generation.
             }
+            AccountSession.Authenticating -> Unit
         }
+    }
+
+    /** Account id whose VIP may be evaluated now; null when identity is not trusted. */
+    private fun entitledAccountId(session: AccountSession): Long? = when (session) {
+        is AccountSession.Authenticated -> session.account.userId
+        is AccountSession.Validating,
+        is AccountSession.TemporarilyUnavailable,
+        -> session.entitlementAccount?.userId?.takeIf { it == lastAuthenticatedAccountId }
+        else -> null
     }
 
     private fun computeState(
@@ -123,9 +141,9 @@ class EntitlementRepository(
     ): EntitlementState {
         trackAccountGeneration(session)
         stateOverride?.invoke()?.let { return it }
-        val accountId = (session as? AccountSession.Authenticated)?.account?.userId
+        val accountId = entitledAccountId(session)
         val trialGrant = resolveTrialGrant(trial)
-        val vip = resolveVip(session, accountId, accountGeneration, nowWall)
+        val vip = resolveVip(accountId, accountGeneration, nowWall)
         val source = when {
             vip != null -> vip
             trialGrant != null -> trialGrant
@@ -146,13 +164,16 @@ class EntitlementRepository(
         )
     }
 
+    /**
+     * VIP only from a provider claim bound to the same account + generation. During re-validation
+     * this reads the existing Sticky as-is; its 24h window and expiry are enforced by the provider.
+     */
     private fun resolveVip(
-        session: AccountSession,
         accountId: Long?,
         generation: Long,
         nowWall: Long,
     ): EntitlementSource.Vip? {
-        if (session !is AccountSession.Authenticated || accountId == null) return null
+        if (accountId == null) return null
         return when (val result = membershipProvider.membershipFor(accountId, generation)) {
             is MembershipResult.VerifiedActive -> {
                 if (result.accountId != accountId || result.generation != generation) return null

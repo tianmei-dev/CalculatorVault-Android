@@ -46,7 +46,8 @@ class AccountSessionTest {
         val repo = AccountSessionRepository(api, store, backgroundScope)
         repo.restore(); runCurrent(); assertTrue(repo.state.value is AccountSession.Authenticated)
         api.fail = java.io.IOException(); repo.revalidate(); runCurrent()
-        assertEquals(AccountSession.TemporarilyUnavailable, repo.state.value); assertNotNull(store.value)
+        // Re-validating an authenticated session keeps the trusted identity through transient errors.
+        assertEquals(AccountSession.TemporarilyUnavailable(ServerAccount(1)), repo.state.value); assertNotNull(store.value)
         api.fail = AuthFailure(true); repo.revalidate(); runCurrent()
         assertEquals(AccountSession.SessionExpired, repo.state.value); assertNull(store.value)
     }
@@ -104,7 +105,8 @@ class AccountSessionTest {
         val store = Store().apply { value = credential }
         val repo = AccountSessionRepository(api, store, backgroundScope)
         repo.restore(); runCurrent()
-        assertEquals(AccountSession.TemporarilyUnavailable, repo.state.value); assertNotNull(store.value)
+        // Cold start has no trusted identity yet.
+        assertEquals(AccountSession.TemporarilyUnavailable(), repo.state.value); assertNotNull(store.value)
     }
     @Test fun authorizationStateValidationAndReplayStillGateServerLogin() = runTest {
         val sdk = com.aurora.calculatorvault.feature.login.FakeWeChatSdk()

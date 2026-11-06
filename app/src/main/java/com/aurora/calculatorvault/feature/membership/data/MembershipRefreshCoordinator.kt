@@ -4,6 +4,7 @@ import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementReposito
 import com.aurora.calculatorvault.feature.entitlement.domain.MembershipResult
 import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.AccountSessionRepository
+import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -52,6 +53,7 @@ class MembershipRefreshCoordinator(
     private var started = false
     private var previousSession: AccountSession = AccountSession.Guest
     private var authenticatedBeforeValidation = false
+    private var recoveringFromUnavailable = false
 
     private var lastForegroundAtElapsed = 0L
     private var lastForegroundKey: Pair<Long, Long>? = null
@@ -94,8 +96,12 @@ class MembershipRefreshCoordinator(
     private fun onSessionChanged(session: AccountSession) {
         val prev = previousSession
         when (session) {
-            AccountSession.Validating -> {
-                authenticatedBeforeValidation = prev is AccountSession.Authenticated
+            is AccountSession.Validating -> {
+                authenticatedBeforeValidation = session.trustedAccount != null
+                if (session.trustedAccount == null && prev.entitlementAccount != null) {
+                    // Unknown identity replaces a known one: drop old claims and in-flight results.
+                    clearForBoundary()
+                }
                 previousSession = session
             }
             is AccountSession.Authenticated -> {
@@ -105,12 +111,13 @@ class MembershipRefreshCoordinator(
                 }
                 val reason = when {
                     prev == AccountSession.Authenticating -> MembershipRefreshReason.LoginSuccess
-                    prev == AccountSession.Validating && !authenticatedBeforeValidation ->
-                        MembershipRefreshReason.SessionRestore
-                    prev == AccountSession.Validating && authenticatedBeforeValidation ->
+                    // Network came back after a transient failure: reconfirm now, not throttled.
+                    recoveringFromUnavailable -> MembershipRefreshReason.SessionRestore
+                    prev is AccountSession.Validating && authenticatedBeforeValidation ->
                         MembershipRefreshReason.Foreground
                     else -> MembershipRefreshReason.SessionRestore
                 }
+                recoveringFromUnavailable = false
                 previousSession = session
                 requestRefresh(reason)
             }
@@ -121,23 +128,30 @@ class MembershipRefreshCoordinator(
             -> {
                 previousSession = session
                 authenticatedBeforeValidation = false
-                serverMembership.clearAll()
-                entitlementRepository.refresh()
-                syncMutable.value = MembershipSyncUi.Idle
-                manualInFlight = false
+                recoveringFromUnavailable = false
+                clearForBoundary()
             }
-            AccountSession.Authenticating,
-            AccountSession.TemporarilyUnavailable,
-            -> {
+            is AccountSession.TemporarilyUnavailable -> {
+                recoveringFromUnavailable = true
+                previousSession = session
+            }
+            AccountSession.Authenticating -> {
                 previousSession = session
             }
         }
     }
 
+    private fun clearForBoundary() {
+        serverMembership.clearAll()
+        entitlementRepository.refresh()
+        syncMutable.value = MembershipSyncUi.Idle
+        manualInFlight = false
+    }
+
     private fun onSessionInvalid(event: MembershipSessionInvalidEvent) {
-        val session = accountSession.state.value
-        if (session !is AccountSession.Authenticated) return
-        if (session.account.userId != event.accountId) return
+        // Includes a trusted account under re-validation; a different account is ignored.
+        val identity = accountSession.state.value.entitlementAccount ?: return
+        if (identity.userId != event.accountId) return
         if (entitlementRepository.currentAccountGeneration() != event.generation) return
         serverMembership.clearAccount(event.accountId, event.generation)
         accountSession.notifyRemoteSessionInvalid(event.accountId)

@@ -342,12 +342,19 @@ fun VaultMainScreen(
                 val entitlementAccount = com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
                     .toAccountUiState(sessionState, entitlementState, trialState, membershipSync)
                 SettingsScreen(
-                    sessionPending = sessionState == AccountSession.TemporarilyUnavailable,
+                    sessionPending = sessionState is AccountSession.TemporarilyUnavailable,
                     onRetrySession = application.accountSession::revalidate,
                     sessionMessage = com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
-                        .trialSessionMessage(trialState) + "\n" + when (sessionState) {
-                        AccountSession.Validating -> "正在校验已保存的账号"
-                        AccountSession.TemporarilyUnavailable -> "网络暂不可用，账号待验证，账号权益未启用"
+                        .trialSessionMessage(trialState) + "\n" + when (val s = sessionState) {
+                        is AccountSession.Validating -> "正在校验已保存的账号"
+                        is AccountSession.TemporarilyUnavailable ->
+                            if (s.trustedAccount != null &&
+                                entitlementState.source is com.aurora.calculatorvault.feature.entitlement.domain.EntitlementSource.Vip
+                            ) {
+                                "网络暂不可用，账号待验证，会员权益按离线缓存暂时保留"
+                            } else {
+                                "网络暂不可用，账号待验证，账号权益未启用"
+                            }
                         AccountSession.SessionExpired -> "会话已失效，请重新登录"
                         AccountSession.StorageFailed -> "安全存储不可用，当前未登录"
                         else -> ""
