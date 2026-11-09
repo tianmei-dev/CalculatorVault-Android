@@ -70,6 +70,8 @@ android {
             // Align cleartext local allow-list with the active Debug API host (8080 or isolated 8081).
             buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl(debugApiUrl))
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", isolatedMembershipTest.toString())
+            // pay.kind=TEST (s32it isolated payments) is recognised only in Debug / localIntegration.
+            buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "true")
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
@@ -77,6 +79,7 @@ android {
             buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
+            buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "false")
             manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
             proguardFiles(
@@ -99,6 +102,7 @@ android {
             buildConfigField("String", "LOCAL_HTTP_BASE_URL", quotedUrl("http://192.168.0.107:8080"))
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", trialOptIn)
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
+            buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "true")
         }
     }
 

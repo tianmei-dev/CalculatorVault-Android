@@ -403,11 +403,12 @@ fun VaultMainScreen(
                     entry.arguments?.getString(VaultTabRoute.VipMembership.SOURCE_ARG),
                 )
                 val purchaseViewModel: VipPurchaseViewModel = viewModel(
-                    factory = VipPurchaseViewModel.Factory(source),
+                    factory = VipPurchaseViewModel.Factory(source, application.vipPurchaseDependencies),
                 )
                 VipPurchaseScreen(
                     viewModel = purchaseViewModel,
                     onBack = navController::popBackStack,
+                    onRequestLogin = { loginViewModel.open(LoginSource.MembershipPurchase) },
                     onOpenPrivacyPolicy = {
                         navController.navigate(
                             VaultTabRoute.LegalDocument.createRoute(LegalDocumentType.PrivacyPolicy),

@@ -19,6 +19,7 @@ enum class MembershipRefreshReason {
     SessionRestore,
     Foreground,
     Manual,
+    PurchaseFulfilled,
 }
 
 /** Settings / account-row sync presentation (display only). */
@@ -90,6 +91,17 @@ class MembershipRefreshCoordinator(
         if (accountSession.state.value !is AccountSession.Authenticated) return false
         if (manualInFlight || syncMutable.value is MembershipSyncUi.Syncing) return false
         requestRefresh(MembershipRefreshReason.Manual)
+        return true
+    }
+
+    /**
+     * Server reported a purchase FULFILLED: query /membership/me now, bypassing the foreground
+     * throttle and the manual-tap guard. Same-key in-flight requests are still deduplicated by
+     * the provider. VIP is granted only by the provider's confirmed result.
+     */
+    fun refreshAfterPurchase(): Boolean {
+        if (accountSession.state.value !is AccountSession.Authenticated) return false
+        requestRefresh(MembershipRefreshReason.PurchaseFulfilled)
         return true
     }
 

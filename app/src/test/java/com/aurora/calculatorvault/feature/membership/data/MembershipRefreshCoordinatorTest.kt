@@ -138,6 +138,28 @@ class MembershipRefreshCoordinatorTest {
     }
 
     @Test
+    fun refreshAfterPurchase_bypassesThrottleAndManualGuard_guestRejected() = runTest {
+        val api = CountingApi().also { it.next = active(plan = "MONTHLY") }
+        val env = Env(this, api)
+        env.coordinator.start()
+        assertFalse(env.coordinator.refreshAfterPurchase())
+        env.sessions.acceptAuthorization(WeChatServerLoginRequest("code"))
+        runCurrent()
+        env.coordinator.onForeground()
+        runCurrent()
+        val before = api.calls.get()
+        assertTrue(env.coordinator.refreshManual())
+        // Manual tap is now in flight / just finished; the purchase path must still go through.
+        assertTrue(env.coordinator.refreshAfterPurchase())
+        runCurrent()
+        assertTrue(api.calls.get() >= before + 1)
+        api.next = activeLifetime()
+        assertTrue(env.coordinator.refreshAfterPurchase())
+        runCurrent()
+        assertEquals(true, env.entitlement.state.value.source.let { it is EntitlementSource.Vip && it.permanent })
+    }
+
+    @Test
     fun sameGenerationConcurrentRefreshDedupes() = runTest {
         val gate = CompletableDeferred<Unit>()
         val api = object : MembershipApi {

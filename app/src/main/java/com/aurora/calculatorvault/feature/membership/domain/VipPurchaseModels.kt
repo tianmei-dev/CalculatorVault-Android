@@ -1,18 +1,23 @@
 package com.aurora.calculatorvault.feature.membership.domain
 
-import java.math.BigDecimal
+import com.aurora.calculatorvault.feature.payment.data.MembershipPlanOffer
+import com.aurora.calculatorvault.feature.payment.data.PaymentError
+import com.aurora.calculatorvault.feature.payment.data.PaymentOrderStatus
+import com.aurora.calculatorvault.feature.payment.domain.PayLaunchDecision
 
-/** Local display catalog only. Replace with server product data when purchasing is integrated. */
-enum class VipPlan(val priceFen: Int, val durationDays: Int?) {
-    Monthly(590, 30),
-    Annual(1990, 365),
-    Lifetime(2990, null);
+/**
+ * Display key for account membership status (settings / account rows).
+ * Carries no price: purchasable plans and prices come only from the server catalog.
+ */
+enum class VipPlan(val serverCode: String) {
+    Monthly("MONTHLY"),
+    Annual("YEARLY"),
+    Lifetime("LIFETIME");
 
-    val priceText: String
-        get() = BigDecimal.valueOf(priceFen.toLong(), 2).stripTrailingZeros().toPlainString()
+    companion object {
+        fun fromServerCode(code: String?): VipPlan? = entries.firstOrNull { it.serverCode == code }
+    }
 }
-
-enum class VipPaymentMethod { WeChat, Alipay }
 
 enum class VipPurchaseSource {
     Settings, AppLock, PrivateAlbum, TrialExpired;
@@ -23,19 +28,77 @@ enum class VipPurchaseSource {
     }
 }
 
-/** Immutable context for a future login -> order continuation; contains no account or entitlement. */
-data class VipPurchaseSelection(
-    val plan: VipPlan,
-    val paymentMethod: VipPaymentMethod,
-    val source: VipPurchaseSource,
+sealed interface PlansState {
+    data object Loading : PlansState
+    data class Ready(val plans: List<MembershipPlanOffer>) : PlansState
+    data object Empty : PlansState
+    data class Failed(val error: PaymentError) : PlansState
+}
+
+/** Membership sync after the server reports FULFILLED. Local state never grants VIP. */
+enum class MembershipSyncAfterPurchase { NotStarted, Syncing, Synced, Failed }
+
+data class OrderView(
+    val orderNo: String,
+    val planCode: String,
+    val planName: String,
+    val amountDisplay: String,
+    val status: PaymentOrderStatus,
+    val payDecision: PayLaunchDecision,
+    /** elapsedRealtime at which the server says the order expires (server-clock anchored). */
+    val expiresAtElapsedMillis: Long?,
 )
 
-enum class PurchaseActionState { Idle, AgreementRequired, PaymentUnavailable }
+sealed interface PurchasePhase {
+    data object Idle : PurchasePhase
+    data object Creating : PurchasePhase
+
+    /** Create was not confirmed. [retryKept] means the same clientRequestId will be reused. */
+    data class CreateFailed(val error: PaymentError, val retryKept: Boolean) : PurchasePhase
+
+    /** Recovered order number for the current account; details arrive with the first query. */
+    data class Resuming(val orderNo: String) : PurchasePhase
+
+    data class Ordering(
+        val order: OrderView,
+        val querying: Boolean = false,
+        val lastQueryFailed: Boolean = false,
+        val membershipSync: MembershipSyncAfterPurchase = MembershipSyncAfterPurchase.NotStarted,
+    ) : PurchasePhase
+}
+
+/** One-shot UI feedback. */
+enum class PurchaseNotice {
+    AgreementRequired,
+    PlansNotReady,
+    LoginRequired,
+    LoginExpired,
+    LoginError,
+    SessionVerifying,
+    SessionUnavailable,
+    LifetimeOwned,
+    PlanUnavailable,
+    RequestConflict,
+    PaymentConfigMissing,
+    PayLinkInvalid,
+    AccountChanged,
+    OrderNotFound,
+    PurchaseCompleted,
+}
 
 data class VipPurchaseState(
-    val selectedPlan: VipPlan = VipPlan.Annual,
-    val selectedPaymentMethod: VipPaymentMethod = VipPaymentMethod.WeChat,
-    val agreementAccepted: Boolean = false,
     val purchaseSource: VipPurchaseSource = VipPurchaseSource.Settings,
-    val purchaseActionState: PurchaseActionState = PurchaseActionState.Idle,
-)
+    val plans: PlansState = PlansState.Loading,
+    val selectedPlanCode: String? = null,
+    val agreementAccepted: Boolean = false,
+    val lifetimeOwned: Boolean = false,
+    val phase: PurchasePhase = PurchasePhase.Idle,
+) {
+    val selectedPlan: MembershipPlanOffer?
+        get() = (plans as? PlansState.Ready)?.plans?.firstOrNull { it.planCode == selectedPlanCode }
+
+    /** Purchase button is actionable only with a fresh server catalog and no active order flow. */
+    val canRequestPurchase: Boolean
+        get() = selectedPlan != null && !lifetimeOwned &&
+            (phase == PurchasePhase.Idle || phase is PurchasePhase.CreateFailed)
+}

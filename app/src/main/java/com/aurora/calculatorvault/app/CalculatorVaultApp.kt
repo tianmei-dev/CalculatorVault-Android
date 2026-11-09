@@ -423,6 +423,53 @@ class CalculatorVaultApp : Application() {
         )
     }
 
+    /** VIP purchase data (plans / orders) against the same server as login and membership. */
+    val paymentRepository by lazy {
+        com.aurora.calculatorvault.feature.payment.data.PaymentRepository(
+            api = com.aurora.calculatorvault.feature.payment.data.HttpPaymentApi(
+                baseUrl = BuildConfig.API_BASE_URL,
+                debug = BuildConfig.DEBUG,
+                localHttpBaseUrl = BuildConfig.LOCAL_HTTP_BASE_URL,
+            ),
+            store = com.aurora.calculatorvault.feature.payment.data.SharedPreferencesPendingPurchaseStore(applicationContext),
+            session = object : com.aurora.calculatorvault.feature.payment.data.PaymentSessionPort {
+                override fun currentOwner(requireAuthenticated: Boolean): com.aurora.calculatorvault.feature.payment.data.PurchaseOwner? {
+                    val session = accountSession.state.value
+                    if (requireAuthenticated && session !is AccountSession.Authenticated) return null
+                    val userId = session.entitlementAccount?.userId ?: return null
+                    return com.aurora.calculatorvault.feature.payment.data.PurchaseOwner(
+                        userId,
+                        entitlementRepository.currentAccountGeneration(),
+                    )
+                }
+
+                override fun accessToken(): String? = accountSession.peekAccessToken()
+
+                override fun onUnauthorized(userId: Long) = accountSession.notifyRemoteSessionInvalid(userId)
+            },
+        )
+    }
+
+    val vipPurchaseDependencies by lazy {
+        com.aurora.calculatorvault.feature.membership.presentation.VipPurchaseDependencies(
+            repository = paymentRepository,
+            sessionState = accountSession.state,
+            entitlementState = entitlementRepository.state,
+            membership = object : com.aurora.calculatorvault.feature.membership.presentation.PurchaseMembershipPort {
+                override val revision = serverMembershipProvider.membershipStateRevision
+                override val syncState = membershipRefreshCoordinator.syncState
+                override fun requestRefreshAfterPurchase() = membershipRefreshCoordinator.refreshAfterPurchase()
+                override fun hasVerifiedVip(userId: Long) =
+                    serverMembershipProvider.membershipFor(userId, entitlementRepository.currentAccountGeneration()) is
+                        com.aurora.calculatorvault.feature.entitlement.domain.MembershipResult.VerifiedActive
+            },
+            payLaunchPolicy = com.aurora.calculatorvault.feature.payment.domain.PayLaunchPolicy(
+                allowTestKind = BuildConfig.PAYMENT_TEST_KIND_ALLOWED,
+            ),
+            elapsedRealtime = { SystemClock.elapsedRealtime() },
+        )
+    }
+
     val appLockProtectionCoordinator by lazy {
         AppLockProtectionCoordinator(
             entitlementState = entitlementRepository.state,
@@ -477,6 +524,7 @@ class CalculatorVaultApp : Application() {
                 object : android.net.ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
                         applicationScope.launch { deviceTrial.sync() }
+                        paymentRepository.onNetworkAvailable()
                     }
                 })
         } catch (_: Exception) { /* Foreground and consent events still synchronize. */ }
