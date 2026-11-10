@@ -87,7 +87,7 @@ class AccountSessionTest {
     @Test fun cancellationDuringConsentNeverSubmitsCode() = runTest {
         val consent = CompletableDeferred<Boolean>()
         val api = Api(); val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope) { consent.await() }
+        val repo = AccountSessionRepository(api, store, backgroundScope, consent = { consent.await() })
         repo.acceptAuthorization(WeChatServerLoginRequest("one-use")); runCurrent()
         repo.cancelLogin(); consent.complete(true); runCurrent()
         assertEquals(0, api.loginCalls); assertNull(store.value)

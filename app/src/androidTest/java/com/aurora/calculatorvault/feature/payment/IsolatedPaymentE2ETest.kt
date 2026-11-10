@@ -350,12 +350,14 @@ class IsolatedPaymentE2ETest {
             var pendingThroughout = true
             val failedHint = waitUntil(60_000, pollMs = 500) {
                 if (!device.hasObject(By.text("待支付"))) pendingThroughout = false
-                device.hasObject(By.text("暂时无法查询订单，稍后自动重试"))
+                device.hasObject(By.text(OFFLINE_HINT)) || device.hasObject(By.text(QUERY_FAILED_HINT))
             }
+            val offlineHintShown = device.hasObject(By.text(OFFLINE_HINT))
             val hintAfterMs = SystemClock.uptimeMillis() - offlineAt
             val stillPending = device.hasObject(By.text("待支付"))
             screenshot("b09_offline")
-            evidence("b09_offline", "queryFailedHint=$failedHint afterMs=$hintAfterMs statusStillPending=$stillPending " +
+            evidence("b09_offline", "queryFailedHint=$failedHint offlineHint=$offlineHintShown afterMs=$hintAfterMs " +
+                "statusStillPending=$stillPending " +
                 "pendingThroughout=$pendingThroughout paidOrFailedShown=${device.hasObject(By.text("会员已开通"))}")
             assertTrue(failedHint && stillPending && pendingThroughout)
         } finally {
@@ -363,7 +365,8 @@ class IsolatedPaymentE2ETest {
         }
         val onlineAt = SystemClock.uptimeMillis()
         val recovered = waitUntil(90_000, pollMs = 500) {
-            !device.hasObject(By.text("暂时无法查询订单，稍后自动重试")) && device.hasObject(By.text("待支付"))
+            !device.hasObject(By.text(OFFLINE_HINT)) && !device.hasObject(By.text(QUERY_FAILED_HINT)) &&
+                device.hasObject(By.text("待支付"))
         }
         evidence("b09_recovered", "recovered=$recovered afterMs=${SystemClock.uptimeMillis() - onlineAt}")
         assertTrue(recovered)
@@ -703,6 +706,8 @@ class IsolatedPaymentE2ETest {
     private companion object {
         const val ACCOUNTS_FILE = "/data/local/tmp/cv_i354b_pay_accounts.local.json"
         const val MARKER_TAG = "CV_I354B_MARKER"
+        const val OFFLINE_HINT = "网络连接不可用，请检查网络后重试"
+        const val QUERY_FAILED_HINT = "暂时无法查询订单，稍后自动重试"
         const val EVIDENCE_TAG = "CV_I354B_EVIDENCE"
         val PIN = charArrayOf('1', '3', '5', '7', '9', '0')
         val STATUS_TEXTS = listOf("待支付", "支付已确认，正在开通会员", "会员已开通", "订单已超时", "订单状态确认中")

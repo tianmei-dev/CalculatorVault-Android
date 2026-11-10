@@ -11,6 +11,12 @@ captures/
 
 .local-tools/
 
+# Signing material (paystaging / release keystores live outside the repo; never commit)
+*.jks
+*.keystore
+keystore.properties
+signing*.properties
+
 # I3.4.3-D1/D2 session secrets (never commit)
 **/i343d1-sessions.local.json
 **/cv_i343d1_sessions.local.json

@@ -1,0 +1,67 @@
+﻿# build scripts: password / keystore literals
+app/build.gradle.kts:75: * `PAYSTAGING_STORE_PASSWORD` / `PAYSTAGING_KEY_PASSWORD` (environment only). Without them the
+app/build.gradle.kts:82:val paystagingStorePassword = providers.environmentVariable("PAYSTAGING_STORE_PASSWORD").orElse("").get()
+app/build.gradle.kts:83:val paystagingKeyPassword = providers.environmentVariable("PAYSTAGING_KEY_PASSWORD").orElse("").get()
+app/build.gradle.kts:84:val paystagingSigningParts = listOf(paystagingStoreFile, paystagingKeyAlias, paystagingStorePassword, paystagingKeyPassword)
+app/build.gradle.kts:87:    "paystaging signing needs PAYSTAGING_STORE_FILE, PAYSTAGING_KEY_ALIAS, PAYSTAGING_STORE_PASSWORD and PAYSTAGING_KEY_PASSWORD"
+app/build.gradle.kts:92:    require(store.name != "debug.keystore") { "paystaging must not use the debug keystore" }
+app/build.gradle.kts:123:                storePassword = paystagingStorePassword
+app/build.gradle.kts:124:                keyPassword = paystagingKeyPassword
+# git status
+ M .gitignore
+ M app/build.gradle.kts
+ M app/src/androidTest/java/com/aurora/calculatorvault/feature/payment/IsolatedPaymentE2ETest.kt
+ M app/src/main/java/com/aurora/calculatorvault/app/CalculatorVaultApp.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/entitlement/domain/MembershipProvider.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/login/session/AccountSessionRepository.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/domain/VipPurchaseModels.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseController.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseScreen.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/data/HttpPaymentApi.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/data/PaymentModels.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/data/PaymentRepository.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/domain/PayLaunchPolicy.kt
+ M app/src/main/res/values/strings_membership.xml
+ M app/src/test/java/com/aurora/calculatorvault/feature/login/session/AccountSessionTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/login/session/InstallServerIssuedSessionTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/membership/PurchaseMembershipRaceTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/membership/VipPurchaseControllerTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/membership/data/SessionRevalidationEntitlementTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/PaymentTestFixtures.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/data/HttpPaymentApiTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/data/PaymentRepositoryTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/domain/PaymentPoliciesTest.kt
+?? Task-I3.5.4-C-Android支付体验与Release安全整改报告.md
+?? app/src/paystaging/
+?? app/src/release/AndroidManifest.xml
+?? app/src/release/res/
+?? app/src/test/java/com/aurora/calculatorvault/feature/entitlement/domain/
+?? app/src/testPaystaging/
+?? app/src/testRelease/
+?? evidence/task-i3.5.4-c/
+?? evidence/task-i3.5.5-b2/
+# diff stat (tracked)
+ .gitignore                                         |   6 +
+ app/build.gradle.kts                               |  95 ++++++-
+ .../feature/payment/IsolatedPaymentE2ETest.kt      |  11 +-
+ .../calculatorvault/app/CalculatorVaultApp.kt      |  23 +-
+ .../entitlement/domain/MembershipProvider.kt       |  44 ---
+ .../login/session/AccountSessionRepository.kt      |   9 +
+ .../feature/membership/domain/VipPurchaseModels.kt |  16 +-
+ .../presentation/VipPurchaseController.kt          |  86 +++++-
+ .../membership/presentation/VipPurchaseScreen.kt   |  31 ++-
+ .../feature/payment/data/HttpPaymentApi.kt         |  16 +-
+ .../feature/payment/data/PaymentModels.kt          |   3 +
+ .../feature/payment/data/PaymentRepository.kt      |  24 ++
+ .../feature/payment/domain/PayLaunchPolicy.kt      |  72 ++++-
+ app/src/main/res/values/strings_membership.xml     |   5 +
+ .../feature/login/session/AccountSessionTest.kt    |   2 +-
+ .../session/InstallServerIssuedSessionTest.kt      |  50 +++-
+ .../membership/PurchaseMembershipRaceTest.kt       | 179 ++++++++++++-
+ .../membership/VipPurchaseControllerTest.kt        | 294 ++++++++++++++++++++-
+ .../data/SessionRevalidationEntitlementTest.kt     |   2 +-
+ .../feature/payment/PaymentTestFixtures.kt         |   2 +
+ .../feature/payment/data/HttpPaymentApiTest.kt     |  22 +-
+ .../feature/payment/data/PaymentRepositoryTest.kt  |  24 ++
+ .../feature/payment/domain/PaymentPoliciesTest.kt  | 129 +++++++--
+ 23 files changed, 1028 insertions(+), 117 deletions(-)

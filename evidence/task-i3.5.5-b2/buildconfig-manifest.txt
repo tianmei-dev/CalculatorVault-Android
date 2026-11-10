@@ -1,0 +1,80 @@
+﻿== paystaging-default
+  API_BASE_URL=""
+  BUILD_TYPE="paystaging"
+  DEBUG=false
+  LOCAL_HTTP_BASE_URL=""
+  PAYMENT_CASHIER_HOSTS=""
+  PAYMENT_TEST_KIND_ALLOWED=false
+  TEST_SESSION_INSTALL_ENABLED=false
+  TRIAL_API_BASE_URL=""
+  TRIAL_DEVICE_UPLOAD_ENABLED=false
+  TRIAL_HTTP_BASE_URL=""
+  VERSION_NAME="1.0.0-paystaging"
+  manifest: A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=false
+  manifest: networkSecurityConfig=A: http://schemas.android.com/apk/res/android:networkSecurityConfig(0x01010527)=@0x7f0c0000
+  manifest: debuggable=<absent=false>
+  signing: DOES NOT VERIFY
+== paystaging-injected
+  API_BASE_URL="https://paystaging-api.example.com"
+  BUILD_TYPE="paystaging"
+  DEBUG=false
+  LOCAL_HTTP_BASE_URL=""
+  PAYMENT_CASHIER_HOSTS="cashier.example"
+  PAYMENT_TEST_KIND_ALLOWED=false
+  TEST_SESSION_INSTALL_ENABLED=false
+  TRIAL_API_BASE_URL="https://paystaging-api.example.com"
+  TRIAL_DEVICE_UPLOAD_ENABLED=false
+  TRIAL_HTTP_BASE_URL=""
+  VERSION_NAME="1.0.0-paystaging"
+  manifest: A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=false
+  manifest: networkSecurityConfig=A: http://schemas.android.com/apk/res/android:networkSecurityConfig(0x01010527)=@0x7f0c0000
+  manifest: debuggable=<absent=false>
+  signing: DOES NOT VERIFY
+== release
+  API_BASE_URL=""
+  BUILD_TYPE="release"
+  DEBUG=false
+  LOCAL_HTTP_BASE_URL=""
+  PAYMENT_CASHIER_HOSTS=""
+  PAYMENT_TEST_KIND_ALLOWED=false
+  TEST_SESSION_INSTALL_ENABLED=false
+  TRIAL_API_BASE_URL=""
+  TRIAL_DEVICE_UPLOAD_ENABLED=false
+  TRIAL_HTTP_BASE_URL=""
+  VERSION_NAME="1.0.0"
+  manifest: A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=false
+  manifest: networkSecurityConfig=<none>
+  manifest: debuggable=<absent=false>
+  signing: DOES NOT VERIFY
+== localIntegration
+  API_BASE_URL="http://192.168.0.107:8080"
+  BUILD_TYPE="localIntegration"
+  DEBUG=false
+  LOCAL_HTTP_BASE_URL="http://192.168.0.107:8080"
+  PAYMENT_CASHIER_HOSTS=""
+  PAYMENT_TEST_KIND_ALLOWED=true
+  TEST_SESSION_INSTALL_ENABLED=false
+  TRIAL_API_BASE_URL="http://192.168.0.107:8081"
+  TRIAL_DEVICE_UPLOAD_ENABLED=false
+  TRIAL_HTTP_BASE_URL="http://192.168.0.107:8081"
+  VERSION_NAME="1.0.0-local-integration"
+  manifest: A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=false
+  manifest: networkSecurityConfig=A: http://schemas.android.com/apk/res/android:networkSecurityConfig(0x01010527)=@0x7f0c0000
+  manifest: debuggable=<absent=false>
+  signing: DOES NOT VERIFY
+== debug-default
+  API_BASE_URL="http://10.0.2.2:8080"
+  BUILD_TYPE="debug"
+  DEBUG=false
+  LOCAL_HTTP_BASE_URL="http://10.0.2.2:8080"
+  PAYMENT_CASHIER_HOSTS=""
+  PAYMENT_TEST_KIND_ALLOWED=true
+  TEST_SESSION_INSTALL_ENABLED=false
+  TRIAL_API_BASE_URL="http://10.0.2.2:8080"
+  TRIAL_DEVICE_UPLOAD_ENABLED=false
+  TRIAL_HTTP_BASE_URL="http://10.0.2.2:8080"
+  VERSION_NAME="1.0.0"
+  manifest: A: http://schemas.android.com/apk/res/android:usesCleartextTraffic(0x010104ec)=true
+  manifest: networkSecurityConfig=<none>
+  manifest: debuggable=A: http://schemas.android.com/apk/res/android:debuggable(0x0101000f)=true
+  signing: 

@@ -2,8 +2,11 @@ package com.aurora.calculatorvault.feature.payment.data
 
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -43,6 +46,14 @@ class PaymentRepository(
 
     private val networkRestoredMutable = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val networkRestored: SharedFlow<Unit> = networkRestoredMutable.asSharedFlow()
+
+    private val networkAvailableMutable = MutableStateFlow(true)
+
+    /**
+     * Device connectivity from the app's default-network callback. Optimistic (true) until the
+     * system reports otherwise; only used to give immediate feedback and skip pointless HTTP.
+     */
+    val networkAvailable: StateFlow<Boolean> = networkAvailableMutable.asStateFlow()
 
     sealed interface CreateOutcome {
         data class Created(val order: PaymentOrder) : CreateOutcome
@@ -103,6 +114,7 @@ class PaymentRepository(
                         PaymentError.LifetimeAlreadyActive,
                         PaymentError.PlanDisabled,
                         PaymentError.PlanNotFound,
+                        PaymentError.EndpointNotConfigured,
                         -> false
                         // The server is idempotent per clientRequestId: keep it for a safe retry.
                         else -> true
@@ -143,8 +155,20 @@ class PaymentRepository(
 
     /** Called from the app's network callback; pages waiting on an order re-query immediately. */
     fun onNetworkAvailable() {
+        networkAvailableMutable.value = true
         networkRestoredMutable.tryEmit(Unit)
     }
+
+    /** Called from the app's network callback when no default network remains. */
+    fun onNetworkLost() {
+        networkAvailableMutable.value = false
+    }
+
+    /**
+     * The user ended viewing [orderNo] (e.g. an EXPIRED order): forget only the local recovery
+     * record. The server order, any late payment and membership are untouched.
+     */
+    fun discardOrderRecord(userId: Long, orderNo: String) = clearIfOrder(userId, orderNo)
 
     private fun clearIfOrder(userId: Long, orderNo: String) {
         val current = store.read() ?: return

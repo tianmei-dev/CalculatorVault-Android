@@ -1,0 +1,30 @@
+﻿== release  xml@0x7f0c0000 -> resource 0x7f0c0000 xml/release_network_security file=res/ke.xml
+    A: cleartextTrafficPermitted=false
+    A: cleartextTrafficPermitted=false
+    T: 'localhost'
+    T: 'ip6-localhost'
+    T: '127.0.0.1'
+    T: '::1'
+== paystaging-default  xml@0x7f0c0000 -> resource 0x7f0c0000 xml/paystaging_network_security file=res/5t.xml
+    A: cleartextTrafficPermitted=false
+    A: cleartextTrafficPermitted=false
+    T: 'localhost'
+    T: 'ip6-localhost'
+    T: '127.0.0.1'
+    T: '::1'
+== paystaging-injected  xml@0x7f0c0000 -> resource 0x7f0c0000 xml/paystaging_network_security file=res/5t.xml
+    A: cleartextTrafficPermitted=false
+    A: cleartextTrafficPermitted=false
+    T: 'localhost'
+    T: 'ip6-localhost'
+    T: '127.0.0.1'
+    T: '::1'
+== localIntegration  xml@0x7f0c0000 -> resource 0x7f0c0000 xml/local_integration_network_security file=res/6g.xml
+    A: cleartextTrafficPermitted=false
+    A: cleartextTrafficPermitted=false
+    T: 'localhost'
+    T: 'ip6-localhost'
+    T: '127.0.0.1'
+    T: '::1'
+    A: cleartextTrafficPermitted=true
+    T: '192.168.0.107'

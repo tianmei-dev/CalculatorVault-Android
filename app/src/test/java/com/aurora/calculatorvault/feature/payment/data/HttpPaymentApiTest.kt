@@ -160,13 +160,31 @@ class HttpPaymentApiTest {
     }
 
     @Test
+    fun f3_onlyOrderQueriesUseShortTimeouts() = runTest {
+        val t = Recording(PaymentHttpResponse(200, plansBody))
+        val api = api(t)
+        api.plans()
+        t.response = PaymentHttpResponse(200, orderBody())
+        api.createOrder("tok", "YEARLY", "r")
+        api.queryOrder("tok", "CV1")
+        val (plans, create, query) = t.requests
+        assertEquals(10_000 to 15_000, plans.connectTimeoutMillis to plans.readTimeoutMillis)
+        assertEquals(10_000 to 15_000, create.connectTimeoutMillis to create.readTimeoutMillis)
+        assertEquals(5_000 to 8_000, query.connectTimeoutMillis to query.readTimeoutMillis)
+    }
+
+    @Test
     fun releaseRules_rejectCleartextBaseUrl_withoutSending() = runTest {
         val t = Recording(PaymentHttpResponse(200, plansBody))
         val release = HttpPaymentApi("http://10.0.2.2:8081", debug = false, transport = t)
-        assertEquals(PaymentResult.Failure(PaymentError.Network(timeout = false)), release.plans())
+        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), release.plans())
         assertTrue(t.requests.isEmpty())
+        // B2-02: an unconfigured paystaging / Release address is refused explicitly, never a fallback.
         val empty = HttpPaymentApi("", debug = false, transport = t)
-        assertEquals(PaymentResult.Failure(PaymentError.Network(timeout = false)), empty.plans())
+        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.plans())
+        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.createOrder("tok", "YEARLY", "r"))
+        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.queryOrder("tok", "CV1"))
+        assertTrue(t.requests.isEmpty())
         // Debug may use the isolated http environment.
         assertTrue(HttpPaymentApi("http://10.0.2.2:8081", debug = true, transport = t).plans() is PaymentResult.Success)
     }

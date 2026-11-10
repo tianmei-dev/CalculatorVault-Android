@@ -7,6 +7,8 @@ import com.aurora.calculatorvault.feature.payment.FakeSession
 import com.aurora.calculatorvault.feature.payment.PaymentFixtures
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import org.junit.Assert.assertFalse
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -140,6 +142,28 @@ class PaymentRepositoryTest {
         store.write(PendingPurchaseRecord(99, "YEARLY", "x", "CV9"))
         assertNull(repo.pendingFor(7))
         assertEquals("CV9", repo.pendingFor(99)?.orderNo)
+    }
+
+    @Test
+    fun f3_networkSignal_lostThenRestoredEmitsRestore() = runTest {
+        assertTrue(repo.networkAvailable.value)
+        repo.onNetworkLost()
+        assertFalse(repo.networkAvailable.value)
+        val restored = async { repo.networkRestored.first() }
+        runCurrent()
+        repo.onNetworkAvailable()
+        restored.await()
+        assertTrue(repo.networkAvailable.value)
+    }
+
+    @Test
+    fun f4_discardOrderRecord_onlyMatchingUserAndOrder() = runTest {
+        store.write(PendingPurchaseRecord(7, "YEARLY", "u", "CV1"))
+        repo.discardOrderRecord(8, "CV1")
+        repo.discardOrderRecord(7, "CV2")
+        assertEquals("CV1", store.read()?.orderNo)
+        repo.discardOrderRecord(7, "CV1")
+        assertNull(store.read())
     }
 
     @Test

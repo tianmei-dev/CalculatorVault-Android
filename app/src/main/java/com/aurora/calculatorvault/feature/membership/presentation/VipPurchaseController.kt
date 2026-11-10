@@ -6,6 +6,7 @@ import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import com.aurora.calculatorvault.feature.membership.data.MembershipSyncUi
 import com.aurora.calculatorvault.feature.membership.domain.MembershipSyncAfterPurchase
+import com.aurora.calculatorvault.feature.membership.domain.OrderQueryIssue
 import com.aurora.calculatorvault.feature.membership.domain.OrderView
 import com.aurora.calculatorvault.feature.membership.domain.PlansState
 import com.aurora.calculatorvault.feature.membership.domain.PurchaseNotice
@@ -85,6 +86,11 @@ class VipPurchaseController(
     private var owner: PurchaseOwner? = null
     private var plansJob: Job? = null
     private var pollJob: Job? = null
+
+    /** True while an order-status HTTP request is running; repeated triggers reuse it. */
+    private var queryInFlight = false
+    private var offlineSkips = 0
+    private var lastCashierLaunchAt: Long? = null
     private var syncJob: Job? = null
     private var queryEpoch = 0L
     private var visible = true
@@ -102,7 +108,13 @@ class VipPurchaseController(
         }
         scope.launch { sessionState.collect(::onSessionChanged) }
         scope.launch {
-            repository.networkRestored.collect { if (visible && activeOrderNo() != null) restartPolling() }
+            repository.networkRestored.collect { requestImmediateQuery() }
+        }
+        scope.launch {
+            repository.networkAvailable.collect { available ->
+                // Immediate feedback when the device loses its network, even mid-request.
+                if (!available) updateOrdering { it.copy(queryIssue = OrderQueryIssue.NetworkUnavailable) }
+            }
         }
         loadPlans()
     }
@@ -207,6 +219,7 @@ class VipPurchaseController(
                 notice(PurchaseNotice.PlanUnavailable)
                 loadPlans()
             }
+            PaymentError.EndpointNotConfigured -> notice(PurchaseNotice.PaymentConfigMissing)
             else -> Unit
         }
     }
@@ -240,20 +253,39 @@ class VipPurchaseController(
 
     // ---------- waiting / polling ----------
 
+    /** Repeated taps within [CASHIER_DEBOUNCE_MS] of a launch open the browser only once. */
     fun openCashier() {
         val ordering = state.value.phase as? PurchasePhase.Ordering ?: return
         if (ordering.order.status != PaymentOrderStatus.PENDING_PAYMENT) return
         when (val decision = ordering.order.payDecision) {
-            is PayLaunchDecision.OpenCashier -> mutableEvents.tryEmit(VipPurchaseEvent.OpenCashier(decision.url))
+            is PayLaunchDecision.OpenCashier -> {
+                val now = elapsedRealtime()
+                val last = lastCashierLaunchAt
+                if (last != null && now - last < CASHIER_DEBOUNCE_MS) return
+                lastCashierLaunchAt = now
+                mutableEvents.tryEmit(VipPurchaseEvent.OpenCashier(decision.url))
+            }
             is PayLaunchDecision.Rejected -> notice(PurchaseNotice.PayLinkInvalid)
             PayLaunchDecision.TestPayment -> Unit
         }
     }
 
-    /** Manual "refresh payment status": one immediate query; resumes the poll policy. */
+    /**
+     * Manual "refresh payment status". If a query for the order is already running, that request
+     * is reused (no cancel + re-send); otherwise one immediate query, then the poll policy.
+     */
     fun refreshOrder() {
-        if (activeOrderNo() == null) return
+        if (activeOrderNo() == null || queryInFlight) return
         consecutiveFailures = 0
+        offlineSkips = 0
+        restartPolling()
+    }
+
+    /** Network restored / page resumed: query now unless a query is already in flight. */
+    private fun requestImmediateQuery() {
+        if (!visible || activeOrderNo() == null || queryInFlight) return
+        consecutiveFailures = 0
+        offlineSkips = 0
         restartPolling()
     }
 
@@ -267,8 +299,7 @@ class VipPurchaseController(
         }
         if (activeOrderNo() != null) {
             pollSessionStart = elapsedRealtime()
-            consecutiveFailures = 0
-            restartPolling()
+            requestImmediateQuery()
         }
     }
 
@@ -278,8 +309,18 @@ class VipPurchaseController(
         owner?.let(::startMembershipSync)
     }
 
-    /** Leave the waiting view; the server order and recovery metadata are untouched. */
+    /**
+     * Leave the waiting view. For an EXPIRED order this ends viewing it: only the local recovery
+     * record is dropped, so the page opens on plans next time. The server order is untouched and
+     * a late payment still reaches the account through /membership/me. A PENDING order keeps its
+     * record so it can be resumed.
+     */
     fun closeOrderView() {
+        val ordering = state.value.phase as? PurchasePhase.Ordering
+        val viewOwner = owner
+        if (ordering != null && viewOwner != null && ordering.order.status == PaymentOrderStatus.EXPIRED) {
+            repository.discardOrderRecord(viewOwner.userId, ordering.order.orderNo)
+        }
         cancelOrderWork()
         mutableState.update { it.copy(phase = PurchasePhase.Idle) }
     }
@@ -304,9 +345,23 @@ class VipPurchaseController(
     private suspend fun queryOnce(): PaymentOrderStatus? {
         val queryOwner = owner ?: return null
         val orderNo = activeOrderNo() ?: return null
+        if (!repository.networkAvailable.value && offlineSkips < MAX_OFFLINE_SKIPS) {
+            // Known offline: report it now and back off without a doomed HTTP request. Every
+            // MAX_OFFLINE_SKIPS ticks a real request still goes out in case the signal is stale.
+            offlineSkips++
+            consecutiveFailures++
+            updateOrdering { it.copy(querying = false, queryIssue = OrderQueryIssue.NetworkUnavailable) }
+            return currentKnownStatus()
+        }
+        offlineSkips = 0
         val epoch = ++queryEpoch
         updateOrdering { it.copy(querying = true) }
-        val outcome = repository.queryOrder(queryOwner, orderNo)
+        queryInFlight = true
+        val outcome = try {
+            repository.queryOrder(queryOwner, orderNo)
+        } finally {
+            queryInFlight = false
+        }
         if (epoch != queryEpoch || owner != queryOwner) return null
         return when (outcome) {
             is PaymentRepository.QueryOutcome.Updated -> {
@@ -340,8 +395,13 @@ class VipPurchaseController(
                 else -> {
                     // A failed query never changes the known order status.
                     consecutiveFailures++
-                    updateOrdering { it.copy(querying = false, lastQueryFailed = true) }
-                    (state.value.phase as? PurchasePhase.Ordering)?.order?.status ?: PaymentOrderStatus.UNKNOWN
+                    val issue = if (outcome.error is PaymentError.Network && !repository.networkAvailable.value) {
+                        OrderQueryIssue.NetworkUnavailable
+                    } else {
+                        OrderQueryIssue.Temporary
+                    }
+                    updateOrdering { it.copy(querying = false, queryIssue = issue) }
+                    currentKnownStatus()
                 }
             }
             PaymentRepository.QueryOutcome.AccountChanged -> {
@@ -440,6 +500,7 @@ class VipPurchaseController(
     }
 
     private fun cancelOrderWork() {
+        lastCashierLaunchAt = null
         pollJob?.cancel()
         syncJob?.cancel()
         pollJob = null
@@ -449,6 +510,9 @@ class VipPurchaseController(
     }
 
     // ---------- helpers ----------
+
+    private fun currentKnownStatus(): PaymentOrderStatus =
+        (state.value.phase as? PurchasePhase.Ordering)?.order?.status ?: PaymentOrderStatus.UNKNOWN
 
     private fun activeOrderNo(): String? = when (val phase = state.value.phase) {
         is PurchasePhase.Ordering -> phase.order.orderNo
@@ -489,6 +553,8 @@ class VipPurchaseController(
 
     private companion object {
         const val DEFAULT_PLAN = "YEARLY"
+        const val MAX_OFFLINE_SKIPS = 3
+        const val CASHIER_DEBOUNCE_MS = 2_000L
         const val MEMBERSHIP_SYNC_ATTEMPTS = 3
         const val MEMBERSHIP_SYNC_RETRY_DELAY_MS = 1_500L
     }

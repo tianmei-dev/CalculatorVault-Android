@@ -78,12 +78,14 @@ import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.membership.domain.MembershipSyncAfterPurchase
+import com.aurora.calculatorvault.feature.membership.domain.OrderQueryIssue
 import com.aurora.calculatorvault.feature.membership.domain.OrderView
 import com.aurora.calculatorvault.feature.membership.domain.PlansState
 import com.aurora.calculatorvault.feature.membership.domain.PurchaseNotice
 import com.aurora.calculatorvault.feature.membership.domain.PurchasePhase
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseState
 import com.aurora.calculatorvault.feature.payment.data.MembershipPlanOffer
+import com.aurora.calculatorvault.feature.payment.data.PaymentError
 import com.aurora.calculatorvault.feature.payment.data.PaymentOrderStatus
 import com.aurora.calculatorvault.feature.payment.domain.PayLaunchDecision
 import com.aurora.calculatorvault.ui.component.VaultIconButton
@@ -289,7 +291,12 @@ private fun PlansSection(state: VipPurchaseState, viewModel: VipPurchaseViewMode
     when (val plans = state.plans) {
         PlansState.Loading -> InfoCard(stringResource(R.string.vip_plans_loading), Modifier.testTag("vip_plans_loading"))
         PlansState.Empty -> RetryCard(stringResource(R.string.vip_plans_empty), viewModel::loadPlans, "vip_plans_empty")
-        is PlansState.Failed -> RetryCard(stringResource(R.string.vip_plans_failed), viewModel::loadPlans, "vip_plans_failed")
+        is PlansState.Failed ->
+            if (plans.error == PaymentError.EndpointNotConfigured) {
+                InfoCard(stringResource(R.string.vip_plans_endpoint_missing), Modifier.testTag("vip_plans_endpoint_missing"))
+            } else {
+                RetryCard(stringResource(R.string.vip_plans_failed), viewModel::loadPlans, "vip_plans_failed")
+            }
         is PlansState.Ready -> PlanSelector(
             plans = plans.plans,
             selected = state.selectedPlanCode,
@@ -333,8 +340,18 @@ private fun OrderPanel(phase: PurchasePhase.Ordering, viewModel: VipPurchaseView
                 }
                 is PayLaunchDecision.OpenCashier -> Unit
             }
-            if (phase.lastQueryFailed) {
-                Text(stringResource(R.string.vip_order_query_failed), style = AppTextStyles.Caption,
+            when {
+                phase.querying -> Text(stringResource(R.string.vip_order_querying), style = AppTextStyles.Caption,
+                    color = AppColors.TextSecondary, modifier = Modifier.testTag("vip_order_querying"))
+                phase.queryIssue == OrderQueryIssue.NetworkUnavailable ->
+                    Text(stringResource(R.string.vip_order_network_unavailable), style = AppTextStyles.Caption,
+                        color = AppColors.Warning, modifier = Modifier.testTag("vip_order_network_unavailable"))
+                phase.queryIssue == OrderQueryIssue.Temporary ->
+                    Text(stringResource(R.string.vip_order_query_failed), style = AppTextStyles.Caption,
+                        color = AppColors.TextSecondary, modifier = Modifier.testTag("vip_order_query_failed"))
+            }
+            if (order.status == PaymentOrderStatus.EXPIRED) {
+                Text(stringResource(R.string.vip_order_expired_end_hint), style = AppTextStyles.Caption,
                     color = AppColors.TextSecondary)
             }
             if (order.status == PaymentOrderStatus.FULFILLED) {
@@ -361,7 +378,13 @@ private fun OrderPanel(phase: PurchasePhase.Ordering, viewModel: VipPurchaseView
                     }
                 }
                 TextButton(onClick = viewModel::closeOrderView, modifier = Modifier.testTag("vip_order_back")) {
-                    Text(stringResource(R.string.vip_order_back_to_plans), color = AppColors.TextSecondary)
+                    Text(
+                        stringResource(
+                            if (order.status == PaymentOrderStatus.EXPIRED) R.string.vip_order_end_viewing
+                            else R.string.vip_order_back_to_plans,
+                        ),
+                        color = AppColors.TextSecondary,
+                    )
                 }
             }
         }

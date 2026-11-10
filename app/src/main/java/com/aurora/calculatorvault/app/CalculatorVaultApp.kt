@@ -364,9 +364,12 @@ class CalculatorVaultApp : Application() {
             { BuildConfig.TRIAL_DEVICE_UPLOAD_ENABLED })
     }
 
-    val accountSession by lazy {
+    val accountSession: AccountSessionRepository by lazy {
         AccountSessionRepository(HttpAuthApi(BuildConfig.API_BASE_URL, BuildConfig.DEBUG, localHttpBaseUrl = BuildConfig.LOCAL_HTTP_BASE_URL),
-            KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent)
+            KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent,
+            serverIssuedInstallAllowed = BuildConfig.DEBUG && BuildConfig.TEST_SESSION_INSTALL_ENABLED,
+            // Logging out ends that account's local purchase context; server orders and VIP are untouched.
+            onLoggedOut = { userId -> paymentRepository.discardPending(userId) })
     }
 
     val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID, privacyConsent) }
@@ -382,7 +385,7 @@ class CalculatorVaultApp : Application() {
 
     /**
      * Production VIP source: server /me only. Never fabricates membership.
-     * JVM unit tests may inject FakeMembershipProvider directly; androidTest overrides
+     * JVM unit tests inject a test-source-set Fake provider directly; androidTest overrides
      * [EntitlementRepository.stateOverride] from the test source set only.
      * Debug / localIntegration / Release all use [ServerMembershipProvider] —
      * only server-confirmed ACTIVE grants VIP.
@@ -424,7 +427,7 @@ class CalculatorVaultApp : Application() {
     }
 
     /** VIP purchase data (plans / orders) against the same server as login and membership. */
-    val paymentRepository by lazy {
+    val paymentRepository: com.aurora.calculatorvault.feature.payment.data.PaymentRepository by lazy {
         com.aurora.calculatorvault.feature.payment.data.PaymentRepository(
             api = com.aurora.calculatorvault.feature.payment.data.HttpPaymentApi(
                 baseUrl = BuildConfig.API_BASE_URL,
@@ -465,6 +468,8 @@ class CalculatorVaultApp : Application() {
             },
             payLaunchPolicy = com.aurora.calculatorvault.feature.payment.domain.PayLaunchPolicy(
                 allowTestKind = BuildConfig.PAYMENT_TEST_KIND_ALLOWED,
+                cashierHosts = com.aurora.calculatorvault.feature.payment.domain.PayLaunchPolicy
+                    .parseHosts(BuildConfig.PAYMENT_CASHIER_HOSTS),
             ),
             elapsedRealtime = { SystemClock.elapsedRealtime() },
         )
@@ -520,13 +525,21 @@ class CalculatorVaultApp : Application() {
         deviceTrial.initialize()
         deviceTrial.startTicker()
         try {
-            getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(
+            val connectivity = getSystemService(android.net.ConnectivityManager::class.java)
+            connectivity.registerDefaultNetworkCallback(
                 object : android.net.ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
                         applicationScope.launch { deviceTrial.sync() }
                         paymentRepository.onNetworkAvailable()
                     }
+
+                    override fun onLost(network: android.net.Network) {
+                        // A replacement default network may already be active; only report a real loss.
+                        val active = connectivity.activeNetwork
+                        if (active == null || active == network) paymentRepository.onNetworkLost()
+                    }
                 })
+            if (connectivity.activeNetwork == null) paymentRepository.onNetworkLost()
         } catch (_: Exception) { /* Foreground and consent events still synchronize. */ }
         applicationScope.launch {
             vaultPreferencesDataStore.data.catch { }.collect {

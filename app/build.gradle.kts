@@ -30,14 +30,67 @@ fun quotedUrl(value: String): String {
     require(value.none { it == '"' || it == '\\' || it.isISOControl() })
     return "\"$value\""
 }
-if (releaseApiUrl.isNotEmpty()) {
-    val uri = URI(releaseApiUrl)
-    require(uri.scheme == "https" && uri.host != null && uri.userInfo == null)
+/** Public HTTPS API host only: no http, IP, userinfo or local / reserved names. */
+fun requirePublicHttpsUrl(name: String, value: String) {
+    if (value.isEmpty()) return
+    val uri = URI(value)
+    require(uri.scheme == "https" && uri.host != null && uri.userInfo == null) { "$name must be an https URL" }
     val host = uri.host.lowercase()
-    require(host.contains('.') && !host.matches(Regex("[0-9.]+")) && host.none { it == ':' || it == '[' || it == ']' })
+    require(host.contains('.') && !host.matches(Regex("[0-9.]+")) && host.none { it == ':' || it == '[' || it == ']' }) {
+        "$name must use a DNS host name"
+    }
     require(listOf("localhost", "local", "lan", "internal", "test", "invalid").none {
         host == it || host.endsWith(".$it")
-    })
+    }) { "$name must not use a local or reserved host" }
+}
+requirePublicHttpsUrl("RELEASE_API_BASE_URL", releaseApiUrl)
+
+/**
+ * I3.5.5-B2 paystaging: real-gateway joint-test build. HTTPS API injected by
+ * `-PPAYSTAGING_API_BASE_URL=https://...`; when absent the build still assembles but the app
+ * refuses all payment / account requests (no fallback to any development address).
+ */
+val paystagingApiUrl = providers.gradleProperty("PAYSTAGING_API_BASE_URL").orElse("").get().trim()
+requirePublicHttpsUrl("PAYSTAGING_API_BASE_URL", paystagingApiUrl)
+
+/**
+ * Yusen cashier host allow-list per build type, comma separated, exact lowercase host names.
+ * Empty (the default everywhere) refuses every cashier link; real hosts are confirmed manually.
+ */
+fun cashierHosts(property: String): String {
+    val hosts = providers.gradleProperty(property).orElse("").get().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    val label = Regex("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
+    hosts.forEach { host ->
+        val labels = host.split('.')
+        require(labels.size >= 2 && labels.all { label.matches(it) } && labels.last().any { it in 'a'..'z' }) {
+            "$property: cashier hosts must be lowercase DNS names without scheme, port or path"
+        }
+    }
+    return quotedUrl(hosts.joinToString(","))
+}
+
+/**
+ * Joint-test signing, supplied only from outside the repository:
+ * `PAYSTAGING_STORE_FILE` / `PAYSTAGING_KEY_ALIAS` (Gradle property or environment) and
+ * `PAYSTAGING_STORE_PASSWORD` / `PAYSTAGING_KEY_PASSWORD` (environment only). Without them the
+ * paystaging APK is left unsigned; partial configuration fails the build.
+ */
+val paystagingStoreFile = providers.gradleProperty("PAYSTAGING_STORE_FILE")
+    .orElse(providers.environmentVariable("PAYSTAGING_STORE_FILE")).orElse("").get().trim()
+val paystagingKeyAlias = providers.gradleProperty("PAYSTAGING_KEY_ALIAS")
+    .orElse(providers.environmentVariable("PAYSTAGING_KEY_ALIAS")).orElse("").get().trim()
+val paystagingStorePassword = providers.environmentVariable("PAYSTAGING_STORE_PASSWORD").orElse("").get()
+val paystagingKeyPassword = providers.environmentVariable("PAYSTAGING_KEY_PASSWORD").orElse("").get()
+val paystagingSigningParts = listOf(paystagingStoreFile, paystagingKeyAlias, paystagingStorePassword, paystagingKeyPassword)
+val paystagingSigned = paystagingSigningParts.all { it.isNotEmpty() }
+require(paystagingSigned || paystagingSigningParts.none { it.isNotEmpty() }) {
+    "paystaging signing needs PAYSTAGING_STORE_FILE, PAYSTAGING_KEY_ALIAS, PAYSTAGING_STORE_PASSWORD and PAYSTAGING_KEY_PASSWORD"
+}
+if (paystagingSigned) {
+    val store = file(paystagingStoreFile).canonicalFile
+    require(store.isFile) { "PAYSTAGING_STORE_FILE does not exist" }
+    require(store.name != "debug.keystore") { "paystaging must not use the debug keystore" }
+    require(!store.path.startsWith(rootDir.canonicalPath)) { "paystaging keystore must live outside the repository" }
 }
 android {
     namespace = "com.aurora.calculatorvault"
@@ -59,6 +112,18 @@ android {
         buildConfigField("String", "TRIAL_API_BASE_URL", "\"\"")
         buildConfigField("String", "LOCAL_HTTP_BASE_URL", "\"\"")
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
+        buildConfigField("String", "PAYMENT_CASHIER_HOSTS", "\"\"")
+    }
+
+    signingConfigs {
+        if (paystagingSigned) {
+            create("paystaging") {
+                storeFile = file(paystagingStoreFile)
+                keyAlias = paystagingKeyAlias
+                storePassword = paystagingStorePassword
+                keyPassword = paystagingKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -72,6 +137,7 @@ android {
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", isolatedMembershipTest.toString())
             // pay.kind=TEST (s32it isolated payments) is recognised only in Debug / localIntegration.
             buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "true")
+            buildConfigField("String", "PAYMENT_CASHIER_HOSTS", cashierHosts("DEBUG_PAYMENT_CASHIER_HOSTS"))
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
@@ -80,6 +146,7 @@ android {
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
             buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "false")
+            buildConfigField("String", "PAYMENT_CASHIER_HOSTS", cashierHosts("RELEASE_PAYMENT_CASHIER_HOSTS"))
             manifestPlaceholders["accountCleartext"] = "false"
             isMinifyEnabled = false
             proguardFiles(
@@ -103,6 +170,24 @@ android {
             buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", trialOptIn)
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
             buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "true")
+            buildConfigField("String", "PAYMENT_CASHIER_HOSTS", cashierHosts("LOCAL_PAYMENT_CASHIER_HOSTS"))
+        }
+        create("paystaging") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            // Same applicationId as Release: WeChat login is bound to the registered package name.
+            signingConfig = if (paystagingSigned) signingConfigs.getByName("paystaging") else null
+            isDebuggable = false
+            versionNameSuffix = "-paystaging"
+            buildConfigField("String", "API_BASE_URL", quotedUrl(paystagingApiUrl))
+            buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(paystagingApiUrl))
+            buildConfigField("String", "TRIAL_HTTP_BASE_URL", "\"\"")
+            buildConfigField("String", "LOCAL_HTTP_BASE_URL", "\"\"")
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
+            buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
+            buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "false")
+            buildConfigField("String", "PAYMENT_CASHIER_HOSTS", cashierHosts("PAYSTAGING_PAYMENT_CASHIER_HOSTS"))
+            manifestPlaceholders["accountCleartext"] = "false"
         }
     }
 

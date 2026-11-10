@@ -35,6 +35,15 @@ sealed interface PlansState {
     data class Failed(val error: PaymentError) : PlansState
 }
 
+/** Order query problem shown on the waiting page. Never changes the known order status. */
+enum class OrderQueryIssue {
+    /** The device reports no usable network: shown immediately, no HTTP attempt is wasted. */
+    NetworkUnavailable,
+
+    /** Network looks available but the query timed out or the server failed: auto retry. */
+    Temporary,
+}
+
 /** Membership sync after the server reports FULFILLED. Local state never grants VIP. */
 enum class MembershipSyncAfterPurchase { NotStarted, Syncing, Synced, Failed }
 
@@ -62,9 +71,12 @@ sealed interface PurchasePhase {
     data class Ordering(
         val order: OrderView,
         val querying: Boolean = false,
-        val lastQueryFailed: Boolean = false,
+        /** Why the latest query attempt did not refresh [order]; null after a successful query. */
+        val queryIssue: OrderQueryIssue? = null,
         val membershipSync: MembershipSyncAfterPurchase = MembershipSyncAfterPurchase.NotStarted,
-    ) : PurchasePhase
+    ) : PurchasePhase {
+        val lastQueryFailed: Boolean get() = queryIssue != null
+    }
 }
 
 /** One-shot UI feedback. */

@@ -98,6 +98,9 @@ class HttpPaymentApi(
     private val transport: PaymentHttpTransport = UrlConnectionPaymentHttpTransport(),
     private val connectTimeoutMillis: Int = 10_000,
     private val readTimeoutMillis: Int = 15_000,
+    /** Order status polls are cheap to repeat, so they fail fast instead of stalling feedback. */
+    private val queryConnectTimeoutMillis: Int = 5_000,
+    private val queryReadTimeoutMillis: Int = 8_000,
 ) : PaymentApi {
 
     override suspend fun plans(): PaymentResult<List<MembershipPlanOffer>> =
@@ -121,7 +124,10 @@ class HttpPaymentApi(
     override suspend fun queryOrder(accessToken: String, orderNo: String): PaymentResult<PaymentOrder> {
         require(orderNo.isNotBlank())
         val path = ORDERS_PATH + "/" + URLEncoder.encode(orderNo, "UTF-8")
-        return call("GET", path, accessToken, body = null) { PaymentJson.order(it as JSONObject) }
+        return call(
+            "GET", path, accessToken, body = null,
+            connectTimeout = queryConnectTimeoutMillis, readTimeout = queryReadTimeoutMillis,
+        ) { PaymentJson.order(it as JSONObject) }
     }
 
     private suspend fun <T> call(
@@ -129,6 +135,8 @@ class HttpPaymentApi(
         path: String,
         token: String?,
         body: String?,
+        connectTimeout: Int = connectTimeoutMillis,
+        readTimeout: Int = readTimeoutMillis,
         parse: (Any) -> T,
     ): PaymentResult<T> = withContext(Dispatchers.IO) {
         coroutineContext.ensureActive()
@@ -138,8 +146,8 @@ class HttpPaymentApi(
         val url = try {
             buildUrl(path)
         } catch (_: Exception) {
-            // Empty / disallowed Base URL degrades instead of crashing.
-            return@withContext PaymentResult.Failure(PaymentError.Network(timeout = false))
+            // Empty / disallowed Base URL: refuse explicitly, never fall back to another address.
+            return@withContext PaymentResult.Failure(PaymentError.EndpointNotConfigured)
         }
         val headers = linkedMapOf(
             "X-App-Code" to APP_CODE,
@@ -147,7 +155,7 @@ class HttpPaymentApi(
         )
         if (token != null) headers["Authorization"] = "Bearer $token"
         if (body != null) headers["Content-Type"] = "application/json; charset=utf-8"
-        val request = PaymentHttpRequest(method, url, headers, body, connectTimeoutMillis, readTimeoutMillis)
+        val request = PaymentHttpRequest(method, url, headers, body, connectTimeout, readTimeout)
         val raw = try {
             transport.execute(request)
         } catch (cancelled: CancellationException) {

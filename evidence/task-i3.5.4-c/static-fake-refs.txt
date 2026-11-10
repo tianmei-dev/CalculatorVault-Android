@@ -1,0 +1,12 @@
+﻿# rg FakeMembershipProvider app/src
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:10:import com.aurora.calculatorvault.feature.entitlement.domain.FakeMembershipProvider
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:41: * Any test that asserts VIP Allowed uses [FakeMembershipProvider] and is labeled Fake — not real server VIP.
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:132:        membership: FakeMembershipProvider = FakeMembershipProvider(),
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:150:        val membership = FakeMembershipProvider()
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:263:        val membership = FakeMembershipProvider()
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:285:        val membership = FakeMembershipProvider()
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:305:        val membership = FakeMembershipProvider()
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\EntitlementRepositoryTest.kt:329:        val membership = FakeMembershipProvider()
+app/src\test\java\com\aurora\calculatorvault\feature\entitlement\domain\FakeMembershipProvider.kt:8:class FakeMembershipProvider : MembershipProvider {
+app/src\test\java\com\aurora\calculatorvault\feature\membership\data\MembershipRefreshCoordinatorTest.kt:8:import com.aurora.calculatorvault.feature.entitlement.domain.FakeMembershipProvider
+app/src\test\java\com\aurora\calculatorvault\feature\membership\data\MembershipRefreshCoordinatorTest.kt:445:        val fake = FakeMembershipProvider()

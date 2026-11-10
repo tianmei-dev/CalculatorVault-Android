@@ -333,7 +333,7 @@ class SessionRevalidationEntitlementTest {
     ) {
         val auth = AuthProbe()
         val api = ScriptedApi()
-        val sessions = AccountSessionRepository(auth, tokens, scope.backgroundScope)
+        val sessions = AccountSessionRepository(auth, tokens, scope.backgroundScope, serverIssuedInstallAllowed = true)
         val trial = trialRepo(scope, trialActive)
         val membership = ServerMembershipProvider(api, scope.backgroundScope, elapsed::get)
         val entitlement = EntitlementRepository(

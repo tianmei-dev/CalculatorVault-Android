@@ -16,7 +16,7 @@ class InstallServerIssuedSessionTest {
     fun install_reachesAuthenticated_andWritesStore() = runTest {
         val api = Api()
         val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope)
+        val repo = AccountSessionRepository(api, store, backgroundScope, serverIssuedInstallAllowed = true)
         repo.installServerIssuedSession(
             SessionCredential("fixture-token", Instant.now().plusSeconds(3600)),
         )
@@ -32,7 +32,7 @@ class InstallServerIssuedSessionTest {
     fun install_invalidSession_expiresWithoutLeavingToken() = runTest {
         val api = Api().also { it.meFailure = AuthFailure(invalidSession = true) }
         val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope)
+        val repo = AccountSessionRepository(api, store, backgroundScope, serverIssuedInstallAllowed = true)
         repo.installServerIssuedSession(
             SessionCredential("bad-token", Instant.now().plusSeconds(3600)),
         )
@@ -46,7 +46,7 @@ class InstallServerIssuedSessionTest {
     fun switchInstall_doesNotRemoteRevokePreviousToken() = runTest {
         val api = Api()
         val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope)
+        val repo = AccountSessionRepository(api, store, backgroundScope, serverIssuedInstallAllowed = true)
         repo.installServerIssuedSession(
             SessionCredential("token-a", Instant.now().plusSeconds(3600)),
         )
@@ -65,7 +65,7 @@ class InstallServerIssuedSessionTest {
     fun abandonLocalSession_clearsWithoutRemoteLogout() = runTest {
         val api = Api()
         val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope)
+        val repo = AccountSessionRepository(api, store, backgroundScope, serverIssuedInstallAllowed = true)
         repo.installServerIssuedSession(
             SessionCredential("fixture-token", Instant.now().plusSeconds(3600)),
         )
@@ -80,11 +80,51 @@ class InstallServerIssuedSessionTest {
     fun wechatLoginPathUnchanged_stillUsesAcceptAuthorization() = runTest {
         val api = Api()
         val store = Store()
-        val repo = AccountSessionRepository(api, store, backgroundScope)
+        val repo = AccountSessionRepository(api, store, backgroundScope, serverIssuedInstallAllowed = true)
         repo.acceptAuthorization(WeChatServerLoginRequest("code"))
         runCurrent()
         assertTrue(repo.state.value is AccountSession.Authenticated)
         assertEquals(1, api.loginCalls)
+    }
+
+    @Test
+    fun b2_installRefused_unlessBuildAllowsIt() = runTest {
+        val store = Store()
+        val repo = AccountSessionRepository(Api(), store, backgroundScope)
+        val error = runCatching {
+            repo.installServerIssuedSession(SessionCredential("fixture-token", Instant.now().plusSeconds(3600)))
+        }.exceptionOrNull()
+        assertTrue(error is IllegalStateException)
+        runCurrent()
+        assertEquals(AccountSession.Guest, repo.state.value)
+        assertNull(store.value)
+    }
+
+    @Test
+    fun b2_logout_reportsLoggedOutAccount_only() = runTest {
+        val loggedOut = mutableListOf<Long>()
+        val api = Api()
+        val repo = AccountSessionRepository(api, Store(), backgroundScope, onLoggedOut = { loggedOut += it })
+        repo.acceptAuthorization(WeChatServerLoginRequest("code"))
+        runCurrent()
+        repo.logout()
+        assertEquals(listOf(7L), loggedOut)
+        // Logging out again as Guest, or a cancelled login, reports nothing.
+        repo.logout()
+        repo.cancelLogin()
+        assertEquals(listOf(7L), loggedOut)
+    }
+
+    @Test
+    fun b2_logoutCallbackFailure_doesNotBreakLogout() = runTest {
+        val api = Api()
+        val repo = AccountSessionRepository(api, Store(), backgroundScope, onLoggedOut = { error("boom") })
+        repo.acceptAuthorization(WeChatServerLoginRequest("code"))
+        runCurrent()
+        repo.logout()
+        runCurrent()
+        assertEquals(AccountSession.Guest, repo.state.value)
+        assertEquals(1, api.logoutCalls)
     }
 
     private class Store : TokenStore {

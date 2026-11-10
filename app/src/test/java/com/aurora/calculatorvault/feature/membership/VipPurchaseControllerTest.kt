@@ -6,6 +6,7 @@ import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.ServerAccount
 import com.aurora.calculatorvault.feature.membership.data.MembershipSyncUi
 import com.aurora.calculatorvault.feature.membership.domain.MembershipSyncAfterPurchase
+import com.aurora.calculatorvault.feature.membership.domain.OrderQueryIssue
 import com.aurora.calculatorvault.feature.membership.domain.PlansState
 import com.aurora.calculatorvault.feature.membership.domain.PurchaseNotice
 import com.aurora.calculatorvault.feature.membership.domain.PurchasePhase
@@ -61,6 +62,7 @@ class VipPurchaseControllerTest {
         initial: AccountSession = AccountSession.Authenticated(ServerAccount(7)),
         allowTestKind: Boolean = true,
         val store: InMemoryPendingPurchaseStore = InMemoryPendingPurchaseStore(),
+        cashierHosts: List<String> = PaymentFixtures.CASHIER_HOSTS,
     ) {
         val api = FakePaymentApi()
         val session = FakeSession(initial)
@@ -76,7 +78,7 @@ class VipPurchaseControllerTest {
             sessionState = session.state,
             entitlementState = entitlement,
             membership = membership,
-            payLaunchPolicy = PayLaunchPolicy(allowTestKind),
+            payLaunchPolicy = PayLaunchPolicy(allowTestKind, cashierHosts),
             elapsedRealtime = { scope.testScheduler.currentTime },
         ).also { c -> scope.backgroundScope.launch { c.events.collect { events += it } } }
 
@@ -528,6 +530,296 @@ class VipPurchaseControllerTest {
         runCurrent()
         assertEquals(PaymentOrderStatus.PAID, env.ordering.order.status)
         assertFalse(env.ordering.lastQueryFailed)
+    }
+
+    // ---------------- I3.5.5-B2 ----------------
+
+    @Test
+    fun b2_goPay_rapidTaps_openBrowserOnce_thenAllowedAgainAfterDebounce() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        repeat(6) { env.controller.openCashier() }
+        runCurrent()
+        assertEquals(1, env.events.count { it is VipPurchaseEvent.OpenCashier })
+        advanceTimeBy(1_000)
+        env.controller.openCashier()
+        runCurrent()
+        assertEquals("still inside the debounce window", 1, env.events.count { it is VipPurchaseEvent.OpenCashier })
+        advanceTimeBy(1_500)
+        env.controller.openCashier()
+        runCurrent()
+        assertEquals(2, env.events.count { it is VipPurchaseEvent.OpenCashier })
+        assertEquals("opening the cashier never creates orders", 1, env.api.createCalls.size)
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+    }
+
+    @Test
+    fun b2_returnFromBrowser_queriesOrderImmediately() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        env.controller.openCashier()
+        env.controller.onVisibilityChanged(false) // browser in front
+        advanceTimeBy(45_000)
+        val beforeReturn = env.api.queryCalls.size
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
+        env.controller.onVisibilityChanged(true)
+        runCurrent()
+        assertEquals(beforeReturn + 1, env.api.queryCalls.size)
+        assertEquals(PaymentOrderStatus.FULFILLED, env.ordering.order.status)
+        assertEquals("VIP only through the membership refresh port", 1, env.membership.refreshCalls)
+    }
+
+    @Test
+    fun b2_cashierLink_offAllowList_orUnconfigured_neverOpensBrowser() = runTest {
+        val cases = listOf(
+            PaymentFixtures.CASHIER_HOSTS to "https://evil.example/pay?sig=x",
+            PaymentFixtures.CASHIER_HOSTS to "https://cashier.example:8443/pay",
+            PaymentFixtures.CASHIER_HOSTS to "https://user@cashier.example/pay",
+            emptyList<String>() to PaymentFixtures.CASHIER,
+        )
+        for ((hosts, link) in cases) {
+            val env = Env(this, allowTestKind = false, cashierHosts = hosts)
+            runCurrent()
+            env.readyToBuy()
+            val pay = PayInstruction("URL", link)
+            env.api.createDefault = PaymentResult.Success(PaymentFixtures.order(pay = pay))
+            env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(pay = pay))
+            env.controller.requestPurchase()
+            runCurrent()
+            assertTrue(link, env.ordering.order.payDecision is PayLaunchDecision.Rejected)
+            env.controller.openCashier()
+            runCurrent()
+            assertTrue(link, env.events.none { it is VipPurchaseEvent.OpenCashier })
+            assertTrue(link, env.notices().contains(PurchaseNotice.PayLinkInvalid))
+        }
+    }
+
+    @Test
+    fun b2_endpointNotConfigured_plansShowItAndNoOrderIsSent() = runTest {
+        val env = Env(this)
+        env.api.plansResult = PaymentResult.Failure(PaymentError.EndpointNotConfigured)
+        env.controller.loadPlans()
+        runCurrent()
+        assertEquals(PlansState.Failed(PaymentError.EndpointNotConfigured), env.controller.state.value.plans)
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        assertTrue(env.api.createCalls.isEmpty())
+    }
+
+    @Test
+    fun b2_accountSwitch_neverShowsOtherAccountsOrder() = runTest {
+        val store = InMemoryPendingPurchaseStore()
+        val env = Env(this, store = store)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        assertEquals("CV0001", env.ordering.order.orderNo)
+        env.session.state.value = AccountSession.Authenticated(ServerAccount(8))
+        env.session.generation = 1
+        runCurrent()
+        assertEquals(PurchasePhase.Idle, env.phase)
+        assertTrue(env.notices().contains(PurchaseNotice.AccountChanged))
+
+        val asB = Env(this, store = store, initial = AccountSession.Authenticated(ServerAccount(8)))
+        runCurrent()
+        assertEquals("B never sees A's order", PurchasePhase.Idle, asB.phase)
+        assertTrue(asB.api.queryCalls.isEmpty())
+
+        val backToA = Env(this, store = store)
+        runCurrent()
+        assertEquals("A (not logged out) can still resume", "CV0001", (backToA.phase as PurchasePhase.Ordering).order.orderNo)
+    }
+
+    // ---------------- I3.5.4-C F3 ----------------
+
+    @Test
+    fun f3_networkLost_feedbackImmediate_noHttpWhileOffline_statusKept_restoreQueries() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        val before = env.api.queryCalls.size
+        env.repository.onNetworkLost()
+        runCurrent()
+        assertEquals("immediate, no timeout wait", OrderQueryIssue.NetworkUnavailable, env.ordering.queryIssue)
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+        advanceTimeBy(15_000)
+        env.controller.refreshOrder()
+        runCurrent()
+        assertEquals("no doomed HTTP while known offline", before, env.api.queryCalls.size)
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+        assertTrue(env.phase is PurchasePhase.Ordering)
+
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.PAID))
+        env.repository.onNetworkAvailable()
+        runCurrent()
+        assertEquals(before + 1, env.api.queryCalls.size)
+        assertEquals(PaymentOrderStatus.PAID, env.ordering.order.status)
+        assertEquals(null, env.ordering.queryIssue)
+        assertEquals("network errors never create orders", 1, env.api.createCalls.size)
+    }
+
+    @Test
+    fun f3_staleOfflineSignal_stillProbesPeriodically() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        val before = env.api.queryCalls.size
+        env.repository.onNetworkLost() // never restored: the signal could be wrong
+        advanceTimeBy(60_000)
+        assertTrue("a real probe still goes out", env.api.queryCalls.size > before)
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+    }
+
+    @Test
+    fun f3_repeatedRefresh_whileQueryInFlight_reusesRequest() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        env.api.queryGate = CompletableDeferred()
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.PAID))
+        advanceTimeBy(2_001) // poll query is now in flight
+        val inFlight = env.api.queryCalls.size
+        assertTrue(env.ordering.querying)
+        repeat(5) { env.controller.refreshOrder() }
+        env.controller.onVisibilityChanged(true)
+        env.repository.onNetworkAvailable()
+        runCurrent()
+        assertEquals("no cancel + re-send", inFlight, env.api.queryCalls.size)
+        env.api.queryGate!!.complete(Unit)
+        env.api.queryGate = null
+        runCurrent()
+        assertEquals(PaymentOrderStatus.PAID, env.ordering.order.status)
+        assertFalse(env.ordering.querying)
+    }
+
+    @Test
+    fun f3_timeoutWhileOnline_isTemporary_backsOff_statusKept() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        env.api.queryDefault = PaymentResult.Failure(PaymentError.Network(timeout = true))
+        advanceTimeBy(2_001)
+        assertEquals(OrderQueryIssue.Temporary, env.ordering.queryIssue)
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+        val first = env.api.queryCalls.size
+        advanceTimeBy(20_000)
+        val backedOff = env.api.queryCalls.size - first
+        assertTrue("backoff calls=$backedOff", backedOff in 2..4)
+    }
+
+    @Test
+    fun f3_foregroundToggles_keepSinglePollLoop() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        repeat(4) {
+            env.controller.onVisibilityChanged(false)
+            env.controller.onVisibilityChanged(true)
+        }
+        runCurrent()
+        val start = env.api.queryCalls.size
+        advanceTimeBy(10_000)
+        val perTenSeconds = env.api.queryCalls.size - start
+        assertTrue("one loop polls every 2s, got $perTenSeconds", perTenSeconds in 4..5)
+    }
+
+    @Test
+    fun f3_accountSwitch_duringInFlightQuery_resultIgnored() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        env.api.queryGate = CompletableDeferred()
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
+        advanceTimeBy(2_001)
+        env.session.state.value = AccountSession.Authenticated(ServerAccount(8))
+        env.session.generation = 1
+        runCurrent()
+        env.controller.refreshOrder()
+        env.api.queryGate!!.complete(Unit)
+        runCurrent()
+        assertEquals(PurchasePhase.Idle, env.phase)
+        assertEquals(0, env.membership.refreshCalls)
+    }
+
+    // ---------------- I3.5.4-C F4 ----------------
+
+    @Test
+    fun f4_expired_manualRefreshAvailable_endViewingClearsRecord_reopenShowsPlans() = runTest {
+        val store = InMemoryPendingPurchaseStore()
+        val env = Env(this, store = store)
+        runCurrent()
+        env.readyToBuy()
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.EXPIRED))
+        env.controller.requestPurchase()
+        runCurrent()
+        assertEquals(PaymentOrderStatus.EXPIRED, env.ordering.order.status)
+        val calls = env.api.queryCalls.size
+        env.controller.refreshOrder()
+        runCurrent()
+        assertEquals("manual late-payment check still allowed", calls + 1, env.api.queryCalls.size)
+        assertEquals("CV0001", store.read()?.orderNo)
+
+        env.controller.closeOrderView()
+        assertEquals(PurchasePhase.Idle, env.phase)
+        assertEquals("local record dropped", null, store.read())
+
+        val reopened = Env(this, store = store)
+        runCurrent()
+        assertEquals(PurchasePhase.Idle, reopened.phase)
+        assertTrue(reopened.controller.state.value.plans is PlansState.Ready)
+        assertTrue("no resume query", reopened.api.queryCalls.isEmpty())
+    }
+
+    @Test
+    fun f4_pendingBackToPlans_keepsRecord_andResumes() = runTest {
+        val store = InMemoryPendingPurchaseStore()
+        val env = Env(this, store = store)
+        runCurrent()
+        env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        env.controller.closeOrderView()
+        assertEquals("pending order stays resumable", "CV0001", store.read()?.orderNo)
+        val reopened = Env(this, store = store)
+        runCurrent()
+        assertTrue(reopened.phase is PurchasePhase.Ordering)
+        assertEquals(listOf("CV0001"), reopened.api.queryCalls)
+        assertTrue(reopened.api.createCalls.isEmpty())
+    }
+
+    @Test
+    fun f4_endViewing_onlyClearsOwnOrderRecord() = runTest {
+        val store = InMemoryPendingPurchaseStore()
+        val env = Env(this, store = store)
+        runCurrent()
+        env.readyToBuy()
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.EXPIRED))
+        env.controller.requestPurchase()
+        runCurrent()
+        // Another order record (e.g. a newer purchase) must not be removed by ending an old view.
+        store.write(PendingPurchaseRecord(7, "YEARLY", "other", "CV-OTHER"))
+        env.controller.closeOrderView()
+        assertEquals("CV-OTHER", store.read()?.orderNo)
     }
 
     @Test

@@ -21,7 +21,9 @@ object PaymentFixtures {
         MembershipPlanOffer("LIFETIME", "永久会员", 2990, "29.90", null, true),
     )
 
+    /** Reserved `.example` names only (RFC 2606): never a real Yusen host, never opened. */
     const val CASHIER = "https://cashier.example/pay?sig=secret"
+    val CASHIER_HOSTS = listOf("cashier.example")
 
     fun order(
         status: PaymentOrderStatus = PaymentOrderStatus.PENDING_PAYMENT,

@@ -45,6 +45,10 @@ val AccountSession.entitlementAccount: ServerAccount?
 class AccountSessionRepository(
     private val api: AuthApi, private val store: TokenStore, private val scope: CoroutineScope,
     private val consent: suspend () -> Boolean = { true },
+    /** Only Debug isolated builds pass true; everywhere else [installServerIssuedSession] refuses. */
+    private val serverIssuedInstallAllowed: Boolean = false,
+    /** User-initiated logout of a known account (local per-account data cleanup). */
+    private val onLoggedOut: (userId: Long) -> Unit = {},
 ) : WeChatServerLoginEntry {
     private val mutableState = MutableStateFlow<AccountSession>(AccountSession.Guest)
     val state = mutableState.asStateFlow()
@@ -144,9 +148,13 @@ class AccountSessionRepository(
         expiryJob?.cancel()
         ++generation
         val previous = credential
+        val loggedOutUserId = mutableState.value.entitlementAccount?.userId
         credential = null
         mutableState.value = AccountSession.Guest
         mutableLogoutWarning.value = !clearStorage()
+        if (loggedOutUserId != null) {
+            try { onLoggedOut(loggedOutUserId) } catch (_: Exception) { /* Logout itself must not fail. */ }
+        }
         if (previous != null) scope.launch { revoke(previous) }
     }
 
@@ -178,6 +186,7 @@ class AccountSessionRepository(
      * production UI / WeChat login never invoke this.
      */
     fun installServerIssuedSession(credential: SessionCredential) {
+        check(serverIssuedInstallAllowed) { "server-issued session install disabled in this build" }
         require(credential.token.isNotBlank()) { "blank session token" }
         require(credential.token.none { it.isWhitespace() || it.isISOControl() }) {
             "invalid session token characters"

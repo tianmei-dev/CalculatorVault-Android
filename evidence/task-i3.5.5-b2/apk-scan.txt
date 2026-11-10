@@ -1,0 +1,43 @@
+﻿secrets loaded: 37 (values never printed)
+
+== androidTest-default.apk  SHA256=718C06A0453AFBE5…  dex=14
+  test           hits=9 IsolatedTestSessionAccess@classes11.dex,classes3.dex,classes9.dex; IsolatedTestSessionBridge@classes11.dex,classes3.dex,classes9.dex; EntitlementInstrumentationBridge@classes11.dex,classes13.dex,classes14.dex,classes3.dex,classes9.dex; PaymentQueryProbe@classes9.dex; IsolatedPaymentE2ETest@classes9.dex; RealMembershipE2EInstrumentationTest@classes3.dex; cv_i354b@classes9.dex; cv_i343d1@classes11.dex; CV_I354B_MARKER@classes9.dex
+  isolated-host  hits=3 10.0.2.2:8081@classes11.dex,classes3.dex,classes9.dex; 192.168.0.107:8081@classes9.dex; :8081@classes11.dex,classes3.dex,classes9.dex
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== debug-default.apk  SHA256=1AD514B9F1601611…  dex=20
+  test           hits=1 IsolatedTestSessionAccess@classes16.dex
+  isolated-host  hits=1 :8081@classes16.dex
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== debug-isolated.apk  SHA256=730B0C93A5E4B2C9…  dex=20
+  test           hits=1 IsolatedTestSessionAccess@classes16.dex
+  isolated-host  hits=2 10.0.2.2:8081@classes11.dex,classes16.dex; :8081@classes11.dex,classes16.dex
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== localIntegration.apk  SHA256=B2E3DB01EBB346B1…  dex=3
+  test           hits=0 
+  isolated-host  hits=2 192.168.0.107:8081@classes2.dex; :8081@classes2.dex
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== paystaging-default.apk  SHA256=DC461B9491A55B6B…  dex=3
+  test           hits=0 
+  isolated-host  hits=0 
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== paystaging-injected.apk  SHA256=FEE215F0F9541128…  dex=3
+  test           hits=0 
+  isolated-host  hits=0 
+  merchant       hits=0 
+  test-secrets   hits=0
+
+== release.apk  SHA256=6E1F54612830C054…  dex=3
+  test           hits=0 
+  isolated-host  hits=0 
+  merchant       hits=0 
+  test-secrets   hits=0

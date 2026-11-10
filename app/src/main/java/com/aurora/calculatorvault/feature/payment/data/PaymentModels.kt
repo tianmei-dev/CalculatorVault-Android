@@ -73,6 +73,9 @@ sealed interface PaymentError {
     /** 50003: server payment configuration missing. */
     data object PaymentConfigMissing : PaymentError
 
+    /** This build has no usable API address (empty, or cleartext where not allowed); nothing was sent. */
+    data object EndpointNotConfigured : PaymentError
+
     /** Connect / read failure or timeout: the request may or may not have reached the server. */
     data class Network(val timeout: Boolean) : PaymentError
 

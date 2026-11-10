@@ -1,0 +1,59 @@
+﻿APK: D:\Android_Work\CalculatorVault-Android\app\build\outputs\apk\release\app-release-unsigned.apk
+APK SHA256: 91ECFDFECD3A494F4CB83E38FD8968B3E8418A4D95CB1B5F67DC1A16A7D45931
+DEX files: classes.dex, classes2.dex, classes3.dex
+FakeMembershipProvider               found=False 
+IsolatedTestSessionAccess            found=False 
+IsolatedTestSessionBridge            found=False 
+TestSessionInstaller                 found=False 
+EntitlementInstrumentationBridge     found=False 
+PaymentQueryProbe                    found=False 
+IsolatedPaymentE2ETest               found=False 
+/internal/fixture                    found=False 
+X-Fixture-Control-Token              found=False 
+fake-payment                         found=False 
+fixture/payment                      found=False 
+cv_i354b                             found=False 
+cv_i343d1                            found=False 
+CV_I354B_MARKER                      found=False 
+10.0.2.2:8081                        found=False 
+192.168.0.107:8081                   found=False 
+:8081                                found=False 
+secret#1   (len=43) found=False
+secret#2   (len=27) found=False
+secret#3   (len=43) found=False
+secret#4   (len=27) found=False
+secret#5   (len=43) found=False
+secret#6   (len=27) found=False
+secret#7   (len=43) found=False
+secret#8   (len=27) found=False
+secret#9   (len=43) found=False
+secret#10  (len=27) found=False
+secret#11  (len=43) found=False
+secret#12  (len=27) found=False
+secret#13  (len=43) found=False
+secret#14  (len=27) found=False
+secret#15  (len=43) found=False
+secret#16  (len=27) found=False
+secret#17  (len=43) found=False
+secret#18  (len=27) found=False
+secret#19  (len=43) found=False
+secret#20  (len=27) found=False
+secret#21  (len=43) found=False
+secret#22  (len=27) found=False
+secret#23  (len=43) found=False
+secret#24  (len=43) found=False
+secret#25  (len=43) found=False
+secret#26  (len=43) found=False
+secret#27  (len=43) found=False
+secret#28  (len=43) found=False
+secret#29  (len=43) found=False
+secret#30  (len=43) found=False
+secret#31  (len=21) found=False
+secret#32  (len=43) found=False
+secret#33  (len=43) found=False
+secret#34  (len=43) found=False
+secret#35  (len=43) found=False
+secret#36  (len=43) found=False
+secret#37  (len=43) found=False
+secrets checked: 37
+TOTAL HITS: 0

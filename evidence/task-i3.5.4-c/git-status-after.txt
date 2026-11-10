@@ -1,0 +1,29 @@
+﻿ M app/src/androidTest/java/com/aurora/calculatorvault/feature/payment/IsolatedPaymentE2ETest.kt
+ M app/src/main/java/com/aurora/calculatorvault/app/CalculatorVaultApp.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/entitlement/domain/MembershipProvider.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/domain/VipPurchaseModels.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseController.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseScreen.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/data/HttpPaymentApi.kt
+ M app/src/main/java/com/aurora/calculatorvault/feature/payment/data/PaymentRepository.kt
+ M app/src/main/res/values/strings_membership.xml
+ M app/src/test/java/com/aurora/calculatorvault/feature/membership/PurchaseMembershipRaceTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/membership/VipPurchaseControllerTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/data/HttpPaymentApiTest.kt
+ M app/src/test/java/com/aurora/calculatorvault/feature/payment/data/PaymentRepositoryTest.kt
+?? app/src/test/java/com/aurora/calculatorvault/feature/entitlement/domain/
+?? evidence/task-i3.5.4-c/
+ .../feature/payment/IsolatedPaymentE2ETest.kt      |  11 +-
+ .../calculatorvault/app/CalculatorVaultApp.kt      |  12 +-
+ .../entitlement/domain/MembershipProvider.kt       |  44 -----
+ .../feature/membership/domain/VipPurchaseModels.kt |  16 +-
+ .../presentation/VipPurchaseController.kt          |  73 +++++++-
+ .../membership/presentation/VipPurchaseScreen.kt   |  23 ++-
+ .../feature/payment/data/HttpPaymentApi.kt         |  12 +-
+ .../feature/payment/data/PaymentRepository.kt      |  23 +++
+ app/src/main/res/values/strings_membership.xml     |   4 +
+ .../membership/PurchaseMembershipRaceTest.kt       | 106 ++++++++++++
+ .../membership/VipPurchaseControllerTest.kt        | 185 +++++++++++++++++++++
+ .../feature/payment/data/HttpPaymentApiTest.kt     |  14 ++
+ .../feature/payment/data/PaymentRepositoryTest.kt  |  24 +++
+ 13 files changed, 482 insertions(+), 65 deletions(-)
