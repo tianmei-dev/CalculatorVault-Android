@@ -1,0 +1,1 @@
+﻿.\gradlew.bat :app:assembleRelease "-PRELEASE_API_BASE_URL=https://aurora-api.appforfun.top"

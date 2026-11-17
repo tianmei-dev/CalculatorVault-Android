@@ -25,7 +25,9 @@ val isolatedMembershipTest =
     providers.gradleProperty("ISOLATED_MEMBERSHIP_TEST").orElse("false").get() == "true"
 val debugApiUrlDefault = if (isolatedMembershipTest) "http://10.0.2.2:8081" else "http://10.0.2.2:8080"
 val debugApiUrl = providers.gradleProperty("DEBUG_API_BASE_URL").orElse(debugApiUrlDefault).get()
-val releaseApiUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orElse("").get()
+/** Production default for Release; override with -PRELEASE_API_BASE_URL=... when needed (CI/CD). */
+val releaseApiUrlDefault = "https://aurora-api.appforfun.top"
+val releaseApiUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orElse(releaseApiUrlDefault).get().trim()
 fun quotedUrl(value: String): String {
     require(value.none { it == '"' || it == '\\' || it.isISOControl() })
     return "\"$value\""

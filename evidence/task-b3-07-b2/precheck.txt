@@ -1,0 +1,12 @@
+﻿build_tools=D:\AndroidSDK\build-tools\37.0.0
+zipalign=True
+apksigner=True
+keytool=True
+unsigned_sha256=049A274E25382FE1985B6F956B3B4729AEEF7E10014A75368433E1374FB4431B
+sha256_match=True
+unsigned_verify_exit=1
+unsigned_expected_fail=True
+applicationId=com.aurora.calculatorvault
+versionCode=1
+versionName=1.0.0
+jks_exists=True
