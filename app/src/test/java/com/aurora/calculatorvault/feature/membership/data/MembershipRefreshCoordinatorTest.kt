@@ -549,10 +549,21 @@ class MembershipRefreshCoordinatorTest {
             override fun elapsed() = elapsed.get()
             override fun boot() = "1"
         }
+        val now = clock.wall()
         val repo = DeviceTrialRepository(
             object : TrialStore {
-                var value: TrialRecord? = null
-                var marker = false
+                var value: TrialRecord? = TrialRecord(
+                    firstOpened = now,
+                    remaining = TRIAL_MILLIS,
+                    wall = now,
+                    elapsed = clock.elapsed(),
+                    boot = "1",
+                    serverTime = now,
+                    serverStarted = now,
+                    serverExpires = now + TRIAL_MILLIS,
+                    verified = true,
+                )
+                var marker = true
                 override fun read() = value
                 override fun write(record: TrialRecord) {
                     value = record
@@ -565,7 +576,7 @@ class MembershipRefreshCoordinatorTest {
             clock,
             DeviceIdentityProvider { "dev" },
             object : TrialApi {
-                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long) =
+                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?) =
                     TrialReply(
                         "ACTIVE",
                         clock.wall(),

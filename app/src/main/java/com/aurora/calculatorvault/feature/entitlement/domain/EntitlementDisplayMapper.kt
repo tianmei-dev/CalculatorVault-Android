@@ -78,9 +78,9 @@ object EntitlementDisplayMapper {
 
     /**
      * Trial card mapping:
-     * - granting statuses with remaining > 0 → TrialActive (including PENDING_SYNC / TEMP unavailable)
+     * - granting statuses with remaining > 0 → TrialActive (ACTIVE / TEMP unavailable after verified grant)
      * - EXPIRED → TrialExpired
-     * - untrustworthy / not initialized / zero remaining → NotSubscribed (sessionMessage carries detail)
+     * - PENDING_SYNC / untrustworthy / not initialized / zero remaining → NotSubscribed
      */
     fun toDeviceTrialMembership(trial: DeviceTrialState): MembershipStatus = when {
         trial.status == TrialStatus.EXPIRED -> MembershipStatus.TrialExpired

@@ -71,9 +71,10 @@ class EntitlementRepositoryTest {
 
     private class Api(val clock: Clock) : TrialApi {
         var failure: Exception? = null
-        override suspend fun activate(deviceKey: String, remainingSecondsCap: Long): TrialReply {
+        var reply: TrialReply? = null
+        override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?): TrialReply {
             failure?.let { throw it }
-            return TrialReply(
+            return reply ?: TrialReply(
                 "ACTIVE",
                 clock.time,
                 clock.time + TRIAL_MILLIS,
@@ -81,6 +82,12 @@ class EntitlementRepositoryTest {
                 TRIAL_MILLIS,
             )
         }
+    }
+
+    private fun kotlinx.coroutines.test.TestScope.claim(trial: DeviceTrialRepository) {
+        trial.sync()
+        runCurrent()
+        assertEquals(TrialStatus.ACTIVE, trial.state.value.status)
     }
 
     private class TokenBucket : TokenStore {
@@ -145,7 +152,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `priority VIP over trial over free - Fake VIP`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         val membership = FakeMembershipProvider()
         val repo = entitlements(trial, session, membership, clock)
@@ -180,7 +187,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `guest and signed-in users both use valid device trial`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         val repo = entitlements(trial, session, clock = clock)
         runCurrent()
@@ -201,25 +208,48 @@ class EntitlementRepositoryTest {
     fun `offline valid trial is not revoked by network failure`() = runTest {
         val clock = Clock()
         val store = Store()
-        val api = Api(clock).apply { failure = java.io.IOException("offline") }
-        val (trial, _) = trial(store, clock, api)
-        trial.initialize()
-        assertEquals(TrialStatus.PENDING_SYNC, trial.state.value.status)
-        trial.sync()
-        runCurrent()
-        assertEquals(TrialStatus.TEMPORARILY_UNAVAILABLE, trial.state.value.status)
-        assertTrue(trial.state.value.remainingMillis > 0)
+        val okApi = Api(clock)
+        val (trial, _) = trial(store, clock, okApi)
+        claim(trial)
+        assertEquals(TrialStatus.ACTIVE, trial.state.value.status)
 
-        val repo = entitlements(trial, session(), clock = clock)
+        val failApi = Api(clock).apply { failure = java.io.IOException("offline") }
+        val offline = DeviceTrialRepository(
+            store, clock, DeviceIdentityProvider { "device-key" }, failApi, backgroundScope, { true }, { true },
+        )
+        offline.initialize()
+        clock.advance(15 * 60_000)
+        offline.sync()
+        runCurrent()
+        assertEquals(TrialStatus.TEMPORARILY_UNAVAILABLE, offline.state.value.status)
+        assertTrue(offline.state.value.remainingMillis > 0)
+
+        val repo = entitlements(offline, session(), clock = clock)
         runCurrent()
         assertTrue(repo.state.value.source is EntitlementSource.DeviceTrial)
         assertTrue(repo.actionPolicy.evaluate(EntitlementCapability.PRIVATE_ALBUM_IMPORT).isAllowed())
     }
 
     @Test
+    fun `first offline open does not grant trial entitlement`() = runTest {
+        val clock = Clock()
+        val store = Store()
+        val api = Api(clock).apply { failure = java.io.IOException("offline") }
+        val (trial, _) = trial(store, clock, api)
+        trial.initialize()
+        trial.sync()
+        runCurrent()
+        assertEquals(TrialStatus.VERIFICATION_REQUIRED, trial.state.value.status)
+        val repo = entitlements(trial, session(), clock = clock)
+        runCurrent()
+        assertEquals(EntitlementSource.None, repo.state.value.source)
+        assertFalse(repo.actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION).isAllowed())
+    }
+
+    @Test
     fun `expired untrustworthy or zero remaining does not authorize`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         clock.advance(TRIAL_MILLIS)
         trial.refresh()
         val repo = entitlements(trial, session(), clock = clock)
@@ -235,7 +265,7 @@ class EntitlementRepositoryTest {
         val store2 = Store()
         val clock2 = Clock()
         val (trial2, _) = trial(store2, clock2)
-        trial2.initialize()
+        claim(trial2)
         clock2.time -= 3_600_000
         clock2.uptime = 0
         clock2.bootId = "2"
@@ -258,7 +288,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `Fake VIP expiry falls back to valid trial without free flash`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         val membership = FakeMembershipProvider()
         val repo = entitlements(trial, session, membership, clock)
@@ -280,7 +310,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `logout with valid trial still allows private album import`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         val membership = FakeMembershipProvider()
         val repo = entitlements(trial, session, membership, clock)
@@ -300,7 +330,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `logout revokes Fake VIP immediately but keeps trial`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         val membership = FakeMembershipProvider()
         val repo = entitlements(trial, session, membership, clock)
@@ -323,7 +353,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `account switch and stale Fake claim cannot restore VIP`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val api = SessionApi(1L)
         val session = session(api)
         val membership = FakeMembershipProvider()
@@ -351,7 +381,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `precise trial expiry does not wait for thirty second ticker`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val repo = entitlements(trial, session(), clock = clock)
         runCurrent()
         assertTrue(repo.actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION).isAllowed())
@@ -365,7 +395,7 @@ class EntitlementRepositoryTest {
     @Test
     fun `app management view restore and manage stay free without entitlement`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         clock.advance(TRIAL_MILLIS)
         trial.refresh()
         val repo = entitlements(trial, session(), clock = clock)
@@ -379,9 +409,40 @@ class EntitlementRepositoryTest {
     }
 
     @Test
+    fun `server expired with eight hour started skew stops paid trial capabilities`() = runTest {
+        val clock = Clock()
+        val store = Store()
+        val claimApi = Api(clock)
+        val (trial, _) = trial(store, clock, claimApi)
+        claim(trial)
+        val cachedStarted = store.value!!.serverStarted!!
+        val serverStarted = cachedStarted - 8 * 3_600_000L
+        val serverExpires = clock.time - 1_000L
+        val expireApi = Api(clock).apply {
+            reply = TrialReply("EXPIRED", serverStarted, serverExpires, clock.time, 0)
+        }
+        clock.advance(15 * 60_000)
+        val synced = DeviceTrialRepository(
+            store, clock, DeviceIdentityProvider { "device-key" }, expireApi, backgroundScope, { true }, { true },
+        )
+        synced.initialize()
+        synced.sync()
+        runCurrent()
+        assertEquals(TrialStatus.EXPIRED, synced.state.value.status)
+
+        val repo = entitlements(synced, session(), clock = clock)
+        runCurrent()
+        assertEquals(EntitlementSource.None, repo.state.value.source)
+        assertFalse(repo.actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION).isAllowed())
+        assertFalse(repo.actionPolicy.evaluate(EntitlementCapability.PRIVATE_ALBUM_IMPORT).isAllowed())
+        assertTrue(repo.actionPolicy.evaluate(EntitlementCapability.PRIVATE_ALBUM_VIEW_RESTORE).isAllowed())
+        assertTrue(repo.actionPolicy.evaluate(EntitlementCapability.APP_MANAGEMENT).isAllowed())
+    }
+
+    @Test
     fun `production DefaultMembershipProvider never grants VIP`() = runTest {
         val (trial, clock) = trial()
-        trial.initialize()
+        claim(trial)
         val session = session()
         session.acceptAuthorization(WeChatServerLoginRequest("code"))
         runCurrent()
@@ -414,11 +475,9 @@ class EntitlementRepositoryTest {
     }
 
     @Test
-    fun `display mapping does not mark pending sync as expired`() {
+    fun `display mapping pending sync is not active and temp unavailable still maps active`() {
         val pending = DeviceTrialState(TrialStatus.PENDING_SYNC, 3_600_000L)
-        assertTrue(
-            EntitlementDisplayMapper.toDeviceTrialMembership(pending) is MembershipStatus.TrialActive,
-        )
+        assertEquals(MembershipStatus.NotSubscribed, EntitlementDisplayMapper.toDeviceTrialMembership(pending))
         val temp = DeviceTrialState(TrialStatus.TEMPORARILY_UNAVAILABLE, 3_600_000L)
         assertTrue(
             EntitlementDisplayMapper.toDeviceTrialMembership(temp) is MembershipStatus.TrialActive,

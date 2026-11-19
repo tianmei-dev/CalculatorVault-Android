@@ -143,7 +143,8 @@ android {
             manifestPlaceholders["accountCleartext"] = "true"
         }
         release {
-            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
+            // Production trial must be confirmed by AuroraAppServer (POST /api/v1/trial/device/activate).
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "true")
             buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("String", "API_BASE_URL", quotedUrl(releaseApiUrl))
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
@@ -185,7 +186,7 @@ android {
             buildConfigField("String", "TRIAL_API_BASE_URL", quotedUrl(paystagingApiUrl))
             buildConfigField("String", "TRIAL_HTTP_BASE_URL", "\"\"")
             buildConfigField("String", "LOCAL_HTTP_BASE_URL", "\"\"")
-            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "false")
+            buildConfigField("boolean", "TRIAL_DEVICE_UPLOAD_ENABLED", "true")
             buildConfigField("boolean", "TEST_SESSION_INSTALL_ENABLED", "false")
             buildConfigField("boolean", "PAYMENT_TEST_KIND_ALLOWED", "false")
             buildConfigField("String", "PAYMENT_CASHIER_HOSTS", cashierHosts("PAYSTAGING_PAYMENT_CASHIER_HOSTS"))

@@ -73,9 +73,11 @@ class HttpAuthApi(
             envelope
         } finally { connection.disconnect() }
     }
-    override suspend fun activate(deviceKey: String, remainingSecondsCap: Long): com.aurora.calculatorvault.feature.trial.TrialReply {
-        require(remainingSecondsCap in 0..259200)
-        val data = request("activate", body = JSONObject().put("deviceKey", deviceKey).put("remainingSecondsCap", remainingSecondsCap), post = true, trial = true).getJSONObject("data")
+    override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?): com.aurora.calculatorvault.feature.trial.TrialReply {
+        if (remainingSecondsCap != null) require(remainingSecondsCap in 0..259200)
+        val body = JSONObject().put("deviceKey", deviceKey)
+        if (remainingSecondsCap != null) body.put("remainingSecondsCap", remainingSecondsCap)
+        val data = request("activate", body = body, post = true, trial = true).getJSONObject("data")
         return com.aurora.calculatorvault.feature.trial.TrialReply(data.getString("status"),
             Instant.parse(data.getString("trialStartedAt")).toEpochMilli(),
             Instant.parse(data.getString("trialExpiresAt")).toEpochMilli(),

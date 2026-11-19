@@ -403,13 +403,25 @@ class SessionRevalidationEntitlementTest {
             override fun elapsed() = elapsed.get()
             override fun boot() = "1"
         }
+        val now = clock.wall()
         val store = object : TrialStore {
+            // uploadEnabled=false in these suites — seed a server-confirmed row when trial must be active.
             var value: TrialRecord? = if (active) {
-                null
+                TrialRecord(
+                    firstOpened = now,
+                    remaining = TRIAL_MILLIS,
+                    wall = now,
+                    elapsed = clock.elapsed(),
+                    boot = "1",
+                    serverTime = now,
+                    serverStarted = now,
+                    serverExpires = now + TRIAL_MILLIS,
+                    verified = true,
+                )
             } else {
-                TrialRecord(clock.wall(), 0L, clock.wall(), clock.elapsed(), "1", expired = true)
+                TrialRecord(now, 0L, now, clock.elapsed(), "1", expired = true, verified = true)
             }
-            var marker = !active
+            var marker = true
             override fun read() = value
             override fun write(record: TrialRecord) { value = record }
             override fun seen() = marker
@@ -420,7 +432,7 @@ class SessionRevalidationEntitlementTest {
             clock,
             DeviceIdentityProvider { "dev" },
             object : TrialApi {
-                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long) =
+                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?) =
                     TrialReply("ACTIVE", clock.wall(), clock.wall() + TRIAL_MILLIS, clock.wall(), TRIAL_MILLIS)
             },
             scope.backgroundScope,

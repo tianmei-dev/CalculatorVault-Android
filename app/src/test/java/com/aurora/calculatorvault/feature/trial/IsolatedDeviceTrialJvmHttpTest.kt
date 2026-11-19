@@ -36,28 +36,34 @@ class IsolatedDeviceTrialJvmHttpTest {
     }
     private suspend fun until(done:()->Boolean) { withTimeout(20_000) { while(!done()) delay(10) } }
 
-    @Test fun offline48HoursPrivacyCooldownAndPersistedDeadline() = runBlocking {
+    @Test fun firstClaimThenOffline48HoursUploadsRemainingCap() = runBlocking {
         val http=api(); val c=Clock(); val store=Memory(); val key="i32a-"+UUID.randomUUID()
-        var accepted=false; var reads=0; var calls=0; var lastCap=-1L; var offline=false
+        var accepted=false; var reads=0; var calls=0; var lastCap: Long? = Long.MIN_VALUE; var offline=false
         val scope=CoroutineScope(coroutineContext+SupervisorJob())
         val transport=TrialApi { identity,cap -> calls++; lastCap=cap; if(offline) throw java.io.IOException(); http.activate(identity,cap) }
         val repo=DeviceTrialRepository(store,c,DeviceIdentityProvider { reads++;key },transport,scope,{accepted},{true})
         try {
-            repo.initialize();assertEquals(TRIAL_MILLIS,repo.state.value.remainingMillis)
-            repo.sync();delay(30);assertEquals(0,reads);assertEquals(0,calls)
-            c.advance(48*3_600_000L);accepted=true
-            repeat(20){repo.sync()};until{store.record?.verified==true}
-            assertEquals(86400L,lastCap);assertEquals(1,calls)
-            assertTrue(repo.state.value.remainingMillis<=86400000L)
+            repo.initialize()
+            assertEquals(TrialStatus.VERIFICATION_REQUIRED, repo.state.value.status)
+            repo.sync(); delay(30); assertEquals(0, reads); assertEquals(0, calls)
+            accepted=true
+            repeat(20){repo.sync()}; until{store.record?.verified==true}
+            assertNull(lastCap); assertEquals(1, calls)
+            assertEquals(TrialStatus.ACTIVE, repo.state.value.status)
+            c.advance(48*3_600_000L); repo.refresh()
+            c.advance(15*60_000L); offline=false
+            repeat(20){repo.sync()}; until{calls==2}
+            assertEquals(86400L - 15*60, lastCap)
+            assertTrue(repo.state.value.remainingMillis <= 86400000L)
             val deadline=store.record!!.serverExpires!!
-            repeat(20){repo.sync()};delay(30);assertEquals(1,calls)
-            c.advance(3_600_000);offline=true;repo.sync();until{calls==2};delay(30)
-            assertTrue(repo.state.value.remainingMillis<=23*3_600_000L)
-            offline=false;c.advance(60_000);repo.sync();until{calls==3 && repo.state.value.status==TrialStatus.ACTIVE}
-            assertTrue(store.record!!.serverExpires!!<=deadline)
+            offline=true; c.advance(3_600_000); repo.sync(); until{calls==3}; delay(30)
+            assertEquals(TrialStatus.TEMPORARILY_UNAVAILABLE, repo.state.value.status)
+            assertTrue(repo.state.value.remainingMillis <= 23*3_600_000L)
+            offline=false; c.advance(60_000); repo.sync(); until{calls==4 && repo.state.value.status==TrialStatus.ACTIVE}
+            assertTrue(store.record!!.serverExpires!! <= deadline)
             val persisted=http.activate(key,259200)
-            assertTrue(persisted.expires<=deadline) // Existing record observed through a new HTTP request.
-            accepted=false;c.advance(3_600_000);val before=calls;repo.sync();delay(30);assertEquals(before,calls)
+            assertTrue(persisted.expires <= deadline)
+            accepted=false; c.advance(3_600_000); val before=calls; repo.sync(); delay(30); assertEquals(before, calls)
         } finally { scope.cancel() }
     }
 
@@ -66,12 +72,13 @@ class IsolatedDeviceTrialJvmHttpTest {
         val scope=CoroutineScope(coroutineContext+SupervisorJob())
         fun repo(memory:Memory)=DeviceTrialRepository(memory,c,DeviceIdentityProvider{key},http,scope,{true},{true})
         try {
-            val first=repo(store);first.initialize();c.advance(73*3_600_000L);first.sync()
-            until{store.record?.verified==true};assertEquals(TrialStatus.EXPIRED,first.state.value.status)
-            assertEquals(store.record!!.serverStarted,store.record!!.serverExpires)
-            val again=http.activate(key,259200);assertEquals("EXPIRED",again.status)
-            val clean=Memory();val installed=repo(clean);installed.sync();until{clean.record?.verified==true}
-            assertEquals(TrialStatus.EXPIRED,installed.state.value.status)
+            val first=repo(store); first.sync(); until{store.record?.verified==true}
+            c.advance(73*3_600_000L); c.advance(15*60_000L); first.sync()
+            until{store.record?.expired==true}; assertEquals(TrialStatus.EXPIRED, first.state.value.status)
+            assertEquals(store.record!!.serverStarted, store.record!!.serverExpires)
+            val again=http.activate(key,259200); assertEquals("EXPIRED", again.status)
+            val clean=Memory(); val installed=repo(clean); installed.sync(); until{clean.record?.verified==true || clean.record?.expired==true}
+            assertEquals(TrialStatus.EXPIRED, installed.state.value.status)
         } finally { scope.cancel() }
     }
 
@@ -93,7 +100,7 @@ class IsolatedDeviceTrialJvmHttpTest {
         try {
             repo.sync();withTimeout(20000){returned.await()}
             accepted=false;release.complete(Unit);finished.await();delay(30)
-            assertFalse(store.record!!.verified);assertNull(store.record!!.serverExpires)
+            assertTrue(store.record == null || !store.record!!.verified)
             val count=calls;c.advance(3600000);repo.sync();delay(30);assertEquals(count,calls)
             accepted=true
             val restored=DeviceTrialRepository(Memory(),c,DeviceIdentityProvider{key},http,scope,{true},{true})

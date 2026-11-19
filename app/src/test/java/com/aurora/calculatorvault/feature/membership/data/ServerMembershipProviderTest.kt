@@ -363,11 +363,11 @@ class ServerMembershipProviderTest {
         val membership = ServerMembershipProvider(api, backgroundScope, elapsed::get)
         val clock = TrialClockProbe(elapsed)
         val trial = DeviceTrialRepository(
-            Store(),
+            verifiedStore(clock),
             clock,
             DeviceIdentityProvider { "dev" },
             object : TrialApi {
-                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long) =
+                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?) =
                     TrialReply("ACTIVE", clock.wall(), clock.wall() + TRIAL_MILLIS, clock.wall(), TRIAL_MILLIS)
             },
             backgroundScope,
@@ -444,11 +444,11 @@ class ServerMembershipProviderTest {
         membership.refresh(scope(1, 0))
         val clock = TrialClockProbe(elapsed)
         val trial = DeviceTrialRepository(
-            Store(),
+            verifiedStore(clock),
             clock,
             DeviceIdentityProvider { "dev" },
             object : TrialApi {
-                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long) =
+                override suspend fun activate(deviceKey: String, remainingSecondsCap: Long?) =
                     TrialReply("ACTIVE", clock.wall(), clock.wall() + TRIAL_MILLIS, clock.wall(), TRIAL_MILLIS)
             },
             backgroundScope,
@@ -552,6 +552,24 @@ class ServerMembershipProviderTest {
         }
         override fun seen() = marker
         override fun markSeen() {
+            marker = true
+        }
+    }
+
+    private fun verifiedStore(clock: TrialClock): Store {
+        val now = clock.wall()
+        return Store().apply {
+            value = TrialRecord(
+                firstOpened = now,
+                remaining = TRIAL_MILLIS,
+                wall = now,
+                elapsed = clock.elapsed(),
+                boot = "1",
+                serverTime = now,
+                serverStarted = now,
+                serverExpires = now + TRIAL_MILLIS,
+                verified = true,
+            )
             marker = true
         }
     }

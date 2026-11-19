@@ -72,12 +72,16 @@ sealed interface ActionDecision {
     data class Denied(val reason: DenialReason) : ActionDecision
 }
 
-/** Whether [TrialStatus] may grant trial capabilities when remaining time is still trusted and > 0. */
+/**
+ * Whether [TrialStatus] may grant trial capabilities when remaining time is still trusted and > 0.
+ * Only server-confirmed trials authorize: [ACTIVE], or [TEMPORARILY_UNAVAILABLE] after a confirmed
+ * grant while offline. [PENDING_SYNC] (including legacy unverified local rows) does not grant.
+ */
 fun TrialStatus.grantsTrialCapability(): Boolean = when (this) {
     TrialStatus.ACTIVE,
-    TrialStatus.PENDING_SYNC,
     TrialStatus.TEMPORARILY_UNAVAILABLE,
     -> true
+    TrialStatus.PENDING_SYNC,
     TrialStatus.VERIFICATION_REQUIRED,
     TrialStatus.EXPIRED,
     TrialStatus.NOT_INITIALIZED,
