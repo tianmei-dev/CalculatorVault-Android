@@ -23,7 +23,8 @@ class ReleaseBuildConfigTest {
         assertFalse(BuildConfig.PAYMENT_TEST_KIND_ALLOWED)
         assertFalse(BuildConfig.TEST_SESSION_INSTALL_ENABLED)
         assertEquals("", BuildConfig.LOCAL_HTTP_BASE_URL)
-        assertTrue(BuildConfig.API_BASE_URL.isEmpty() || BuildConfig.API_BASE_URL.startsWith("https://"))
+        assertEquals("https://aurora-api.appforfun.top", BuildConfig.API_BASE_URL)
+        assertEquals("ivo.hzlugun.top", BuildConfig.PAYMENT_CASHIER_HOSTS)
     }
 
     @Test
@@ -33,5 +34,11 @@ class ReleaseBuildConfigTest {
             policy.decide(PayInstruction("TEST", null)),
         )
         assertTrue(policy.decide(PayInstruction("URL", "http://cashier.example/pay")) is PayLaunchDecision.Rejected)
+    }
+
+    @Test
+    fun yusenCashierHttpsHost_allowed() {
+        val decision = policy.decide(PayInstruction("URL", "https://ivo.hzlugun.top/submit.php?x=1"))
+        assertTrue(decision is PayLaunchDecision.OpenCashier)
     }
 }
