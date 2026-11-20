@@ -8,9 +8,9 @@ import org.junit.Test
 
 class VaultMainNavigationTest {
     @Test
-    fun `new vault session defaults to app management`() {
-        assertEquals(VaultMainTab.AppManagement, VaultMainTab.default)
-        assertEquals(VaultTabRoute.AppManagement, VaultMainTab.default.route)
+    fun `new vault session defaults to app lock`() {
+        assertEquals(VaultMainTab.AppLock, VaultMainTab.default)
+        assertEquals(VaultTabRoute.AppLock, VaultMainTab.default.route)
     }
 
     @Test

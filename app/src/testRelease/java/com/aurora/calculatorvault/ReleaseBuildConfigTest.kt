@@ -24,7 +24,7 @@ class ReleaseBuildConfigTest {
         assertFalse(BuildConfig.TEST_SESSION_INSTALL_ENABLED)
         assertEquals("", BuildConfig.LOCAL_HTTP_BASE_URL)
         assertEquals("https://aurora-api.appforfun.top", BuildConfig.API_BASE_URL)
-        assertEquals("ivo.hzlugun.top", BuildConfig.PAYMENT_CASHIER_HOSTS)
+        assertEquals("pok.hzlugun.top", BuildConfig.PAYMENT_CASHIER_HOSTS)
     }
 
     @Test
@@ -38,7 +38,7 @@ class ReleaseBuildConfigTest {
 
     @Test
     fun yusenCashierHttpsHost_allowed() {
-        val decision = policy.decide(PayInstruction("URL", "https://ivo.hzlugun.top/submit.php?x=1"))
+        val decision = policy.decide(PayInstruction("URL", "https://pok.hzlugun.top/submit.php?x=1"))
         assertTrue(decision is PayLaunchDecision.OpenCashier)
     }
 }

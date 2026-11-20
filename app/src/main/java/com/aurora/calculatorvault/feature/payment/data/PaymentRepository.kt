@@ -79,7 +79,12 @@ class PaymentRepository(
      * @param retrySamePurchase reuse the stored clientRequestId for the same owner + plan when the
      * previous create for it was not confirmed; otherwise a new UUID starts a new purchase.
      */
-    suspend fun createOrder(owner: PurchaseOwner, planCode: String, retrySamePurchase: Boolean): CreateOutcome {
+    suspend fun createOrder(
+        owner: PurchaseOwner,
+        planCode: String,
+        retrySamePurchase: Boolean,
+        payChannel: String,
+    ): CreateOutcome {
         if (createMutex.isLocked) return CreateOutcome.Busy
         return createMutex.withLock {
             if (session.currentOwner(requireAuthenticated = true) != owner) return@withLock CreateOutcome.AccountChanged
@@ -95,7 +100,7 @@ class PaymentRepository(
                     store.write(PendingPurchaseRecord(owner.userId, planCode, it, orderNo = null))
                 }
             }
-            val result = api.createOrder(token, planCode, requestId)
+            val result = api.createOrder(token, planCode, requestId, payChannel)
             if (session.currentOwner(requireAuthenticated = false) != owner) {
                 return@withLock CreateOutcome.AccountChanged
             }

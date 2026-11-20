@@ -39,6 +39,7 @@ enum class VaultMainTab(
     ;
 
     companion object {
-        val default: VaultMainTab = AppManagement
+        /** First unlock / cold start lands on App Lock; tab order is unchanged. */
+        val default: VaultMainTab = AppLock
     }
 }

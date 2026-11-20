@@ -299,16 +299,7 @@ class PurchaseMembershipRaceTest {
         runCurrent()
         assertEquals(1, meApi.calls.get())
 
-        // A manual /me is in flight; its server read happens before the payment is fulfilled.
-        meApi.gate = CompletableDeferred()
-        assertTrue(coordinator.refreshManual())
-        runCurrent()
-        assertEquals(2, meApi.calls.get())
-        meApi.active = true // fulfillment happens on the server now
-
-        val api = FakePaymentApi().also {
-            it.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED, planCode = "MONTHLY"))
-        }
+        val api = FakePaymentApi()
         val repository = PaymentRepository(
             api, InMemoryPendingPurchaseStore(),
             object : PaymentSessionPort {
@@ -336,11 +327,24 @@ class PurchaseMembershipRaceTest {
         )
         runCurrent()
         controller.setAgreementAccepted(true)
+        // Pre-purchase membership confirm completes against the idle /me (not entitled).
         controller.requestPurchase()
+        runCurrent()
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, (controller.state.value.phase as PurchasePhase.Ordering).order.status)
+        val callsAfterCreate = meApi.calls.get()
+
+        // A manual /me is in flight; its server read happens before fulfillment is visible.
+        meApi.gate = CompletableDeferred()
+        assertTrue(coordinator.refreshManual())
+        runCurrent()
+        assertEquals(callsAfterCreate + 1, meApi.calls.get())
+        meApi.active = true
+        api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED, planCode = "MONTHLY"))
+        controller.refreshOrder()
         runCurrent()
         val ordering = controller.state.value.phase as PurchasePhase.Ordering
         assertEquals(PaymentOrderStatus.FULFILLED, ordering.order.status)
-        assertEquals("post-purchase refresh joined the in-flight request", 2, meApi.calls.get())
+        assertEquals("post-purchase refresh joined the in-flight request", callsAfterCreate + 1, meApi.calls.get())
 
         meApi.gate!!.complete(Unit)
         meApi.gate = null
@@ -350,7 +354,7 @@ class PurchaseMembershipRaceTest {
         assertEquals(MembershipSyncAfterPurchase.Syncing, (controller.state.value.phase as PurchasePhase.Ordering).membershipSync)
 
         advanceTimeBy(2_000)
-        assertEquals("bounded re-fetch issued a fresh request", 3, meApi.calls.get())
+        assertEquals("bounded re-fetch issued a fresh request", callsAfterCreate + 2, meApi.calls.get())
         assertTrue(entitlement.state.value.source is EntitlementSource.Vip)
         assertEquals(MembershipSyncAfterPurchase.Synced, (controller.state.value.phase as PurchasePhase.Ordering).membershipSync)
     }

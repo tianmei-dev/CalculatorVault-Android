@@ -355,6 +355,10 @@ class CalculatorVaultApp : Application() {
         LoginPromptPreferences(vaultPreferencesDataStore)
     }
 
+    val trialGrantedToastStore by lazy {
+        com.aurora.calculatorvault.feature.trial.TrialGrantedToastStore(vaultPreferencesDataStore)
+    }
+
     val deviceTrial by lazy {
         com.aurora.calculatorvault.feature.trial.DeviceTrialRepository(
             com.aurora.calculatorvault.feature.trial.EncryptedTrialStore(applicationContext),

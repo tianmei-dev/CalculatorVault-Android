@@ -46,11 +46,13 @@ class VipPurchaseControllerTest {
         override val syncState = MutableStateFlow<MembershipSyncUi>(MembershipSyncUi.Idle)
         var refreshCalls = 0
         var succeed = true
+        /** When true, a successful refresh reports verified VIP (post-FULFILLED tests). */
+        var grantVip = false
         var vipFor: Long? = null
         override fun requestRefreshAfterPurchase(): Boolean {
             refreshCalls++
             syncState.value = if (succeed) MembershipSyncUi.Idle else MembershipSyncUi.Failed
-            if (succeed) vipFor = 7
+            if (succeed && grantVip) vipFor = 7
             revision.value++
             return true
         }
@@ -91,10 +93,11 @@ class VipPurchaseControllerTest {
         }
     }
 
-    // 1 / 2: server plans, failure, empty, retry.
+    // 1 / 2: local catalog offline; server plans only at purchase time.
     @Test
-    fun plans_displayServerData_defaultYearly() = runTest {
+    fun plans_displayLocalCatalog_defaultYearly_noNetwork() = runTest {
         val env = Env(this)
+        env.api.plansResult = PaymentResult.Failure(PaymentError.Network(false))
         runCurrent()
         val state = env.controller.state.value
         val plans = (state.plans as PlansState.Ready).plans
@@ -102,31 +105,31 @@ class VipPurchaseControllerTest {
         assertEquals(listOf("5.90", "19.90", "29.90"), plans.map { it.priceDisplay })
         assertEquals("YEARLY", state.selectedPlanCode)
         assertTrue(state.canRequestPurchase)
+        assertEquals(0, env.api.plansCalls)
     }
 
     @Test
-    fun plans_failureAndEmpty_blockPurchase_retryRecovers() = runTest {
+    fun plans_serverMismatchOrUnavailable_blocksCreate() = runTest {
         val env = Env(this)
-        env.api.plansResult = PaymentResult.Failure(PaymentError.Network(false))
-        env.controller.loadPlans()
         runCurrent()
-        assertTrue(env.controller.state.value.plans is PlansState.Failed)
         env.readyToBuy()
+        env.api.plansResult = PaymentResult.Failure(PaymentError.Network(false))
         env.controller.requestPurchase()
         runCurrent()
-        assertEquals(listOf(PurchaseNotice.PlansNotReady), env.notices())
+        assertEquals(listOf(PurchaseNotice.PlanUnavailable), env.notices())
         assertTrue(env.api.createCalls.isEmpty())
+        assertEquals(1, env.api.plansCalls)
 
         env.api.plansResult = PaymentResult.Success(emptyList())
-        env.controller.loadPlans()
+        env.controller.requestPurchase()
         runCurrent()
-        assertEquals(PlansState.Empty, env.controller.state.value.plans)
-        assertFalse(env.controller.state.value.canRequestPurchase)
+        assertTrue(env.notices().contains(PurchaseNotice.PlanMismatch))
+        assertTrue(env.api.createCalls.isEmpty())
 
         env.api.plansResult = PaymentResult.Success(PaymentFixtures.plans)
-        env.controller.loadPlans()
+        env.controller.requestPurchase()
         runCurrent()
-        assertTrue(env.controller.state.value.plans is PlansState.Ready)
+        assertEquals(1, env.api.createCalls.size)
     }
 
     // 3 + session gate
@@ -187,17 +190,18 @@ class VipPurchaseControllerTest {
         runCurrent()
         assertEquals(1, env.api.createCalls.size)
         assertEquals("YEARLY", env.api.createCalls.single().planCode)
+        assertEquals("WECHAT_PAY", env.api.createCalls.single().payChannel)
         assertEquals(listOf("CV0001"), env.api.queryCalls)
         assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
         assertEquals("19.90", env.ordering.order.amountDisplay)
         assertEquals("年卡", env.ordering.order.planName)
 
+        // Create auto-opens cashier; a second tap within debounce must not re-open.
         env.controller.openCashier()
         runCurrent()
         val open = env.events.filterIsInstance<VipPurchaseEvent.OpenCashier>().single()
         assertEquals(PaymentFixtures.CASHIER, open.url)
         assertFalse(open.toString().contains("secret"))
-        // Opening the cashier never changes status by itself.
         assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
     }
 
@@ -223,7 +227,8 @@ class VipPurchaseControllerTest {
         runCurrent()
         assertEquals(PurchasePhase.Idle, other.phase)
         assertTrue(other.notices().contains(PurchaseNotice.LifetimeOwned))
-        assertEquals(1, other.membership.refreshCalls)
+        // Pre-purchase confirm + 40012-triggered refresh.
+        assertEquals(2, other.membership.refreshCalls)
     }
 
     // 7: timeout then retry with the same clientRequestId.
@@ -269,6 +274,7 @@ class VipPurchaseControllerTest {
         env.controller.requestPurchase()
         runCurrent()
         assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+        env.membership.grantVip = true
         advanceTimeBy(2_001)
         assertEquals(PaymentOrderStatus.PAID, env.ordering.order.status)
         advanceTimeBy(2_001)
@@ -277,7 +283,8 @@ class VipPurchaseControllerTest {
         val queriesAtFulfilled = env.api.queryCalls.size
         advanceTimeBy(120_000)
         assertEquals("no polling after FULFILLED", queriesAtFulfilled, env.api.queryCalls.size)
-        assertEquals(1, env.membership.refreshCalls)
+        // Pre-purchase membership confirm + post-FULFILLED sync.
+        assertEquals(2, env.membership.refreshCalls)
         assertEquals(1, env.notices().count { it == PurchaseNotice.PurchaseCompleted })
         assertEquals(null, env.store.read())
     }
@@ -288,15 +295,20 @@ class VipPurchaseControllerTest {
         val env = Env(this)
         runCurrent()
         env.readyToBuy()
+        env.controller.requestPurchase()
+        runCurrent()
+        assertEquals(PaymentOrderStatus.PENDING_PAYMENT, env.ordering.order.status)
+        val refreshAfterCreate = env.membership.refreshCalls
         env.membership.succeed = false
         env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
-        env.controller.requestPurchase()
+        env.controller.refreshOrder()
         runCurrent()
         assertEquals("bounded auto re-fetch still running", MembershipSyncAfterPurchase.Syncing, env.ordering.membershipSync)
         advanceTimeBy(10_000)
         assertEquals(MembershipSyncAfterPurchase.Failed, env.ordering.membershipSync)
-        assertEquals("3 bounded attempts", 3, env.membership.refreshCalls)
+        assertEquals("3 bounded attempts after create", refreshAfterCreate + 3, env.membership.refreshCalls)
         env.membership.succeed = true
+        env.membership.grantVip = true
         env.controller.retryMembershipSync()
         runCurrent()
         assertEquals(MembershipSyncAfterPurchase.Synced, env.ordering.membershipSync)
@@ -308,14 +320,18 @@ class VipPurchaseControllerTest {
         val env = Env(this)
         runCurrent()
         env.readyToBuy()
-        env.membership.succeed = false
-        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
         env.controller.requestPurchase()
         runCurrent()
+        val refreshAfterCreate = env.membership.refreshCalls
+        env.membership.succeed = false
+        env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
+        env.controller.refreshOrder()
+        runCurrent()
         env.membership.succeed = true
+        env.membership.grantVip = true
         advanceTimeBy(2_000)
         assertEquals(MembershipSyncAfterPurchase.Synced, env.ordering.membershipSync)
-        assertEquals(2, env.membership.refreshCalls)
+        assertTrue(env.membership.refreshCalls > refreshAfterCreate)
     }
 
     // 11: EXPIRED stops automatic polling; manual refresh can still observe a late payment.
@@ -331,6 +347,7 @@ class VipPurchaseControllerTest {
         val count = env.api.queryCalls.size
         advanceTimeBy(300_000)
         assertEquals(count, env.api.queryCalls.size)
+        env.membership.grantVip = true
         env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
         env.controller.refreshOrder()
         runCurrent()
@@ -467,7 +484,7 @@ class VipPurchaseControllerTest {
         env.api.queryGate!!.complete(Unit)
         runCurrent()
         assertEquals(PurchasePhase.Idle, env.phase)
-        assertEquals(0, env.membership.refreshCalls)
+        assertEquals("only pre-purchase confirm; no post-FULFILLED sync", 1, env.membership.refreshCalls)
         val calls = env.api.queryCalls.size
         advanceTimeBy(60_000)
         assertEquals(calls, env.api.queryCalls.size)
@@ -567,12 +584,13 @@ class VipPurchaseControllerTest {
         env.controller.onVisibilityChanged(false) // browser in front
         advanceTimeBy(45_000)
         val beforeReturn = env.api.queryCalls.size
+        env.membership.grantVip = true
         env.api.queryDefault = PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
         env.controller.onVisibilityChanged(true)
         runCurrent()
         assertEquals(beforeReturn + 1, env.api.queryCalls.size)
         assertEquals(PaymentOrderStatus.FULFILLED, env.ordering.order.status)
-        assertEquals("VIP only through the membership refresh port", 1, env.membership.refreshCalls)
+        assertEquals("pre-purchase + post-FULFILLED membership refresh", 2, env.membership.refreshCalls)
     }
 
     @Test
@@ -601,16 +619,44 @@ class VipPurchaseControllerTest {
     }
 
     @Test
-    fun b2_endpointNotConfigured_plansShowItAndNoOrderIsSent() = runTest {
+    fun b2_endpointNotConfigured_atPurchase_blocksOrder() = runTest {
         val env = Env(this)
         env.api.plansResult = PaymentResult.Failure(PaymentError.EndpointNotConfigured)
-        env.controller.loadPlans()
         runCurrent()
-        assertEquals(PlansState.Failed(PaymentError.EndpointNotConfigured), env.controller.state.value.plans)
+        assertTrue(env.controller.state.value.plans is PlansState.Ready)
         env.readyToBuy()
         env.controller.requestPurchase()
         runCurrent()
+        assertEquals(listOf(PurchaseNotice.PlanUnavailable), env.notices())
         assertTrue(env.api.createCalls.isEmpty())
+    }
+
+    @Test
+    fun membershipUnconfirmed_blocksCreate() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.membership.succeed = false
+        env.controller.requestPurchase()
+        runCurrent()
+        assertEquals(listOf(PurchaseNotice.MembershipUnconfirmed), env.notices())
+        assertTrue(env.api.createCalls.isEmpty())
+        assertEquals(0, env.api.plansCalls)
+    }
+
+    @Test
+    fun amountMismatch_blocksCashier() = runTest {
+        val env = Env(this)
+        runCurrent()
+        env.readyToBuy()
+        env.api.createDefault = PaymentResult.Success(
+            PaymentFixtures.order().copy(amountFen = 1, amountDisplay = "0.01"),
+        )
+        env.controller.requestPurchase()
+        runCurrent()
+        assertEquals(PurchasePhase.Idle, env.phase)
+        assertTrue(env.notices().contains(PurchaseNotice.AmountMismatch))
+        assertTrue(env.events.none { it is VipPurchaseEvent.OpenCashier })
     }
 
     @Test
@@ -758,7 +804,7 @@ class VipPurchaseControllerTest {
         env.api.queryGate!!.complete(Unit)
         runCurrent()
         assertEquals(PurchasePhase.Idle, env.phase)
-        assertEquals(0, env.membership.refreshCalls)
+        assertEquals("only pre-purchase confirm after account switch", 1, env.membership.refreshCalls)
     }
 
     // ---------------- I3.5.4-C F4 ----------------

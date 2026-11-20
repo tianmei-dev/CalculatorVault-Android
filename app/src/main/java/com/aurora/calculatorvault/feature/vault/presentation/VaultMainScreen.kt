@@ -65,7 +65,9 @@ import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 import com.aurora.calculatorvault.feature.login.presentation.LoginPromptViewModel
 import com.aurora.calculatorvault.feature.login.presentation.LoginSource
 import com.aurora.calculatorvault.feature.login.presentation.WeChatLoginDialog
+import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementSource
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseSource
+import com.aurora.calculatorvault.feature.membership.presentation.VipMembershipInfoScreen
 import com.aurora.calculatorvault.feature.membership.presentation.VipPurchaseScreen
 import com.aurora.calculatorvault.feature.membership.presentation.VipPurchaseViewModel
 
@@ -83,6 +85,20 @@ fun VaultMainScreen(
     )
     val trialState by application.deviceTrial.state.collectAsState()
     LaunchedEffect(Unit) { application.deviceTrial.sync() }
+    LaunchedEffect(Unit) {
+        if (application.deviceTrial.hadPriorServerTrial) {
+            application.trialGrantedToastStore.seedShownIfAbsent()
+        }
+        application.deviceTrial.firstTrialGrantEvents.collect {
+            if (application.trialGrantedToastStore.claimShow()) {
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.trial_granted_toast),
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
     val sessionState by application.accountSession.state.collectAsState()
     val entitlementState by application.entitlementRepository.state.collectAsState()
     val logoutWarning by application.accountSession.logoutWarning.collectAsState()
@@ -104,7 +120,8 @@ fun VaultMainScreen(
         }
     }
     LaunchedEffect(currentRoute) {
-        if (currentRoute == VaultTabRoute.AppManagement.path) {
+        // First non-forced WeChat login prompt fires on App Lock (default home), once only.
+        if (currentRoute == VaultTabRoute.AppLock.path) {
             loginViewModel.onHomeEntered()
         }
     }
@@ -402,19 +419,28 @@ fun VaultMainScreen(
                 val source = VipPurchaseSource.fromRoute(
                     entry.arguments?.getString(VaultTabRoute.VipMembership.SOURCE_ARG),
                 )
-                val purchaseViewModel: VipPurchaseViewModel = viewModel(
-                    factory = VipPurchaseViewModel.Factory(source, application.vipPurchaseDependencies),
-                )
-                VipPurchaseScreen(
-                    viewModel = purchaseViewModel,
-                    onBack = navController::popBackStack,
-                    onRequestLogin = { loginViewModel.open(LoginSource.MembershipPurchase) },
-                    onOpenPrivacyPolicy = {
-                        navController.navigate(
-                            VaultTabRoute.LegalDocument.createRoute(LegalDocumentType.PrivacyPolicy),
-                        ) { launchSingleTop = true }
-                    },
-                )
+                // Account VIP only — device trial must open the purchase page, not the info page.
+                val accountVip = entitlementState.source as? EntitlementSource.Vip
+                if (accountVip != null) {
+                    VipMembershipInfoScreen(
+                        entitlement = entitlementState,
+                        onBack = navController::popBackStack,
+                    )
+                } else {
+                    val purchaseViewModel: VipPurchaseViewModel = viewModel(
+                        factory = VipPurchaseViewModel.Factory(source, application.vipPurchaseDependencies),
+                    )
+                    VipPurchaseScreen(
+                        viewModel = purchaseViewModel,
+                        onBack = navController::popBackStack,
+                        onRequestLogin = { loginViewModel.open(LoginSource.MembershipPurchase) },
+                        onOpenPrivacyPolicy = {
+                            navController.navigate(
+                                VaultTabRoute.LegalDocument.createRoute(LegalDocumentType.PrivacyPolicy),
+                            ) { launchSingleTop = true }
+                        },
+                    )
+                }
             }
             composable(VaultTabRoute.About.path) {
                 AboutScreen(onBack = navController::popBackStack)

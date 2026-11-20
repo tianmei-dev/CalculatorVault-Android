@@ -17,8 +17,13 @@ import org.json.JSONObject
 interface PaymentApi {
     suspend fun plans(): PaymentResult<List<MembershipPlanOffer>>
 
-    /** Body carries only planCode + clientRequestId; amount / user / channel come from the server. */
-    suspend fun createOrder(accessToken: String, planCode: String, clientRequestId: String): PaymentResult<PaymentOrder>
+    /** Body carries planCode, clientRequestId and payChannel; amount / user come from the server. */
+    suspend fun createOrder(
+        accessToken: String,
+        planCode: String,
+        clientRequestId: String,
+        payChannel: String,
+    ): PaymentResult<PaymentOrder>
 
     suspend fun queryOrder(accessToken: String, orderNo: String): PaymentResult<PaymentOrder>
 }
@@ -113,10 +118,12 @@ class HttpPaymentApi(
         accessToken: String,
         planCode: String,
         clientRequestId: String,
+        payChannel: String,
     ): PaymentResult<PaymentOrder> {
         val body = JSONObject()
             .put("planCode", planCode)
             .put("clientRequestId", clientRequestId)
+            .put("payChannel", payChannel)
             .toString()
         return call("POST", ORDERS_PATH, accessToken, body) { PaymentJson.order(it as JSONObject) }
     }

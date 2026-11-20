@@ -1,4 +1,4 @@
-package com.aurora.calculatorvault.feature.payment.data
+﻿package com.aurora.calculatorvault.feature.payment.data
 
 import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.ServerAccount
@@ -29,31 +29,31 @@ class PaymentRepositoryTest {
 
     @Test
     fun create_success_persistsOnlyMetadata_andUsesCurrentToken() = runTest {
-        val outcome = repo.createOrder(owner, "YEARLY", retrySamePurchase = false)
+        val outcome = repo.createOrder(owner, "YEARLY", retrySamePurchase = false, "WECHAT_PAY")
         assertTrue(outcome is PaymentRepository.CreateOutcome.Created)
-        assertEquals(FakePaymentApi.CreateCall("tok-7", "YEARLY", "uuid-1"), api.createCalls.single())
+        assertEquals(FakePaymentApi.CreateCall("tok-7", "YEARLY", "uuid-1", "WECHAT_PAY"), api.createCalls.single())
         assertEquals(PendingPurchaseRecord(7, "YEARLY", "uuid-1", "CV0001"), store.read())
     }
 
     @Test
     fun timeoutRetry_reusesSameClientRequestId_newPurchaseGetsNewOne() = runTest {
         api.createResults += PaymentResult.Failure(PaymentError.Network(timeout = true))
-        val first = repo.createOrder(owner, "YEARLY", retrySamePurchase = false)
+        val first = repo.createOrder(owner, "YEARLY", retrySamePurchase = false, "WECHAT_PAY")
         assertEquals(PaymentRepository.CreateOutcome.Failed(PaymentError.Network(true), retryKept = true), first)
         assertEquals(PendingPurchaseRecord(7, "YEARLY", "uuid-1", null), store.read())
 
-        repo.createOrder(owner, "YEARLY", retrySamePurchase = true)
+        repo.createOrder(owner, "YEARLY", retrySamePurchase = true, "WECHAT_PAY")
         assertEquals(listOf("uuid-1", "uuid-1"), api.createCalls.map { it.clientRequestId })
 
-        repo.createOrder(owner, "YEARLY", retrySamePurchase = false)
+        repo.createOrder(owner, "YEARLY", retrySamePurchase = false, "WECHAT_PAY")
         assertEquals("uuid-2", api.createCalls.last().clientRequestId)
     }
 
     @Test
     fun retryForDifferentPlan_isANewRequestId() = runTest {
         api.createResults += PaymentResult.Failure(PaymentError.Http(503, null))
-        repo.createOrder(owner, "YEARLY", retrySamePurchase = false)
-        repo.createOrder(owner, "MONTHLY", retrySamePurchase = true)
+        repo.createOrder(owner, "YEARLY", retrySamePurchase = false, "WECHAT_PAY")
+        repo.createOrder(owner, "MONTHLY", retrySamePurchase = true, "WECHAT_PAY")
         assertNotEquals(api.createCalls[0].clientRequestId, api.createCalls[1].clientRequestId)
     }
 
@@ -64,7 +64,7 @@ class PaymentRepositoryTest {
             PaymentError.PlanDisabled, PaymentError.PlanNotFound, PaymentError.Unauthorized,
         )) {
             api.createResults += PaymentResult.Failure(error)
-            val outcome = repo.createOrder(owner, "YEARLY", retrySamePurchase = false)
+            val outcome = repo.createOrder(owner, "YEARLY", retrySamePurchase = false, "WECHAT_PAY")
             assertEquals("$error", PaymentRepository.CreateOutcome.Failed(error, retryKept = false), outcome)
             assertNull("$error", store.read())
         }
@@ -76,7 +76,7 @@ class PaymentRepositoryTest {
         api.createResults += PaymentResult.Failure(PaymentError.PaymentConfigMissing)
         assertEquals(
             PaymentRepository.CreateOutcome.Failed(PaymentError.PaymentConfigMissing, retryKept = true),
-            repo.createOrder(owner, "YEARLY", false),
+            repo.createOrder(owner, "YEARLY", false, "WECHAT_PAY"),
         )
         assertEquals("uuid-1", store.read()?.clientRequestId)
     }
@@ -84,9 +84,9 @@ class PaymentRepositoryTest {
     @Test
     fun concurrentCreate_onlyOneReachesServer() = runTest {
         api.createGate = CompletableDeferred()
-        val first = async { repo.createOrder(owner, "YEARLY", false) }
+        val first = async { repo.createOrder(owner, "YEARLY", false, "WECHAT_PAY") }
         runCurrent()
-        val second = repo.createOrder(owner, "YEARLY", false)
+        val second = repo.createOrder(owner, "YEARLY", false, "WECHAT_PAY")
         assertEquals(PaymentRepository.CreateOutcome.Busy, second)
         api.createGate!!.complete(Unit)
         assertTrue(first.await() is PaymentRepository.CreateOutcome.Created)
@@ -97,9 +97,9 @@ class PaymentRepositoryTest {
     fun guestOrValidating_cannotCreate() = runTest {
         val bound = owner
         session.state.value = AccountSession.Validating(ServerAccount(7))
-        assertEquals(PaymentRepository.CreateOutcome.AccountChanged, repo.createOrder(bound, "YEARLY", false))
+        assertEquals(PaymentRepository.CreateOutcome.AccountChanged, repo.createOrder(bound, "YEARLY", false, "WECHAT_PAY"))
         session.state.value = AccountSession.Guest
-        assertEquals(PaymentRepository.CreateOutcome.AccountChanged, repo.createOrder(bound, "YEARLY", false))
+        assertEquals(PaymentRepository.CreateOutcome.AccountChanged, repo.createOrder(bound, "YEARLY", false, "WECHAT_PAY"))
         assertTrue(api.createCalls.isEmpty())
     }
 
@@ -107,7 +107,7 @@ class PaymentRepositoryTest {
     fun accountSwitchDuringCreate_dropsResult() = runTest {
         val bound = owner
         api.createGate = CompletableDeferred()
-        val pending = async { repo.createOrder(bound, "YEARLY", false) }
+        val pending = async { repo.createOrder(bound, "YEARLY", false, "WECHAT_PAY") }
         runCurrent()
         session.state.value = AccountSession.Authenticated(ServerAccount(8))
         session.generation = 1
@@ -129,12 +129,12 @@ class PaymentRepositoryTest {
 
     @Test
     fun query_orderNotFound_andFulfilled_clearRecord_foreignRecordHidden() = runTest {
-        repo.createOrder(owner, "YEARLY", false)
+        repo.createOrder(owner, "YEARLY", false, "WECHAT_PAY")
         api.queryResults += PaymentResult.Failure(PaymentError.OrderNotFound)
         repo.queryOrder(owner, "CV0001")
         assertNull(store.read())
 
-        repo.createOrder(owner, "YEARLY", false)
+        repo.createOrder(owner, "YEARLY", false, "WECHAT_PAY")
         api.queryResults += PaymentResult.Success(PaymentFixtures.order(PaymentOrderStatus.FULFILLED))
         repo.queryOrder(owner, "CV0001")
         assertNull(store.read())

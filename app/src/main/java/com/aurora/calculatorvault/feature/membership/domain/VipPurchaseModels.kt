@@ -90,18 +90,24 @@ enum class PurchaseNotice {
     SessionUnavailable,
     LifetimeOwned,
     PlanUnavailable,
+    PlanMismatch,
+    PayChannelInvalid,
     RequestConflict,
     PaymentConfigMissing,
     PayLinkInvalid,
+    AmountMismatch,
     AccountChanged,
     OrderNotFound,
     PurchaseCompleted,
+    MembershipUnconfirmed,
 }
 
 data class VipPurchaseState(
     val purchaseSource: VipPurchaseSource = VipPurchaseSource.Settings,
-    val plans: PlansState = PlansState.Loading,
-    val selectedPlanCode: String? = null,
+    /** Always the local offline catalog for display; server catalog is validated at purchase time. */
+    val plans: PlansState = PlansState.Ready(LocalVipCatalog.plans),
+    val selectedPlanCode: String? = LocalVipCatalog.DEFAULT_PLAN_CODE,
+    val selectedPayChannel: VipPayChannel = VipPayChannel.WECHAT_PAY,
     val agreementAccepted: Boolean = false,
     val lifetimeOwned: Boolean = false,
     val phase: PurchasePhase = PurchasePhase.Idle,
@@ -109,7 +115,7 @@ data class VipPurchaseState(
     val selectedPlan: MembershipPlanOffer?
         get() = (plans as? PlansState.Ready)?.plans?.firstOrNull { it.planCode == selectedPlanCode }
 
-    /** Purchase button is actionable only with a fresh server catalog and no active order flow. */
+    /** Purchase button is actionable with local catalog; network validation runs after tap. */
     val canRequestPurchase: Boolean
         get() = selectedPlan != null && !lifetimeOwned &&
             (phase == PurchasePhase.Idle || phase is PurchasePhase.CreateFailed)

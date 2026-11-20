@@ -1,4 +1,4 @@
-package com.aurora.calculatorvault.feature.payment.data
+﻿package com.aurora.calculatorvault.feature.payment.data
 
 import com.sun.net.httpserver.HttpServer
 import java.io.IOException
@@ -77,15 +77,16 @@ class HttpPaymentApiTest {
     @Test
     fun create_sendsOnlyPlanAndRequestId_withBearer() = runTest {
         val t = Recording(PaymentHttpResponse(200, orderBody()))
-        val result = api(t).createOrder("tok-123", "YEARLY", "req-1") as PaymentResult.Success
+        val result = api(t).createOrder("tok-123", "YEARLY", "req-1", "WECHAT_PAY") as PaymentResult.Success
         val request = t.requests.single()
         assertEquals("POST", request.method)
         assertTrue(request.url.endsWith("/api/v1/payment/orders"))
         assertEquals("Bearer tok-123", request.headers["Authorization"])
         val body = JSONObject(request.body!!)
-        assertEquals(setOf("planCode", "clientRequestId"), body.keys().asSequence().toSet())
+        assertEquals(setOf("planCode", "clientRequestId", "payChannel"), body.keys().asSequence().toSet())
         assertEquals("YEARLY", body.getString("planCode"))
         assertEquals("req-1", body.getString("clientRequestId"))
+        assertEquals("WECHAT_PAY", body.getString("payChannel"))
         assertFalse(request.toString().contains("tok-123"))
 
         val order = result.value
@@ -134,7 +135,7 @@ class HttpPaymentApiTest {
         for ((key, expected) in cases) {
             val (status, code) = key
             val t = Recording(PaymentHttpResponse(status, """{"code":$code,"message":"x","data":null}"""))
-            assertEquals("code=$code", PaymentResult.Failure(expected), api(t).createOrder("tok", "YEARLY", "r"))
+            assertEquals("code=$code", PaymentResult.Failure(expected), api(t).createOrder("tok", "YEARLY", "r", "WECHAT_PAY"))
         }
     }
 
@@ -149,7 +150,7 @@ class HttpPaymentApiTest {
         assertTrue(e500.error.retriable)
 
         val timeout = Recording(PaymentHttpResponse(200, "")).also { it.failure = SocketTimeoutException() }
-        val t = api(timeout).createOrder("tok", "YEARLY", "r") as PaymentResult.Failure
+        val t = api(timeout).createOrder("tok", "YEARLY", "r", "WECHAT_PAY") as PaymentResult.Failure
         assertEquals(PaymentError.Network(timeout = true), t.error)
         assertTrue(t.error.retriable)
 
@@ -165,7 +166,7 @@ class HttpPaymentApiTest {
         val api = api(t)
         api.plans()
         t.response = PaymentHttpResponse(200, orderBody())
-        api.createOrder("tok", "YEARLY", "r")
+        api.createOrder("tok", "YEARLY", "r", "WECHAT_PAY")
         api.queryOrder("tok", "CV1")
         val (plans, create, query) = t.requests
         assertEquals(10_000 to 15_000, plans.connectTimeoutMillis to plans.readTimeoutMillis)
@@ -182,7 +183,7 @@ class HttpPaymentApiTest {
         // B2-02: an unconfigured paystaging / Release address is refused explicitly, never a fallback.
         val empty = HttpPaymentApi("", debug = false, transport = t)
         assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.plans())
-        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.createOrder("tok", "YEARLY", "r"))
+        assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.createOrder("tok", "YEARLY", "r", "WECHAT_PAY"))
         assertEquals(PaymentResult.Failure(PaymentError.EndpointNotConfigured), empty.queryOrder("tok", "CV1"))
         assertTrue(t.requests.isEmpty())
         // Debug may use the isolated http environment.
@@ -206,9 +207,10 @@ class HttpPaymentApiTest {
         server.start()
         try {
             val api = HttpPaymentApi("http://127.0.0.1:${server.address.port}", debug = true)
-            val created = api.createOrder("tok-xyz", "YEARLY", "req-9") as PaymentResult.Success
+            val created = api.createOrder("tok-xyz", "YEARLY", "req-9", "WECHAT_PAY") as PaymentResult.Success
             assertEquals("CV202611090001", created.value.orderNo)
-            assertEquals(setOf("planCode", "clientRequestId"), JSONObject(seenBody.get()).keys().asSequence().toSet())
+            assertEquals(setOf("planCode", "clientRequestId", "payChannel"), JSONObject(seenBody.get()).keys().asSequence().toSet())
+            assertEquals("WECHAT_PAY", JSONObject(seenBody.get()).getString("payChannel"))
             assertEquals("Bearer tok-xyz", seenAuth.get())
             assertEquals(PaymentResult.Failure(PaymentError.OrderNotFound), api.queryOrder("tok-xyz", "missing"))
         } finally {

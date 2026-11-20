@@ -3,7 +3,10 @@ package com.aurora.calculatorvault.feature.trial
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.min
 import com.aurora.calculatorvault.feature.login.session.TrialTrace
@@ -39,6 +42,9 @@ class DeviceTrialRepository(
 ) {
     private val mutableState = MutableStateFlow(DeviceTrialState())
     val state = mutableState.asStateFlow()
+    private val firstGrantMutable = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    /** Emits once when this process first receives a server-confirmed trial grant. */
+    val firstTrialGrantEvents: SharedFlow<Unit> = firstGrantMutable.asSharedFlow()
     private var record: TrialRecord? = null
     private var initialized = false
     private var unavailable = false
@@ -47,6 +53,9 @@ class DeviceTrialRepository(
     private var nextAttempt = 0L
     private var failures = 0
     private var lastSync = Long.MIN_VALUE
+    /** True when local store already had a verified or expired trial before this process. */
+    var hadPriorServerTrial: Boolean = false
+        private set
 
     fun initialize() {
         if (initialized) return
@@ -56,6 +65,7 @@ class DeviceTrialRepository(
             // Never mint a fresh unverified 72h grant here. Legacy unverified rows stay on disk
             // for migration (cap on first activate) but do not authorize until the server confirms.
             if (record != null) store.markSeen()
+            hadPriorServerTrial = record?.let { it.verified || it.expired } == true
             refresh()
         } catch (_: Exception) { record = null; restricted() }
     }
@@ -154,9 +164,11 @@ class DeviceTrialRepository(
                     verified = !expired,
                     uncertain = false,
                 )
+                val firstVerifiedGrant = !expired && updated.verified && (old == null || !old.verified)
                 store.markSeen(); store.write(updated); record = updated; processAnchor = true
                 lastSync = clock.elapsed(); failures = 0; unavailable = false
                 refresh()
+                if (firstVerifiedGrant) firstGrantMutable.tryEmit(Unit)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {

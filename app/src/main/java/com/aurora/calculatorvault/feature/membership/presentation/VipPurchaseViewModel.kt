@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementState
 import com.aurora.calculatorvault.feature.login.session.AccountSession
+import com.aurora.calculatorvault.feature.membership.domain.VipPayChannel
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseSource
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseState
 import com.aurora.calculatorvault.feature.payment.data.PaymentRepository
@@ -41,8 +42,8 @@ class VipPurchaseViewModel(source: VipPurchaseSource, deps: VipPurchaseDependenc
     val state: StateFlow<VipPurchaseState> = controller.state
     val events: SharedFlow<VipPurchaseEvent> = controller.events
 
-    fun loadPlans() = controller.loadPlans()
     fun selectPlan(planCode: String) = controller.selectPlan(planCode)
+    fun selectPayChannel(channel: VipPayChannel) = controller.selectPayChannel(channel)
     fun setAgreementAccepted(accepted: Boolean) = controller.setAgreementAccepted(accepted)
     fun requestPurchase() = controller.requestPurchase()
     fun openCashier() = controller.openCashier()

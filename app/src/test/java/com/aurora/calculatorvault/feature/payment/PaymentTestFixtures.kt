@@ -52,7 +52,12 @@ class FakePaymentApi : PaymentApi {
     var plansResult: PaymentResult<List<MembershipPlanOffer>> = PaymentResult.Success(PaymentFixtures.plans)
     var plansCalls = 0
 
-    data class CreateCall(val token: String, val planCode: String, val clientRequestId: String)
+    data class CreateCall(
+        val token: String,
+        val planCode: String,
+        val clientRequestId: String,
+        val payChannel: String,
+    )
     val createCalls = mutableListOf<CreateCall>()
     val createResults = ArrayDeque<PaymentResult<PaymentOrder>>()
     var createDefault: PaymentResult<PaymentOrder> = PaymentResult.Success(PaymentFixtures.order())
@@ -68,8 +73,13 @@ class FakePaymentApi : PaymentApi {
         return plansResult
     }
 
-    override suspend fun createOrder(accessToken: String, planCode: String, clientRequestId: String): PaymentResult<PaymentOrder> {
-        createCalls += CreateCall(accessToken, planCode, clientRequestId)
+    override suspend fun createOrder(
+        accessToken: String,
+        planCode: String,
+        clientRequestId: String,
+        payChannel: String,
+    ): PaymentResult<PaymentOrder> {
+        createCalls += CreateCall(accessToken, planCode, clientRequestId, payChannel)
         createGate?.await()
         return createResults.removeFirstOrNull() ?: createDefault
     }

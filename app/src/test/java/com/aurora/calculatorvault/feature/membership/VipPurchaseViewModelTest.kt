@@ -13,11 +13,12 @@ import org.junit.Test
 class VipPurchaseViewModelTest {
 
     @Test
-    fun `fresh state has no plan, no consent and cannot purchase before server catalog`() {
+    fun `fresh state uses local catalog yearly default without consent`() {
         val state = VipPurchaseState(purchaseSource = VipPurchaseSource.Settings)
-        assertNull(state.selectedPlan)
+        assertEquals("YEARLY", state.selectedPlanCode)
+        assertEquals("YEARLY", state.selectedPlan?.planCode)
         assertFalse(state.agreementAccepted)
-        assertFalse(state.canRequestPurchase)
+        assertEquals(true, state.canRequestPurchase)
     }
 
     @Test

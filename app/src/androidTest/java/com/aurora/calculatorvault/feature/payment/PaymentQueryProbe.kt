@@ -19,8 +19,12 @@ class PaymentQueryProbe private constructor(private val delegate: PaymentApi) : 
 
     override suspend fun plans(): PaymentResult<List<MembershipPlanOffer>> = delegate.plans()
 
-    override suspend fun createOrder(accessToken: String, planCode: String, clientRequestId: String) =
-        delegate.createOrder(accessToken, planCode, clientRequestId)
+    override suspend fun createOrder(
+        accessToken: String,
+        planCode: String,
+        clientRequestId: String,
+        payChannel: String,
+    ) = delegate.createOrder(accessToken, planCode, clientRequestId, payChannel)
 
     override suspend fun queryOrder(accessToken: String, orderNo: String): PaymentResult<PaymentOrder> {
         queryTimes += SystemClock.elapsedRealtime()

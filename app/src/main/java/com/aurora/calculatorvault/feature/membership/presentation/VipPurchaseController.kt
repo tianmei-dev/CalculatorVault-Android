@@ -5,14 +5,17 @@ import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementState
 import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import com.aurora.calculatorvault.feature.membership.data.MembershipSyncUi
+import com.aurora.calculatorvault.feature.membership.domain.LocalVipCatalog
 import com.aurora.calculatorvault.feature.membership.domain.MembershipSyncAfterPurchase
 import com.aurora.calculatorvault.feature.membership.domain.OrderQueryIssue
 import com.aurora.calculatorvault.feature.membership.domain.OrderView
 import com.aurora.calculatorvault.feature.membership.domain.PlansState
 import com.aurora.calculatorvault.feature.membership.domain.PurchaseNotice
 import com.aurora.calculatorvault.feature.membership.domain.PurchasePhase
+import com.aurora.calculatorvault.feature.membership.domain.VipPayChannel
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseSource
 import com.aurora.calculatorvault.feature.membership.domain.VipPurchaseState
+import com.aurora.calculatorvault.feature.payment.data.MembershipPlanOffer
 import com.aurora.calculatorvault.feature.payment.data.PaymentError
 import com.aurora.calculatorvault.feature.payment.data.PaymentOrder
 import com.aurora.calculatorvault.feature.payment.data.PaymentOrderStatus
@@ -97,6 +100,7 @@ class VipPurchaseController(
     private var pollSessionStart = 0L
     private var consecutiveFailures = 0
     private val completedOrders = mutableSetOf<String>()
+    private var continuePurchaseAfterLogin = false
 
     init {
         scope.launch {
@@ -112,29 +116,7 @@ class VipPurchaseController(
         }
         scope.launch {
             repository.networkAvailable.collect { available ->
-                // Immediate feedback when the device loses its network, even mid-request.
                 if (!available) updateOrdering { it.copy(queryIssue = OrderQueryIssue.NetworkUnavailable) }
-            }
-        }
-        loadPlans()
-    }
-
-    // ---------- plans ----------
-
-    fun loadPlans() {
-        plansJob?.cancel()
-        mutableState.update { it.copy(plans = PlansState.Loading) }
-        plansJob = scope.launch {
-            val next = when (val result = repository.loadPlans()) {
-                is PaymentResult.Success ->
-                    if (result.value.isEmpty()) PlansState.Empty else PlansState.Ready(result.value)
-                is PaymentResult.Failure -> PlansState.Failed(result.error)
-            }
-            mutableState.update { current ->
-                val plans = (next as? PlansState.Ready)?.plans.orEmpty()
-                val keep = current.selectedPlanCode?.takeIf { code -> plans.any { it.planCode == code } }
-                val default = plans.firstOrNull { it.planCode == DEFAULT_PLAN }?.planCode ?: plans.firstOrNull()?.planCode
-                current.copy(plans = next, selectedPlanCode = keep ?: default)
             }
         }
     }
@@ -148,19 +130,26 @@ class VipPurchaseController(
         }
         if (current.selectedPlanCode == planCode) return
         if (current.phase is PurchasePhase.CreateFailed) {
-            // A different plan is a new purchase: drop the unconfirmed request context.
             owner?.let { repository.discardPending(it.userId) }
         }
         mutableState.update { it.copy(selectedPlanCode = planCode, phase = PurchasePhase.Idle) }
+    }
+
+    fun selectPayChannel(channel: VipPayChannel) {
+        val current = state.value
+        if (current.phase is PurchasePhase.Creating || current.phase is PurchasePhase.Ordering ||
+            current.phase is PurchasePhase.Resuming
+        ) {
+            return
+        }
+        if (current.selectedPayChannel == channel) return
+        mutableState.update { it.copy(selectedPayChannel = channel) }
     }
 
     fun setAgreementAccepted(accepted: Boolean) {
         mutableState.update { it.copy(agreementAccepted = accepted) }
     }
 
-    // ---------- create ----------
-
-    /** Main purchase button. Retries the same request when the last create was not confirmed. */
     fun requestPurchase() {
         val current = state.value
         if (current.phase is PurchasePhase.Creating || current.phase is PurchasePhase.Ordering ||
@@ -171,29 +160,84 @@ class VipPurchaseController(
         if (!current.agreementAccepted) return notice(PurchaseNotice.AgreementRequired)
         if (current.lifetimeOwned) return notice(PurchaseNotice.LifetimeOwned)
         val plan = current.selectedPlan ?: return notice(PurchaseNotice.PlansNotReady)
-        if (!sessionAllowsCreate()) return
+        if (!sessionAllowsCreate()) {
+            continuePurchaseAfterLogin = true
+            return
+        }
+        continuePurchaseAfterLogin = false
         val createOwner = repository.currentOwner(requireAuthenticated = true)
             ?: return notice(PurchaseNotice.SessionVerifying)
         val failed = current.phase as? PurchasePhase.CreateFailed
         val retrySame = failed != null && failed.retryKept && owner == createOwner
         mutableState.update { it.copy(phase = PurchasePhase.Creating) }
         owner = createOwner
-        scope.launch { handleCreate(createOwner, plan.planCode, retrySame) }
+        scope.launch { handlePurchase(createOwner, plan, current.selectedPayChannel, retrySame) }
     }
 
-    private suspend fun handleCreate(createOwner: PurchaseOwner, planCode: String, retrySame: Boolean) {
-        when (val outcome = repository.createOrder(createOwner, planCode, retrySame)) {
+    private suspend fun handlePurchase(
+        createOwner: PurchaseOwner,
+        localPlan: MembershipPlanOffer,
+        channel: VipPayChannel,
+        retrySame: Boolean,
+    ) {
+        val before = membership.revision.value
+        membership.requestRefreshAfterPurchase()
+        val settled = withTimeoutOrNull(membershipSyncTimeoutMillis) {
+            membership.revision.first { it > before }
+            membership.syncState.first { it !is MembershipSyncUi.Syncing }
+            true
+        } == true
+        if (owner != createOwner) return
+        if (!settled || membership.syncState.value is MembershipSyncUi.Failed ||
+            membership.syncState.value is MembershipSyncUi.Anomaly
+        ) {
+            mutableState.update { it.copy(phase = PurchasePhase.Idle) }
+            notice(PurchaseNotice.MembershipUnconfirmed)
+            return
+        }
+        if (membership.hasVerifiedVip(createOwner.userId)) {
+            mutableState.update { it.copy(phase = PurchasePhase.Idle) }
+            notice(PurchaseNotice.LifetimeOwned)
+            return
+        }
+        when (val plansResult = repository.loadPlans()) {
+            is PaymentResult.Failure -> {
+                mutableState.update { it.copy(phase = PurchasePhase.Idle) }
+                notice(PurchaseNotice.PlanUnavailable)
+                return
+            }
+            is PaymentResult.Success -> {
+                val server = plansResult.value.firstOrNull { it.planCode == localPlan.planCode }
+                if (server == null || !LocalVipCatalog.matchesServer(localPlan, server)) {
+                    mutableState.update { it.copy(phase = PurchasePhase.Idle) }
+                    notice(PurchaseNotice.PlanMismatch)
+                    return
+                }
+            }
+        }
+        when (val outcome = repository.createOrder(
+            createOwner, localPlan.planCode, retrySame, channel.apiValue,
+        )) {
             is PaymentRepository.CreateOutcome.Created -> {
                 if (owner != createOwner) return
-                mutableState.update { it.copy(phase = PurchasePhase.Ordering(viewOf(outcome.order))) }
+                val order = outcome.order
+                if (order.planCode != localPlan.planCode || order.amountFen != localPlan.priceFen) {
+                    mutableState.update { it.copy(phase = PurchasePhase.Idle) }
+                    notice(PurchaseNotice.AmountMismatch)
+                    return
+                }
+                val view = viewOf(order)
+                mutableState.update { it.copy(phase = PurchasePhase.Ordering(view)) }
                 consecutiveFailures = 0
                 pollSessionStart = elapsedRealtime()
-                // Query once immediately after creation, then follow the poll policy.
                 restartPolling()
+                if (view.payDecision is PayLaunchDecision.OpenCashier) openCashier()
+                else if (view.payDecision is PayLaunchDecision.Rejected) notice(PurchaseNotice.PayLinkInvalid)
             }
             is PaymentRepository.CreateOutcome.Failed -> onCreateFailed(outcome.error, outcome.retryKept)
             PaymentRepository.CreateOutcome.AccountChanged -> abandonForAccountChange()
-            PaymentRepository.CreateOutcome.Busy -> Unit
+            PaymentRepository.CreateOutcome.Busy ->
+                mutableState.update { it.copy(phase = PurchasePhase.Idle) }
         }
     }
 
@@ -208,6 +252,7 @@ class VipPurchaseController(
         when (error) {
             PaymentError.Unauthorized -> {
                 notice(PurchaseNotice.LoginExpired)
+                continuePurchaseAfterLogin = true
                 mutableEvents.tryEmit(VipPurchaseEvent.OpenLogin)
             }
             PaymentError.ClientRequestConflict -> notice(PurchaseNotice.RequestConflict)
@@ -215,10 +260,7 @@ class VipPurchaseController(
                 notice(PurchaseNotice.LifetimeOwned)
                 membership.requestRefreshAfterPurchase()
             }
-            PaymentError.PlanDisabled, PaymentError.PlanNotFound -> {
-                notice(PurchaseNotice.PlanUnavailable)
-                loadPlans()
-            }
+            PaymentError.PlanDisabled, PaymentError.PlanNotFound -> notice(PurchaseNotice.PlanUnavailable)
             PaymentError.EndpointNotConfigured -> notice(PurchaseNotice.PaymentConfigMissing)
             else -> Unit
         }
@@ -463,7 +505,19 @@ class VipPurchaseController(
                 return
             }
         }
-        if (session is AccountSession.Authenticated) tryResume()
+        if (session is AccountSession.Authenticated) {
+            tryResume()
+            if (continuePurchaseAfterLogin && state.value.phase == PurchasePhase.Idle) {
+                continuePurchaseAfterLogin = false
+                requestPurchase()
+            }
+        } else if (session is AccountSession.Guest ||
+            session is AccountSession.LoginFailed ||
+            session is AccountSession.SessionExpired
+        ) {
+            // Cancelled / failed login must not keep a dangling purchase intent.
+            continuePurchaseAfterLogin = false
+        }
     }
 
     /** Resume an order recorded for this account (Activity recreation / process restore). */
@@ -492,6 +546,7 @@ class VipPurchaseController(
 
     private fun abandonForAccountChange() {
         val hadWork = state.value.phase != PurchasePhase.Idle
+        continuePurchaseAfterLogin = false
         cancelOrderWork()
         if (hadWork) {
             mutableState.update { it.copy(phase = PurchasePhase.Idle) }
@@ -552,7 +607,6 @@ class VipPurchaseController(
     }
 
     private companion object {
-        const val DEFAULT_PLAN = "YEARLY"
         const val MAX_OFFLINE_SKIPS = 3
         const val CASHIER_DEBOUNCE_MS = 2_000L
         const val MEMBERSHIP_SYNC_ATTEMPTS = 3

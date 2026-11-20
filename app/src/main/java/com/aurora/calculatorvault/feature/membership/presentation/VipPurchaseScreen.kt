@@ -227,12 +227,12 @@ fun VipPurchaseScreen(
                             VaultSectionTitle(stringResource(R.string.vip_plans_title))
                             PlansSection(state, viewModel)
                         }
+                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+                            VaultSectionTitle(stringResource(R.string.vip_payment_title))
+                            PayChannelSection(state, viewModel)
+                        }
                         if (phase is PurchasePhase.CreateFailed) {
                             InfoCard(stringResource(R.string.vip_create_failed), Modifier.testTag("vip_create_failed"))
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                            VaultSectionTitle(stringResource(R.string.vip_cashier_title))
-                            InfoCard(stringResource(R.string.vip_cashier_description))
                         }
                     }
                 }
@@ -288,21 +288,73 @@ private fun FooterAction(state: VipPurchaseState, viewModel: VipPurchaseViewMode
 
 @Composable
 private fun PlansSection(state: VipPurchaseState, viewModel: VipPurchaseViewModel) {
-    when (val plans = state.plans) {
-        PlansState.Loading -> InfoCard(stringResource(R.string.vip_plans_loading), Modifier.testTag("vip_plans_loading"))
-        PlansState.Empty -> RetryCard(stringResource(R.string.vip_plans_empty), viewModel::loadPlans, "vip_plans_empty")
-        is PlansState.Failed ->
-            if (plans.error == PaymentError.EndpointNotConfigured) {
-                InfoCard(stringResource(R.string.vip_plans_endpoint_missing), Modifier.testTag("vip_plans_endpoint_missing"))
-            } else {
-                RetryCard(stringResource(R.string.vip_plans_failed), viewModel::loadPlans, "vip_plans_failed")
-            }
-        is PlansState.Ready -> PlanSelector(
-            plans = plans.plans,
-            selected = state.selectedPlanCode,
+    val plans = (state.plans as? PlansState.Ready)?.plans.orEmpty()
+    PlanSelector(
+        plans = plans,
+        selected = state.selectedPlanCode,
+        enabled = !state.lifetimeOwned,
+        onSelected = viewModel::selectPlan,
+    )
+}
+
+@Composable
+private fun PayChannelSection(state: VipPurchaseState, viewModel: VipPurchaseViewModel) {
+    Row(
+        modifier = Modifier.fillMaxWidth().selectableGroup().testTag("vip_pay_channel_group"),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        PayChannelChip(
+            label = stringResource(R.string.vip_payment_wechat),
+            selected = state.selectedPayChannel == com.aurora.calculatorvault.feature.membership.domain.VipPayChannel.WECHAT_PAY,
             enabled = !state.lifetimeOwned,
-            onSelected = viewModel::selectPlan,
+            testTag = "vip_pay_wechat",
+            onClick = {
+                viewModel.selectPayChannel(
+                    com.aurora.calculatorvault.feature.membership.domain.VipPayChannel.WECHAT_PAY,
+                )
+            },
+            modifier = Modifier.weight(1f),
         )
+        PayChannelChip(
+            label = stringResource(R.string.vip_payment_alipay),
+            selected = state.selectedPayChannel == com.aurora.calculatorvault.feature.membership.domain.VipPayChannel.ALIPAY,
+            enabled = !state.lifetimeOwned,
+            testTag = "vip_pay_alipay",
+            onClick = {
+                viewModel.selectPayChannel(
+                    com.aurora.calculatorvault.feature.membership.domain.VipPayChannel.ALIPAY,
+                )
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun PayChannelChip(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    testTag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .heightIn(min = AppDimensions.Button)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            .testTag(testTag),
+        shape = AppShapes.Large,
+        color = if (selected) AppColors.AccentContainer else AppColors.SurfacePrimary,
+        border = BorderStroke(1.dp, if (selected) AppColors.AccentPrimary else AppColors.BorderSubtle),
+    ) {
+        Box(Modifier.fillMaxWidth().padding(AppSpacing.sm), contentAlignment = Alignment.Center) {
+            Text(
+                label,
+                style = AppTextStyles.BodySecondary.copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal),
+                color = if (selected) AppColors.AccentPrimary else AppColors.TextPrimary,
+            )
+        }
     }
 }
 
@@ -473,12 +525,16 @@ private fun noticeTexts(): NoticeTexts = NoticeTexts(
         PurchaseNotice.SessionUnavailable to stringResource(R.string.vip_notice_session_unavailable),
         PurchaseNotice.LifetimeOwned to stringResource(R.string.vip_lifetime_owned_banner),
         PurchaseNotice.PlanUnavailable to stringResource(R.string.vip_notice_plan_unavailable),
+        PurchaseNotice.PlanMismatch to stringResource(R.string.vip_notice_plan_mismatch),
+        PurchaseNotice.PayChannelInvalid to stringResource(R.string.vip_notice_pay_channel_invalid),
         PurchaseNotice.RequestConflict to stringResource(R.string.vip_notice_request_conflict),
         PurchaseNotice.PaymentConfigMissing to stringResource(R.string.vip_notice_config_missing),
         PurchaseNotice.PayLinkInvalid to stringResource(R.string.vip_order_link_invalid),
+        PurchaseNotice.AmountMismatch to stringResource(R.string.vip_notice_amount_mismatch),
         PurchaseNotice.AccountChanged to stringResource(R.string.vip_notice_account_changed),
         PurchaseNotice.OrderNotFound to stringResource(R.string.vip_notice_order_not_found),
         PurchaseNotice.PurchaseCompleted to stringResource(R.string.vip_notice_purchase_completed),
+        PurchaseNotice.MembershipUnconfirmed to stringResource(R.string.vip_notice_membership_unconfirmed),
     ),
 )
 
