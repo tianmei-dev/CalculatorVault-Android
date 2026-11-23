@@ -361,21 +361,29 @@ fun VaultMainScreen(
                 SettingsScreen(
                     sessionPending = sessionState is AccountSession.TemporarilyUnavailable,
                     onRetrySession = application.accountSession::revalidate,
-                    sessionMessage = com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
-                        .trialSessionMessage(trialState) + "\n" + when (val s = sessionState) {
-                        is AccountSession.Validating -> "正在校验已保存的账号"
-                        is AccountSession.TemporarilyUnavailable ->
-                            if (s.trustedAccount != null &&
-                                entitlementState.source is com.aurora.calculatorvault.feature.entitlement.domain.EntitlementSource.Vip
-                            ) {
-                                "网络暂不可用，账号待验证，会员权益按离线缓存暂时保留"
-                            } else {
-                                "网络暂不可用，账号待验证，账号权益未启用"
-                            }
-                        AccountSession.SessionExpired -> "会话已失效，请重新登录"
-                        AccountSession.StorageFailed -> "安全存储不可用，当前未登录"
-                        else -> ""
-                    },
+                    sessionMessage = listOfNotNull(
+                        // Hide device-trial status once account VIP is active; otherwise keep showing it.
+                        if (entitlementState.source is EntitlementSource.Vip) {
+                            null
+                        } else {
+                            com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
+                                .trialSessionMessage(trialState)
+                        },
+                        when (val s = sessionState) {
+                            is AccountSession.Validating -> "正在校验已保存的账号"
+                            is AccountSession.TemporarilyUnavailable ->
+                                if (s.trustedAccount != null &&
+                                    entitlementState.source is EntitlementSource.Vip
+                                ) {
+                                    "网络暂不可用，账号待验证，会员权益按离线缓存暂时保留"
+                                } else {
+                                    "网络暂不可用，账号待验证，账号权益未启用"
+                                }
+                            AccountSession.SessionExpired -> "会话已失效，请重新登录"
+                            AccountSession.StorageFailed -> "安全存储不可用，当前未登录"
+                            else -> null
+                        }?.takeIf { it.isNotEmpty() },
+                    ).joinToString("\n"),
                     accountState = entitlementAccount,
                     onLogoutConfirmed = {
                         application.wechatAuthorization.cancel()

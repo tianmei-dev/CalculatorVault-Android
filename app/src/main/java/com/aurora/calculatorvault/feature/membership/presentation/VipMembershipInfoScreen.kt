@@ -23,8 +23,10 @@ import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
+import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
 import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementSource
 import com.aurora.calculatorvault.feature.entitlement.domain.EntitlementState
+import com.aurora.calculatorvault.feature.membership.domain.VipPlan
 import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
 import java.time.Instant
@@ -73,9 +75,17 @@ fun VipMembershipInfoScreen(
                 modifier = Modifier.testTag("vip_info_status"),
             )
             if (vip != null) {
-                val typeLabel = when {
-                    vip.permanent -> stringResource(R.string.vip_info_lifetime)
-                    else -> vip.planType ?: stringResource(R.string.vip_title)
+                // Same plan-code mapping as the settings membership card.
+                val plan = EntitlementDisplayMapper.resolveDisplayPlan(
+                    vip.planType,
+                    vip.contributingPlanTypes,
+                    permanent = vip.permanent,
+                )
+                val typeLabel = when (plan) {
+                    VipPlan.Monthly -> stringResource(R.string.account_vip_monthly)
+                    VipPlan.Annual -> stringResource(R.string.account_vip_annual)
+                    VipPlan.Lifetime -> stringResource(R.string.account_vip_permanent)
+                    null -> stringResource(R.string.vip_title)
                 }
                 Text(
                     stringResource(R.string.vip_info_type, typeLabel),
