@@ -224,35 +224,51 @@ fun VipPurchaseScreen(
                 }
             },
         ) { padding ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = AppSpacing.md)
-                    .padding(top = AppSpacing.xxs, bottom = AppSpacing.xxs)
-                    .testTag("vip_purchase_content"),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            BoxWithConstraints(
+                Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                    VipSectionHeading(stringResource(R.string.vip_benefits_title))
-                    BenefitsCard()
+                // Measure the viewport after the header and pinned footer, before scrolling makes
+                // the height unbounded. Keep the compact rhythm for narrow or large-text layouts.
+                val fontScale = LocalDensity.current.fontScale
+                val textReserve = 160.dp * (fontScale - 1f).coerceAtLeast(0f)
+                val wrapReserve = (360.dp - maxWidth).coerceAtLeast(0.dp) * 0.6f
+                val isCatalog = state.phase == PurchasePhase.Idle || state.phase == PurchasePhase.Creating
+                val room = if (isCatalog && !state.lifetimeOwned) {
+                    (maxHeight - 420.dp - textReserve - wrapReserve).coerceIn(0.dp, 160.dp)
+                } else {
+                    0.dp
                 }
-                if (state.lifetimeOwned) {
-                    InfoCard(stringResource(R.string.vip_lifetime_owned_banner), Modifier.testTag("vip_lifetime_owned"))
-                }
-                when (val phase = state.phase) {
-                    is PurchasePhase.Ordering -> OrderPanel(phase, viewModel)
-                    is PurchasePhase.Resuming -> InfoCard(stringResource(R.string.vip_order_resuming))
-                    else -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                            VipSectionHeading(stringResource(R.string.vip_plans_title))
-                            PlansSection(state, viewModel)
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                            VipSectionHeading(stringResource(R.string.vip_payment_title))
-                            PayChannelSection(state, viewModel)
-                        }
-                        if (phase is PurchasePhase.CreateFailed) {
-                            InfoCard(stringResource(R.string.vip_create_failed), Modifier.testTag("vip_create_failed"))
+                val headingGap = AppSpacing.xxs + room * 0.06f
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = AppSpacing.md)
+                        .padding(top = AppSpacing.xxs + room * 0.12f, bottom = AppSpacing.xxs + room * 0.06f)
+                        .testTag("vip_purchase_content"),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs + room * 0.15f),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(headingGap)) {
+                        VipSectionHeading(stringResource(R.string.vip_benefits_title))
+                        BenefitsCard(room)
+                    }
+                    if (state.lifetimeOwned) {
+                        InfoCard(stringResource(R.string.vip_lifetime_owned_banner), Modifier.testTag("vip_lifetime_owned"))
+                    }
+                    when (val phase = state.phase) {
+                        is PurchasePhase.Ordering -> OrderPanel(phase, viewModel)
+                        is PurchasePhase.Resuming -> InfoCard(stringResource(R.string.vip_order_resuming))
+                        else -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(headingGap)) {
+                                VipSectionHeading(stringResource(R.string.vip_plans_title))
+                                PlansSection(state, viewModel, room)
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(headingGap)) {
+                                VipSectionHeading(stringResource(R.string.vip_payment_title))
+                                PayChannelSection(state, viewModel)
+                            }
+                            if (phase is PurchasePhase.CreateFailed) {
+                                InfoCard(stringResource(R.string.vip_create_failed), Modifier.testTag("vip_create_failed"))
+                            }
                         }
                     }
                 }
@@ -352,12 +368,13 @@ private fun FooterAction(state: VipPurchaseState, viewModel: VipPurchaseViewMode
 }
 
 @Composable
-private fun PlansSection(state: VipPurchaseState, viewModel: VipPurchaseViewModel) {
+private fun PlansSection(state: VipPurchaseState, viewModel: VipPurchaseViewModel, room: Dp) {
     val plans = (state.plans as? PlansState.Ready)?.plans.orEmpty()
     PlanSelector(
         plans = plans,
         selected = state.selectedPlanCode,
         enabled = !state.lifetimeOwned,
+        room = room,
         onSelected = viewModel::selectPlan,
     )
 }
@@ -614,11 +631,12 @@ private fun showNotice(messages: AppMessageController, notice: PurchaseNotice, t
 }
 
 @Composable
-private fun BenefitsCard(modifier: Modifier = Modifier) {
+private fun BenefitsCard(room: Dp) {
     Column(
-        modifier = modifier.fillMaxWidth().testTag("vip_benefits_card")
-            .vipPanel(shape = AppShapes.Large).padding(AppSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs, Alignment.CenterVertically),
+        modifier = Modifier.fillMaxWidth().testTag("vip_benefits_card")
+            .vipPanel(shape = AppShapes.Large)
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm + room * 0.06f),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs + room * 0.04f, Alignment.CenterVertically),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Benefit(VaultIcons.Lock, stringResource(R.string.vip_benefit_lock),
@@ -668,6 +686,7 @@ private fun PlanSelector(
     plans: List<MembershipPlanOffer>,
     selected: String?,
     enabled: Boolean,
+    room: Dp,
     onSelected: (String) -> Unit,
 ) {
     val scroll = rememberScrollState()
@@ -692,14 +711,14 @@ private fun PlanSelector(
                 Box(Modifier.width(cardWidth).fillMaxHeight()) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm)
-                            .heightIn(min = 140.dp).fillMaxHeight()
+                            .heightIn(min = 140.dp + room * 0.18f).fillMaxHeight()
                             .vipPanel(emphasized = isSelected, shape = AppShapes.Medium)
                             .selectable(selected = isSelected, enabled = enabled, role = Role.RadioButton,
                                 onClick = { onSelected(plan.planCode) })
                             .testTag("vip_plan_${plan.planCode}")
-                            .padding(AppSpacing.xs),
+                            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs + room * 0.0375f),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs, Alignment.CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs + room * 0.025f, Alignment.CenterVertically),
                     ) {
                         VipIconTile(
                             icon = if (plan.isLifetime) VaultIcons.Security else VaultIcons.Calendar,
