@@ -1,0 +1,330 @@
+Starting a Gradle Daemon, 1 incompatible Daemon could not be reused, use --status for details
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:mergeDebugAssets
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugResources
+> Task :app:compileDebugKotlin
+> Task :app:compileDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> Multiple build operations failed.
+      Timeout waiting to lock cache directory 77ec57214219756351a37ffb85008100 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\77ec57214219756351a37ffb85008100). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\77ec57214219756351a37ffb85008100\77ec57214219756351a37ffb85008100.lock
+      Timeout waiting to lock cache directory e9e0611ba61f353f464260dab32bdc26 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9e0611ba61f353f464260dab32bdc26). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9e0611ba61f353f464260dab32bdc26\e9e0611ba61f353f464260dab32bdc26.lock
+      Timeout waiting to lock cache directory 6f7ee35f6135b6a94dae16677df4184a (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6f7ee35f6135b6a94dae16677df4184a). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6f7ee35f6135b6a94dae16677df4184a\6f7ee35f6135b6a94dae16677df4184a.lock
+      Timeout waiting to lock cache directory 92b6e0699f760d3f5162a976c0cf03a5 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\92b6e0699f760d3f5162a976c0cf03a5). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\92b6e0699f760d3f5162a976c0cf03a5\92b6e0699f760d3f5162a976c0cf03a5.lock
+      Timeout waiting to lock cache directory 577579ed36f778b6df027fb132f9c1ea (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\577579ed36f778b6df027fb132f9c1ea). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\577579ed36f778b6df027fb132f9c1ea\577579ed36f778b6df027fb132f9c1ea.lock
+      Timeout waiting to lock cache directory e9f0bfa0811a62033c6a6d1e6eb32c80 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9f0bfa0811a62033c6a6d1e6eb32c80). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9f0bfa0811a62033c6a6d1e6eb32c80\e9f0bfa0811a62033c6a6d1e6eb32c80.lock
+      Timeout waiting to lock cache directory 09735d9b9854f84ef29f02b379774756 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\09735d9b9854f84ef29f02b379774756). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\09735d9b9854f84ef29f02b379774756\09735d9b9854f84ef29f02b379774756.lock
+      Timeout waiting to lock cache directory daf62488ca3e99395837618abe64c454 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\daf62488ca3e99395837618abe64c454). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\daf62488ca3e99395837618abe64c454\daf62488ca3e99395837618abe64c454.lock
+      Timeout waiting to lock cache directory 7f3775571d7f1545a745e028b657a2c6 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\7f3775571d7f1545a745e028b657a2c6). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\7f3775571d7f1545a745e028b657a2c6\7f3775571d7f1545a745e028b657a2c6.lock
+      Timeout waiting to lock cache directory 8f92eea8d8e6d50061c5fe2cdbce0507 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8f92eea8d8e6d50061c5fe2cdbce0507). It is currently in use by another process.
+  Owner PID: 23048
+  Our PID: 27280
+  Owner Operation: 
+  Our operation: 
+  Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8f92eea8d8e6d50061c5fe2cdbce0507\8f92eea8d8e6d50061c5fe2cdbce0507.lock
+      ...and 26 more failures.
+   > Timeout waiting to lock cache directory 77ec57214219756351a37ffb85008100 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\77ec57214219756351a37ffb85008100). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\77ec57214219756351a37ffb85008100\77ec57214219756351a37ffb85008100.lock
+   > Timeout waiting to lock cache directory e9e0611ba61f353f464260dab32bdc26 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9e0611ba61f353f464260dab32bdc26). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9e0611ba61f353f464260dab32bdc26\e9e0611ba61f353f464260dab32bdc26.lock
+   > Timeout waiting to lock cache directory 6f7ee35f6135b6a94dae16677df4184a (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6f7ee35f6135b6a94dae16677df4184a). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6f7ee35f6135b6a94dae16677df4184a\6f7ee35f6135b6a94dae16677df4184a.lock
+   > Timeout waiting to lock cache directory 92b6e0699f760d3f5162a976c0cf03a5 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\92b6e0699f760d3f5162a976c0cf03a5). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\92b6e0699f760d3f5162a976c0cf03a5\92b6e0699f760d3f5162a976c0cf03a5.lock
+   > Timeout waiting to lock cache directory 577579ed36f778b6df027fb132f9c1ea (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\577579ed36f778b6df027fb132f9c1ea). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\577579ed36f778b6df027fb132f9c1ea\577579ed36f778b6df027fb132f9c1ea.lock
+   > Timeout waiting to lock cache directory e9f0bfa0811a62033c6a6d1e6eb32c80 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9f0bfa0811a62033c6a6d1e6eb32c80). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e9f0bfa0811a62033c6a6d1e6eb32c80\e9f0bfa0811a62033c6a6d1e6eb32c80.lock
+   > Timeout waiting to lock cache directory 09735d9b9854f84ef29f02b379774756 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\09735d9b9854f84ef29f02b379774756). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\09735d9b9854f84ef29f02b379774756\09735d9b9854f84ef29f02b379774756.lock
+   > Timeout waiting to lock cache directory daf62488ca3e99395837618abe64c454 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\daf62488ca3e99395837618abe64c454). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\daf62488ca3e99395837618abe64c454\daf62488ca3e99395837618abe64c454.lock
+   > Timeout waiting to lock cache directory 7f3775571d7f1545a745e028b657a2c6 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\7f3775571d7f1545a745e028b657a2c6). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\7f3775571d7f1545a745e028b657a2c6\7f3775571d7f1545a745e028b657a2c6.lock
+   > Timeout waiting to lock cache directory 8f92eea8d8e6d50061c5fe2cdbce0507 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8f92eea8d8e6d50061c5fe2cdbce0507). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8f92eea8d8e6d50061c5fe2cdbce0507\8f92eea8d8e6d50061c5fe2cdbce0507.lock
+   > Timeout waiting to lock cache directory e832dec204a06f37b53ebba73351394b (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e832dec204a06f37b53ebba73351394b). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e832dec204a06f37b53ebba73351394b\e832dec204a06f37b53ebba73351394b.lock
+   > Timeout waiting to lock cache directory fa2070bb593fce97f24bb9df1ddb662b (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\fa2070bb593fce97f24bb9df1ddb662b). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\fa2070bb593fce97f24bb9df1ddb662b\fa2070bb593fce97f24bb9df1ddb662b.lock
+   > Timeout waiting to lock cache directory b91abfeec27e02ebef35addef2b17f73 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\b91abfeec27e02ebef35addef2b17f73). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\b91abfeec27e02ebef35addef2b17f73\b91abfeec27e02ebef35addef2b17f73.lock
+   > Timeout waiting to lock cache directory 62a92d3e314aecbaaa8e2cfb8a4c5f08 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\62a92d3e314aecbaaa8e2cfb8a4c5f08). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\62a92d3e314aecbaaa8e2cfb8a4c5f08\62a92d3e314aecbaaa8e2cfb8a4c5f08.lock
+   > Timeout waiting to lock cache directory 00846d20c3f0ee494978e4a54efa9c02 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\00846d20c3f0ee494978e4a54efa9c02). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\00846d20c3f0ee494978e4a54efa9c02\00846d20c3f0ee494978e4a54efa9c02.lock
+   > Timeout waiting to lock cache directory d9b8e03d04393bd6f79592aec42de14a (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\d9b8e03d04393bd6f79592aec42de14a). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\d9b8e03d04393bd6f79592aec42de14a\d9b8e03d04393bd6f79592aec42de14a.lock
+   > Timeout waiting to lock cache directory 81966e74a0e1f2103c4962ee7baf5227 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\81966e74a0e1f2103c4962ee7baf5227). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\81966e74a0e1f2103c4962ee7baf5227\81966e74a0e1f2103c4962ee7baf5227.lock
+   > Timeout waiting to lock cache directory e5ba52a1d1c038614fcbc5695a804431 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e5ba52a1d1c038614fcbc5695a804431). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\e5ba52a1d1c038614fcbc5695a804431\e5ba52a1d1c038614fcbc5695a804431.lock
+   > Timeout waiting to lock cache directory f1a8006f44367f3c48e353d95ac3d4e5 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\f1a8006f44367f3c48e353d95ac3d4e5). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\f1a8006f44367f3c48e353d95ac3d4e5\f1a8006f44367f3c48e353d95ac3d4e5.lock
+   > Timeout waiting to lock cache directory fdb52ad23d196f84a57566b39363dfec (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\fdb52ad23d196f84a57566b39363dfec). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\fdb52ad23d196f84a57566b39363dfec\fdb52ad23d196f84a57566b39363dfec.lock
+   > Timeout waiting to lock cache directory f8e5b481641bed001e123253a0c9abd4 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\f8e5b481641bed001e123253a0c9abd4). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\f8e5b481641bed001e123253a0c9abd4\f8e5b481641bed001e123253a0c9abd4.lock
+   > Timeout waiting to lock cache directory 24fedd54d08f9bda75604af935631a9e (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\24fedd54d08f9bda75604af935631a9e). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\24fedd54d08f9bda75604af935631a9e\24fedd54d08f9bda75604af935631a9e.lock
+   > Timeout waiting to lock cache directory 5785586ba3ac1c5469c3cd6094da554f (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\5785586ba3ac1c5469c3cd6094da554f). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\5785586ba3ac1c5469c3cd6094da554f\5785586ba3ac1c5469c3cd6094da554f.lock
+   > Timeout waiting to lock cache directory 59b09ee935de544c0404ebb36df6de5b (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\59b09ee935de544c0404ebb36df6de5b). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\59b09ee935de544c0404ebb36df6de5b\59b09ee935de544c0404ebb36df6de5b.lock
+   > Timeout waiting to lock cache directory 23d339ec7b8f57fa89306a7d7593f6c8 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\23d339ec7b8f57fa89306a7d7593f6c8). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\23d339ec7b8f57fa89306a7d7593f6c8\23d339ec7b8f57fa89306a7d7593f6c8.lock
+   > Timeout waiting to lock cache directory 80dd1720774ff3c19ac82f991098f336 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\80dd1720774ff3c19ac82f991098f336). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\80dd1720774ff3c19ac82f991098f336\80dd1720774ff3c19ac82f991098f336.lock
+   > Timeout waiting to lock cache directory c1e2cf36880ba003e46a958ffc89fbd2 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\c1e2cf36880ba003e46a958ffc89fbd2). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\c1e2cf36880ba003e46a958ffc89fbd2\c1e2cf36880ba003e46a958ffc89fbd2.lock
+   > Timeout waiting to lock cache directory 70f03f76a70eb6a87cbed7b6d93ad05e (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\70f03f76a70eb6a87cbed7b6d93ad05e). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\70f03f76a70eb6a87cbed7b6d93ad05e\70f03f76a70eb6a87cbed7b6d93ad05e.lock
+   > Timeout waiting to lock cache directory 8fae95bd89b243143ae5cf3686f91ef9 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8fae95bd89b243143ae5cf3686f91ef9). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8fae95bd89b243143ae5cf3686f91ef9\8fae95bd89b243143ae5cf3686f91ef9.lock
+   > Timeout waiting to lock cache directory 36f35e82d7c158bbdf68caccae04e83b (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\36f35e82d7c158bbdf68caccae04e83b). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\36f35e82d7c158bbdf68caccae04e83b\36f35e82d7c158bbdf68caccae04e83b.lock
+   > Timeout waiting to lock cache directory 34be0270a81a114626edbef9cd772773 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\34be0270a81a114626edbef9cd772773). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\34be0270a81a114626edbef9cd772773\34be0270a81a114626edbef9cd772773.lock
+   > Timeout waiting to lock cache directory 8c631f09910404b0f0e2b4d93e308e5d (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8c631f09910404b0f0e2b4d93e308e5d). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\8c631f09910404b0f0e2b4d93e308e5d\8c631f09910404b0f0e2b4d93e308e5d.lock
+   > Timeout waiting to lock cache directory 75e57d79fb0efd5953a83cd8ff3da7fe (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\75e57d79fb0efd5953a83cd8ff3da7fe). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\75e57d79fb0efd5953a83cd8ff3da7fe\75e57d79fb0efd5953a83cd8ff3da7fe.lock
+   > Timeout waiting to lock cache directory b94a51eaafa08ec6d4aca239eca7aeea (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\b94a51eaafa08ec6d4aca239eca7aeea). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\b94a51eaafa08ec6d4aca239eca7aeea\b94a51eaafa08ec6d4aca239eca7aeea.lock
+   > Timeout waiting to lock cache directory 693f3fc2e828b94e9437f640852686f0 (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\693f3fc2e828b94e9437f640852686f0). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\693f3fc2e828b94e9437f640852686f0\693f3fc2e828b94e9437f640852686f0.lock
+   > Timeout waiting to lock cache directory 6550e3faed6547d1ac215ade9830816c (C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6550e3faed6547d1ac215ade9830816c). It is currently in use by another process.
+     Owner PID: 23048
+     Our PID: 27280
+     Owner Operation: 
+     Our operation: 
+     Lock file: C:\Users\ASUS\.gradle\caches\9.3.1\transforms\6550e3faed6547d1ac215ade9830816c\6550e3faed6547d1ac215ade9830816c.lock
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 6m 55s
+31 actionable tasks: 10 executed, 21 up-to-date

@@ -19,12 +19,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
@@ -39,11 +41,12 @@ fun VaultCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val polished = useVaultDarkVisuals()
     Card(
-        modifier = modifier,
+        modifier = if (polished) modifier.vaultMainPanel(shape = AppShapes.Large) else modifier,
         shape = AppShapes.Large,
-        colors = CardDefaults.cardColors(containerColor = AppColors.SurfacePrimary),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = if (polished) Color.Transparent else MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (polished) 0.dp else 1.dp),
     ) {
         Column(modifier = Modifier.padding(AppSpacing.md), content = content)
     }
@@ -82,6 +85,8 @@ fun VaultSettingItem(
     showChevron: Boolean = enabled,
     adaptiveHeight: Boolean = false,
 ) {
+    val dark = useVaultDarkVisuals()
+    val colors = MaterialTheme.colorScheme
     Column(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
         Row(
             modifier = Modifier.fillMaxWidth().then(
@@ -91,26 +96,29 @@ fun VaultSettingItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {
-                Icon(
-                    it,
-                    contentDescription = null,
-                    tint = if (enabled) AppColors.TextSecondary else AppColors.TextDisabled,
-                )
+                if (dark && enabled) VaultMainIconTile(it, size = 34.dp, iconSize = 20.dp)
+                else Icon(it, contentDescription = null, tint = colors.onSurfaceVariant)
                 Spacer(Modifier.width(AppSpacing.sm))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
                     style = AppTextStyles.CardTitle,
-                    color = if (enabled) AppColors.TextPrimary else AppColors.TextSecondary,
+                    color = when {
+                        !dark -> if (enabled) colors.onSurface else colors.onSurfaceVariant
+                        enabled -> VaultMainColors.TextPrimary
+                        else -> VaultMainColors.TextSecondary
+                    },
                 )
-                subtitle?.let { Text(it, style = AppTextStyles.Caption, color = AppColors.TextTertiary) }
+                subtitle?.let {
+                    Text(it, style = AppTextStyles.Caption, color = if (dark) VaultMainColors.TextSecondary else colors.onSurfaceVariant)
+                }
             }
             if (showChevron) {
-                Icon(VaultIcons.Chevron, contentDescription = null, tint = AppColors.TextTertiary)
+                Icon(VaultIcons.Chevron, contentDescription = null, tint = if (dark) VaultMainColors.Highlight else colors.onSurfaceVariant)
             }
         }
-        if (showDivider) HorizontalDivider(color = AppColors.Divider)
+        if (showDivider) HorizontalDivider(color = if (dark) VaultMainColors.Border.copy(alpha = 0.5f) else colors.outlineVariant)
     }
 }
 

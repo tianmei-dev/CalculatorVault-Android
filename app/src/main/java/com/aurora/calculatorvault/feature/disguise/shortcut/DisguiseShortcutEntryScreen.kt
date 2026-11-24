@@ -1,19 +1,15 @@
 package com.aurora.calculatorvault.feature.disguise.shortcut
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,15 +20,17 @@ import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
-import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.core.security.SecureScreenEffect
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainIconTile
 import com.aurora.calculatorvault.ui.component.VaultNumericKeypad
 import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.AppLayout
 
 @Composable
@@ -50,7 +48,7 @@ fun DisguiseShortcutEntryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.BackgroundPrimary)
+            .vaultSecondaryBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.lg),
     ) {
@@ -94,12 +92,12 @@ private fun PasswordContent(
         Text(
             text = stringResource(R.string.disguise_shortcut_security_title),
             style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary,
+            color = VaultMainColors.TextPrimary,
         )
         Text(
             text = stringResource(R.string.disguise_shortcut_security_description),
             style = AppTextStyles.Body,
-            color = AppColors.TextSecondary,
+            color = VaultMainColors.TextSecondary,
         )
         VaultPasswordDots(enteredLength = state.enteredLength)
         if (state.passwordIncorrect) {
@@ -113,7 +111,7 @@ private fun PasswordContent(
             Text(
                 text = stringResource(R.string.clear_action),
                 style = AppTextStyles.Button,
-                color = if (state.enteredLength > 0) AppColors.TextSecondary else AppColors.TextDisabled,
+                color = if (state.enteredLength > 0) VaultMainColors.TextSecondary else AppColors.TextDisabled,
             )
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -122,8 +120,9 @@ private fun PasswordContent(
             text = stringResource(R.string.confirm),
             enabled = state.enteredLength in 4..8,
             onClick = onConfirm,
+            polished = true,
         )
-        VaultSecondaryButton(text = stringResource(R.string.cancel), onClick = onCancel)
+        VaultSecondaryButton(text = stringResource(R.string.cancel), onClick = onCancel, polished = true)
     }
 }
 
@@ -144,7 +143,7 @@ private fun LoadingContent(state: DisguiseShortcutEntryState) {
             text = stringResource(message),
             modifier = Modifier.padding(top = AppSpacing.md),
             style = AppTextStyles.Body,
-            color = AppColors.TextSecondary,
+            color = VaultMainColors.TextSecondary,
         )
     }
 }
@@ -166,17 +165,18 @@ private fun ErrorContent(
             text = stringResource(copy.first),
             modifier = Modifier.padding(top = AppSpacing.lg),
             style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary,
+            color = VaultMainColors.TextPrimary,
         )
         Text(
             text = stringResource(copy.second),
             modifier = Modifier.padding(top = AppSpacing.sm),
             style = AppTextStyles.Body,
-            color = AppColors.TextSecondary,
+            color = VaultMainColors.TextSecondary,
         )
         VaultPrimaryButton(
             text = stringResource(R.string.got_it),
             onClick = onClose,
+            polished = true,
             modifier = Modifier.padding(top = AppSpacing.xl, bottom = AppLayout.CtaBottomSpacing),
         )
         if (
@@ -186,6 +186,7 @@ private fun ErrorContent(
             VaultSecondaryButton(
                 text = stringResource(R.string.disguise_shortcut_open_calculator),
                 onClick = onOpenCalculator,
+                polished = true,
                 modifier = Modifier.padding(top = AppSpacing.sm),
             )
         }
@@ -194,17 +195,7 @@ private fun ErrorContent(
 
 @Composable
 private fun SecurityIcon() {
-    Box(
-        modifier = Modifier.size(64.dp).background(AppColors.AccentContainer, AppShapes.Full),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = VaultIcons.Security,
-            contentDescription = null,
-            tint = AppColors.AccentPrimary,
-            modifier = Modifier.size(30.dp),
-        )
-    }
+    VaultMainIconTile(icon = VaultIcons.Security, emphasized = true, size = 64.dp, iconSize = 30.dp)
 }
 
 private fun errorCopy(state: DisguiseShortcutEntryState): Pair<Int, Int> = when (state) {

@@ -16,10 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
-import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
@@ -47,15 +47,15 @@ fun VaultSecondaryTopBar(
                     Icon(
                         imageVector = VaultIcons.Back,
                         contentDescription = backContentDescription,
-                        tint = AppColors.TextSecondary,
+                        tint = VaultMainColors.Highlight,
                     )
                 }
                 Spacer(Modifier.width(AppSpacing.xs))
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                     Text(
                         text = title,
-                        style = AppTextStyles.PageTitle,
-                        color = AppColors.TextPrimary,
+                        style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold),
+                        color = VaultMainColors.TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
                     )
@@ -63,7 +63,7 @@ fun VaultSecondaryTopBar(
                         Text(
                             text = subtitle,
                             style = AppTextStyles.BodySecondary,
-                            color = AppColors.TextTertiary,
+                            color = VaultMainColors.TextSecondary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -87,7 +87,7 @@ fun VaultSecondaryTopBar(
             Icon(
                 imageVector = VaultIcons.Back,
                 contentDescription = backContentDescription,
-                tint = AppColors.TextSecondary,
+                tint = VaultMainColors.Highlight,
             )
         }
         Spacer(Modifier.width(AppSpacing.xs))
@@ -97,8 +97,8 @@ fun VaultSecondaryTopBar(
         ) {
             Text(
                 text = title,
-                style = AppTextStyles.PageTitle,
-                color = AppColors.TextPrimary,
+                style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold),
+                color = VaultMainColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -106,7 +106,7 @@ fun VaultSecondaryTopBar(
                 Text(
                     text = subtitle,
                     style = AppTextStyles.BodySecondary,
-                    color = AppColors.TextTertiary,
+                    color = VaultMainColors.TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

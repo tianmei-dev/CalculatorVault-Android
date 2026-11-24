@@ -1,5 +1,8 @@
 package com.aurora.calculatorvault.feature.settings.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -11,11 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.aurora.calculatorvault.R
-import com.aurora.calculatorvault.core.designsystem.color.AppColors
-import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultDialog
-import com.aurora.calculatorvault.ui.component.VaultSettingItem
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
 
 @Composable
 internal fun SettingsAccountContent(
@@ -27,15 +29,15 @@ internal fun SettingsAccountContent(
 ) {
     var showLogout by rememberSaveable { mutableStateOf(false) }
     val loggedIn = state.account as? AccountStatus.WeChatLoggedIn
-    VaultSettingItem(
+    MainSettingsRow(
         title = loggedIn?.displayNickname ?: stringResource(
             if (loggedIn == null) R.string.account_wechat_login else R.string.account_wechat_user),
         subtitle = stringResource(if (loggedIn == null) R.string.account_login_description else R.string.account_logged_in),
-        icon = VaultIcons.Privacy,
+        icon = Icons.Rounded.Forum,
         onClick = if (loggedIn == null) onLogin else ({}),
         enabled = loggedIn == null,
-        modifier = Modifier.testTag("settings_account"),
-        adaptiveHeight = true,
+        modifier = Modifier.testTag("settings_account").vaultMainPanel(),
+        showDivider = false,
     )
     val membership = membershipText(state)
     val membershipSubtitle = buildString {
@@ -45,14 +47,14 @@ internal fun SettingsAccountContent(
             append(hint)
         }
     }
-    VaultSettingItem(
+    MainSettingsRow(
         title = stringResource(membership.title),
         subtitle = membershipSubtitle,
-        icon = VaultIcons.Security,
+        icon = Icons.Rounded.WorkspacePremium,
         onClick = onVipMembership,
-        showDivider = loggedIn != null,
-        modifier = Modifier.testTag("settings_membership"),
-        adaptiveHeight = true,
+        showDivider = false,
+        modifier = Modifier.testTag("settings_membership").vaultMainPanel(emphasized = true),
+        emphasized = true,
     )
     if (loggedIn != null && onRefreshMembership != null) {
         TextButton(
@@ -70,16 +72,16 @@ internal fun SettingsAccountContent(
                 ),
                 style = AppTextStyles.Button,
                 color = if (state.membershipRefreshing) {
-                    AppColors.AccentPrimary.copy(alpha = 0.5f)
+                    VaultMainColors.Highlight.copy(alpha = 0.5f)
                 } else {
-                    AppColors.AccentPrimary
+                    VaultMainColors.Highlight
                 },
             )
         }
     }
     if (loggedIn != null) {
         TextButton(onClick = { showLogout = true }, modifier = Modifier.testTag("settings_logout")) {
-            Text(stringResource(R.string.account_logout), style = AppTextStyles.Button, color = AppColors.AccentPrimary)
+            Text(stringResource(R.string.account_logout), style = AppTextStyles.Button, color = VaultMainColors.Highlight)
         }
     }
     if (showLogout && loggedIn != null) {

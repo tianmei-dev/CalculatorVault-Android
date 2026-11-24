@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
+import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.hiddenapp.data.AppIconProvider
@@ -36,8 +37,11 @@ import com.aurora.calculatorvault.feature.hiddenapp.domain.HiddenAppError
 import com.aurora.calculatorvault.feature.hiddenapp.domain.InstalledApp
 import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.AppLayout
 import com.aurora.calculatorvault.ui.layout.appScrollContentPadding
 
@@ -58,7 +62,7 @@ fun HiddenAppPickerScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().vaultSecondaryBackdrop()) {
         VaultTopAppBar(
             title = stringResource(R.string.hidden_app_picker_title),
             navigationIcon = {
@@ -84,7 +88,7 @@ fun HiddenAppPickerScreen(
                         },
                         style = AppTextStyles.Button,
                         color = if (state.canSave) {
-                            AppColors.AccentPrimary
+                            VaultMainColors.Highlight
                         } else {
                             AppColors.TextDisabled
                         },
@@ -104,6 +108,8 @@ fun HiddenAppPickerScreen(
                 onQueryChange = viewModel::updateQuery,
                 placeholder = stringResource(R.string.hidden_app_search),
                 enabled = !state.isSaving,
+                surfaceModifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+                hintColor = VaultMainColors.TextSecondary,
             )
             Text(
                 text = stringResource(
@@ -111,7 +117,7 @@ fun HiddenAppPickerScreen(
                     state.selectedPackages.size,
                 ),
                 style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
+                color = VaultMainColors.TextSecondary,
             )
             if (
                 state.error == HiddenAppError.SaveFailed ||
@@ -143,6 +149,7 @@ fun HiddenAppPickerScreen(
                     ),
                     onClick = viewModel::saveSelection,
                     enabled = state.canSave,
+                    polished = true,
                     modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
                 )
             }
@@ -173,7 +180,7 @@ private fun ColumnScope.PickerBody(
                 TextButton(onClick = onRetry) {
                     Text(
                         stringResource(R.string.hidden_app_retry_scan),
-                        color = AppColors.AccentPrimary,
+                        color = VaultMainColors.Highlight,
                     )
                 }
             }
@@ -187,7 +194,7 @@ private fun ColumnScope.PickerBody(
                 },
                 modifier = Modifier.fillMaxWidth().padding(AppSpacing.xl),
                 style = AppTextStyles.Body,
-                color = AppColors.TextTertiary,
+                color = VaultMainColors.TextSecondary,
             )
         }
         else -> {
@@ -224,8 +231,9 @@ private fun PickerAppRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .vaultMainPanel(emphasized = isSelected && selectable, shape = AppShapes.Medium)
             .clickable(enabled = selectable, onClick = onToggle)
-            .padding(vertical = AppSpacing.sm),
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         VaultInstalledAppIcon(
@@ -239,14 +247,14 @@ private fun PickerAppRow(
             text = app.appName,
             modifier = Modifier.weight(1f),
             style = AppTextStyles.CardTitle,
-            color = if (selectable) AppColors.TextPrimary else AppColors.TextSecondary,
+            color = if (selectable) VaultMainColors.TextPrimary else VaultMainColors.TextSecondary,
             maxLines = 2,
         )
         if (isAdded) {
             Text(
                 text = stringResource(R.string.hidden_app_already_added),
                 style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
+                color = VaultMainColors.TextSecondary,
             )
         } else {
             Checkbox(
@@ -254,9 +262,9 @@ private fun PickerAppRow(
                 onCheckedChange = { onToggle() },
                 enabled = selectable,
                 colors = CheckboxDefaults.colors(
-                    checkedColor = AppColors.AccentPrimary,
-                    uncheckedColor = AppColors.TextTertiary,
-                    checkmarkColor = AppColors.BackgroundPrimary,
+                    checkedColor = VaultMainColors.Accent,
+                    uncheckedColor = VaultMainColors.TextSecondary,
+                    checkmarkColor = VaultMainColors.Background,
                 ),
             )
         }

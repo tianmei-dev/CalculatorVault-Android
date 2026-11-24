@@ -18,6 +18,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
@@ -43,6 +44,8 @@ fun HiddenAppSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    surfaceModifier: Modifier = Modifier.background(AppColors.SurfacePrimary, AppShapes.Medium),
+    hintColor: Color = AppColors.TextTertiary,
     onClear: () -> Unit = {},
 ) {
     BasicTextField(
@@ -51,7 +54,7 @@ fun HiddenAppSearchField(
         modifier = modifier
             .fillMaxWidth()
             .height(AppDimensions.SearchBar)
-            .background(AppColors.SurfacePrimary, AppShapes.Medium)
+            .then(surfaceModifier)
             .padding(horizontal = AppSpacing.md),
         enabled = enabled,
         singleLine = true,
@@ -64,14 +67,14 @@ fun HiddenAppSearchField(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(VaultIcons.Search, contentDescription = null, tint = AppColors.TextTertiary)
+                Icon(VaultIcons.Search, contentDescription = null, tint = hintColor)
                 Spacer(Modifier.width(AppSpacing.sm))
                 Box(modifier = Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         androidx.compose.material3.Text(
                             text = placeholder,
                             style = AppTextStyles.Body,
-                            color = AppColors.TextTertiary,
+                            color = hintColor,
                         )
                     }
                     innerField()

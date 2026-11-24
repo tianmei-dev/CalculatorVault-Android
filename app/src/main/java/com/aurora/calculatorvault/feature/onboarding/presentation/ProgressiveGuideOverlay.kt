@@ -32,6 +32,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,6 +66,10 @@ import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.core.guide.GuideType
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultGradientAction
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -166,6 +171,7 @@ private fun SpotlightScrim(
     targetShape: GuideTargetShape,
     onOutsideClick: () -> Unit,
 ) {
+    val highlight = if (useVaultDarkVisuals()) VaultMainColors.Highlight else MaterialTheme.colorScheme.primary
     Canvas(
         modifier = Modifier
             .fillMaxSize()
@@ -216,13 +222,13 @@ private fun SpotlightScrim(
             )
             when (targetShape) {
                 GuideTargetShape.Circle -> drawCircle(
-                    color = AppColors.AccentPrimary,
+                    color = highlight,
                     radius = maxOf(spotlight.width, spotlight.height) / 2f,
                     center = spotlight.center,
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
                 )
                 GuideTargetShape.RoundedRectangle -> drawRoundRect(
-                    color = AppColors.AccentPrimary,
+                    color = highlight,
                     topLeft = spotlight.topLeft,
                     size = spotlight.size,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx()),
@@ -242,6 +248,12 @@ private fun GuideBottomCard(
     secondaryAction: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
+    val polished = useVaultDarkVisuals()
+    val palette = MaterialTheme.colorScheme
+    val titleColor = if (polished) VaultMainColors.TextPrimary else palette.onSurface
+    val bodyColor = if (polished) VaultMainColors.TextSecondary else palette.onSurfaceVariant
+    val highlight = if (polished) VaultMainColors.Highlight else palette.primary
+
     Card(
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -250,9 +262,13 @@ private fun GuideBottomCard(
             .padding(bottom = bottomPadding)
             .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
             .heightIn(max = maxCardHeight)
+            .then(
+                if (polished) Modifier.vaultMainPanel(emphasized = true, shape = AppShapes.ExtraLarge)
+                else Modifier,
+            )
             .pointerInput(Unit) { detectTapGestures(onTap = {}) },
         shape = AppShapes.ExtraLarge,
-        colors = CardDefaults.cardColors(containerColor = AppColors.SurfaceElevated),
+        colors = CardDefaults.cardColors(containerColor = if (polished) Color.Transparent else palette.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
     ) {
         Column(
@@ -266,21 +282,21 @@ private fun GuideBottomCard(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(AppColors.AccentContainer, CircleShape),
+                        .background(if (polished) AppColors.AccentContainer else palette.primaryContainer, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = content.icon,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = AppColors.AccentPrimary,
+                        tint = if (polished) AppColors.AccentPrimary else palette.primary,
                     )
                 }
                 Text(
                     text = stringResource(content.title),
                     modifier = Modifier.weight(1f),
                     style = AppTextStyles.SectionTitle,
-                    color = AppColors.TextPrimary,
+                    color = titleColor,
                 )
             }
             Column(
@@ -292,20 +308,20 @@ private fun GuideBottomCard(
                 Text(
                     text = stringResource(content.body),
                     style = AppTextStyles.Body,
-                    color = AppColors.TextSecondary,
+                    color = bodyColor,
                 )
                 if (showVaultEntryVisual) {
                     Text(
                         text = stringResource(R.string.guide_vault_entry_visual),
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                         style = AppTextStyles.SectionTitle,
-                        color = AppColors.AccentPrimary,
+                        color = highlight,
                     )
                 }
                 Text(
                     text = stringResource(content.support),
                     style = AppTextStyles.Caption,
-                    color = AppColors.TextTertiary,
+                    color = bodyColor,
                 )
             }
             Row(
@@ -318,19 +334,21 @@ private fun GuideBottomCard(
                         Text(
                             text = stringResource(R.string.guide_disguise_view_organization),
                             style = AppTextStyles.Button,
-                            color = AppColors.TextSecondary,
+                            color = highlight,
                         )
                     }
                     Spacer(Modifier.weight(1f))
                 }
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.heightIn(min = 46.dp),
-                    shape = AppShapes.Medium,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.AccentPrimary,
-                        contentColor = AppColors.TextPrimary,
+                    modifier = Modifier.heightIn(min = 46.dp).then(
+                        if (polished) Modifier.vaultGradientAction(shape = AppShapes.Medium) else Modifier,
                     ),
+                    shape = AppShapes.Medium,
+                    colors = if (polished) ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = titleColor,
+                    ) else ButtonDefaults.buttonColors(),
                 ) {
                     Text(
                         text = stringResource(R.string.guide_acknowledge),

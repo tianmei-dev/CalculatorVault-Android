@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -68,8 +68,12 @@ import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultDialog
 import com.aurora.calculatorvault.ui.component.VaultEmptyState
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryTopBar
+import com.aurora.calculatorvault.ui.component.VaultVisualAlertDialog
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.message.AppMessage
 import com.aurora.calculatorvault.ui.message.AppMessageType
 import com.aurora.calculatorvault.ui.layout.AppLayout
@@ -157,6 +161,7 @@ private fun HiddenAppContent(
         modifier = Modifier
             .fillMaxSize()
             .testTag("private_apps_screen")
+            .vaultSecondaryBackdrop()
             .padding(horizontal = AppSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
@@ -190,11 +195,11 @@ private fun HiddenAppContent(
                 ) {
                     Surface(
                         shape = AppShapes.Medium,
-                        color = AppColors.SurfaceSecondary,
+                        color = Color.Transparent,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
-                            modifier = Modifier.padding(AppSpacing.md),
+                            modifier = Modifier.vaultMainPanel(shape = AppShapes.Medium).padding(AppSpacing.md),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(VaultIcons.Info, null, tint = AppColors.Warning)
@@ -231,6 +236,8 @@ private fun HiddenAppContent(
                     onClear = viewModel::clearQuery,
                     placeholder = stringResource(R.string.hidden_app_search_name),
                     enabled = state.launchingPackageName == null,
+                    surfaceModifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+                    hintColor = VaultMainColors.TextSecondary,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -285,6 +292,7 @@ private fun HiddenAppContent(
                         text = stringResource(R.string.add_app),
                         onClick = onAddApps,
                         enabled = state.launchingPackageName == null,
+                        polished = true,
                         modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
                     )
                 }
@@ -341,7 +349,9 @@ private fun HiddenAppTopBar(
                     DropdownMenu(
                         expanded = moreExpanded,
                         onDismissRequest = { moreExpanded = false },
-                        containerColor = AppColors.SurfaceElevated,
+                        modifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+                        shape = AppShapes.Medium,
+                        containerColor = Color.Transparent,
                     ) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.hidden_app_batch_manage)) },
@@ -575,6 +585,7 @@ private fun HiddenAppGridItem(
                 contentDescription = app.appName
             }
             .alpha(if (app.availability == InstalledAppAvailability.Available) 1f else 0.55f)
+            .then(if (selected) Modifier.vaultMainPanel(emphasized = true, shape = AppShapes.Medium) else Modifier)
             .combinedClickable(
                 enabled = enabled,
                 onClick = onClick,
@@ -592,7 +603,7 @@ private fun HiddenAppGridItem(
                         if (selected) R.string.hidden_app_selected
                         else R.string.hidden_app_unselected,
                     ),
-                    tint = if (selected) AppColors.AccentPrimary else AppColors.TextTertiary,
+                    tint = if (selected) VaultMainColors.Highlight else VaultMainColors.TextSecondary,
                     modifier = Modifier.align(Alignment.TopEnd).size(22.dp),
                 )
             }
@@ -636,9 +647,10 @@ private fun HiddenAppList(
     ) {
         items(state.visibleApps, key = HiddenApp::packageName) { app ->
             var menuExpanded by remember { mutableStateOf(false) }
+            val selected = state.isBatchMode && app.packageName in state.selectedPackages
             Surface(
                 shape = AppShapes.Large,
-                color = AppColors.SurfacePrimary,
+                color = Color.Transparent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(
@@ -650,7 +662,7 @@ private fun HiddenAppList(
                     ),
             ) {
                 Row(
-                    modifier = Modifier.padding(AppSpacing.md),
+                    modifier = Modifier.vaultMainPanel(emphasized = selected, shape = AppShapes.Large).padding(AppSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     VaultInstalledAppIcon(
@@ -671,14 +683,13 @@ private fun HiddenAppList(
                         AvailabilityLabel(app.availability)
                     }
                     if (state.isBatchMode) {
-                        val selected = app.packageName in state.selectedPackages
                         Icon(
                             if (selected) VaultIcons.Selected else VaultIcons.Unselected,
                             stringResource(
                                 if (selected) R.string.hidden_app_selected
                                 else R.string.hidden_app_unselected,
                             ),
-                            tint = if (selected) AppColors.AccentPrimary else AppColors.TextTertiary,
+                            tint = if (selected) VaultMainColors.Highlight else VaultMainColors.TextSecondary,
                         )
                     } else {
                         Box {
@@ -713,7 +724,9 @@ private fun AppMenu(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        containerColor = AppColors.SurfaceElevated,
+        modifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+        shape = AppShapes.Medium,
+        containerColor = Color.Transparent,
     ) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.hidden_app_details)) },
@@ -754,6 +767,7 @@ private fun BatchActionBar(state: HiddenAppUiState, viewModel: HiddenAppViewMode
             ),
             onClick = viewModel::requestBatchRemoval,
             enabled = state.selectedPackages.isNotEmpty() && !state.isBatchRemoving,
+            polished = true,
         )
     }
 }
@@ -779,7 +793,7 @@ private fun ManualSortList(
             var isDragging by remember(app.packageName) { mutableStateOf(false) }
             Surface(
                 shape = AppShapes.Large,
-                color = AppColors.SurfacePrimary,
+                color = Color.Transparent,
                 shadowElevation = if (isDragging) 12.dp else 0.dp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -824,7 +838,7 @@ private fun ManualSortList(
                     },
             ) {
                 Row(
-                    modifier = Modifier.padding(AppSpacing.md),
+                    modifier = Modifier.vaultMainPanel(emphasized = isDragging, shape = AppShapes.Large).padding(AppSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -945,7 +959,7 @@ private fun SortDialog(
     onSelect: (HiddenAppSortMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = AppColors.SurfaceElevated,
         title = { Text(stringResource(R.string.hidden_app_sort)) },
@@ -984,7 +998,7 @@ private fun AppDetailsDialog(
     onRetry: () -> Unit,
 ) {
     val dateFormat = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = AppColors.SurfaceElevated,
         title = { Text(stringResource(R.string.hidden_app_details)) },
@@ -1172,6 +1186,7 @@ private fun EmptyApps(onAddApps: () -> Unit) {
         VaultPrimaryButton(
             text = stringResource(R.string.add_app),
             onClick = onAddApps,
+            polished = true,
         )
     }
 }

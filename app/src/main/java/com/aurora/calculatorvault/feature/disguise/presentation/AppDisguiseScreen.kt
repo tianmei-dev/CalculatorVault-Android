@@ -2,7 +2,6 @@ package com.aurora.calculatorvault.feature.disguise.presentation
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,7 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -49,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
@@ -84,9 +83,15 @@ import com.aurora.calculatorvault.feature.hiddenapp.presentation.VaultInstalledA
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultEmptyState
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainGlyph
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryTopBar
+import com.aurora.calculatorvault.ui.component.VaultVisualAlertDialog
+import com.aurora.calculatorvault.ui.component.vaultGradientAction
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.message.AppMessage
 import com.aurora.calculatorvault.ui.message.AppMessageType
 import com.aurora.calculatorvault.ui.layout.AppLayout
@@ -162,8 +167,9 @@ fun AppDisguiseScreen(
     }
 
     state.pendingDelete?.let { entry ->
-        AlertDialog(
+        VaultVisualAlertDialog(
             onDismissRequest = viewModel::cancelDelete,
+            containerColor = AppColors.SurfaceElevated,
             title = { Text(stringResource(R.string.app_disguise_delete_title)) },
             text = {
                 Text(stringResource(R.string.app_disguise_delete_message, entry.customName))
@@ -178,13 +184,13 @@ fun AppDisguiseScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            containerColor = AppColors.SurfaceElevated,
         )
     }
 
     state.pendingDuplicateRequest?.let {
-        AlertDialog(
+        VaultVisualAlertDialog(
             onDismissRequest = viewModel::cancelDuplicateRequest,
+            containerColor = AppColors.SurfaceElevated,
             title = { Text(stringResource(R.string.app_disguise_duplicate_title)) },
             text = { Text(stringResource(R.string.app_disguise_duplicate_message)) },
             confirmButton = {
@@ -197,7 +203,6 @@ fun AppDisguiseScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            containerColor = AppColors.SurfaceElevated,
         )
     }
 
@@ -234,8 +239,8 @@ private fun DisguiseListPage(
 ) {
     var sortExpanded by remember { mutableStateOf(false) }
     Scaffold(
-        modifier = Modifier.fillMaxSize().testTag("app_disguise_screen"),
-        containerColor = AppColors.BackgroundPrimary,
+        modifier = Modifier.fillMaxSize().vaultSecondaryBackdrop().testTag("app_disguise_screen"),
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets.safeDrawing,
         floatingActionButton = {
             FloatingActionButton(
@@ -244,9 +249,11 @@ private fun DisguiseListPage(
                     .padding(bottom = AppLayout.FabBottomSpacing)
                     .onGloballyPositioned {
                         onCreateTargetBoundsChanged(it.boundsInRoot())
-                    },
-                containerColor = AppColors.AccentPrimary,
-                contentColor = AppColors.TextPrimary,
+                    }
+                    .vaultGradientAction(shape = AppShapes.Large),
+                shape = AppShapes.Large,
+                containerColor = Color.Transparent,
+                contentColor = VaultMainColors.TextPrimary,
             ) {
                 Icon(VaultIcons.Add, stringResource(R.string.app_disguise_create))
             }
@@ -268,13 +275,15 @@ private fun DisguiseListPage(
             Text(
                 stringResource(R.string.app_disguise_scope_note),
                 style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
+                color = VaultMainColors.TextSecondary,
             )
             HiddenAppSearchField(
                 query = state.query,
                 onQueryChange = viewModel::updateQuery,
                 onClear = { viewModel.updateQuery("") },
                 placeholder = stringResource(R.string.app_disguise_search),
+                surfaceModifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+                hintColor = VaultMainColors.TextSecondary,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -288,14 +297,16 @@ private fun DisguiseListPage(
                 )
                 Box {
                     TextButton(onClick = { sortExpanded = true }) {
-                        Icon(VaultIcons.Sort, null, tint = AppColors.AccentPrimary)
+                        Icon(VaultIcons.Sort, null, tint = VaultMainColors.Highlight)
                         Spacer(Modifier.width(AppSpacing.xs))
                         Text(stringResource(R.string.app_disguise_sort))
                     }
                     DropdownMenu(
                         expanded = sortExpanded,
                         onDismissRequest = { sortExpanded = false },
-                        containerColor = AppColors.SurfaceElevated,
+                        modifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+                        shape = AppShapes.Medium,
+                        containerColor = Color.Transparent,
                     ) {
                         DisguiseSortMode.entries.forEach { mode ->
                             DropdownMenuItem(
@@ -464,6 +475,8 @@ private fun SelectAppPage(
             onQueryChange = viewModel::updateAppQuery,
             onClear = { viewModel.updateAppQuery("") },
             placeholder = stringResource(R.string.hidden_app_search),
+            surfaceModifier = Modifier.vaultMainPanel(shape = AppShapes.Medium),
+            hintColor = VaultMainColors.TextSecondary,
         )
         errorText(state.error)
         if (state.isScanningApps) {
@@ -472,6 +485,7 @@ private fun SelectAppPage(
             VaultPrimaryButton(
                 text = stringResource(R.string.retry),
                 onClick = viewModel::retryScan,
+                polished = true,
             )
         } else {
             LazyColumn(
@@ -482,8 +496,9 @@ private fun SelectAppPage(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .vaultMainPanel(shape = AppShapes.Medium)
                             .clickable { viewModel.selectApp(app) }
-                            .padding(vertical = AppSpacing.sm),
+                            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         VaultInstalledAppIcon(
@@ -549,6 +564,7 @@ private fun SetNamePage(state: AppDisguiseUiState, viewModel: AppDisguiseViewMod
                 viewModel.continueFromName()
             },
             enabled = state.canContinueName,
+            polished = true,
             modifier = Modifier.padding(bottom = AppSpacing.md),
         )
     }
@@ -573,10 +589,7 @@ private fun SelectIconPage(state: AppDisguiseUiState, viewModel: AppDisguiseView
                 val selected = state.selectedIcon == iconId
                 Column(
                     modifier = Modifier
-                        .background(
-                            if (selected) AppColors.AccentContainer else AppColors.SurfacePrimary,
-                            AppShapes.Large,
-                        )
+                        .vaultMainPanel(emphasized = selected, shape = AppShapes.Large)
                         .clickable { viewModel.selectIcon(iconId) }
                         .padding(AppSpacing.md),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -586,7 +599,7 @@ private fun SelectIconPage(state: AppDisguiseUiState, viewModel: AppDisguiseView
                     Text(
                         stringResource(iconLabel(iconId)),
                         style = AppTextStyles.Caption,
-                        color = if (selected) AppColors.AccentPrimary else AppColors.TextSecondary,
+                        color = if (selected) VaultMainColors.Highlight else VaultMainColors.TextSecondary,
                     )
                 }
             }
@@ -594,6 +607,7 @@ private fun SelectIconPage(state: AppDisguiseUiState, viewModel: AppDisguiseView
         VaultPrimaryButton(
             text = stringResource(R.string.next_step),
             onClick = viewModel::continueToPreview,
+            polished = true,
             modifier = Modifier.padding(bottom = AppSpacing.md),
         )
     }
@@ -650,6 +664,7 @@ private fun PreviewPage(state: AppDisguiseUiState, viewModel: AppDisguiseViewMod
             ),
             onClick = viewModel::save,
             enabled = !state.isSaving,
+            polished = true,
             modifier = Modifier.padding(bottom = AppSpacing.md),
         )
     }
@@ -697,10 +712,12 @@ private fun SavedPage(state: AppDisguiseUiState, viewModel: AppDisguiseViewModel
             },
             onClick = { viewModel.requestShortcut(entry) },
             enabled = state.requestingShortcutEntryId == null,
+            polished = true,
         )
         VaultSecondaryButton(
             text = stringResource(R.string.app_disguise_finish),
             onClick = viewModel::finishSaved,
+            polished = true,
             modifier = Modifier.padding(bottom = AppSpacing.md),
         )
     }
@@ -750,10 +767,12 @@ private fun DetailsPage(state: AppDisguiseUiState, viewModel: AppDisguiseViewMod
             },
             onClick = { viewModel.requestShortcut(entry) },
             enabled = state.requestingShortcutEntryId == null,
+            polished = true,
         )
         VaultSecondaryButton(
             text = stringResource(R.string.app_disguise_edit),
             onClick = { viewModel.edit(entry) },
+            polished = true,
         )
         TextButton(
             onClick = { viewModel.requestDelete(entry) },
@@ -825,8 +844,9 @@ private fun InfoDialog(
     message: String,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = AppColors.SurfaceElevated,
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = {
@@ -834,7 +854,6 @@ private fun InfoDialog(
                 Text(stringResource(R.string.got_it))
             }
         },
-        containerColor = AppColors.SurfaceElevated,
     )
 }
 
@@ -858,12 +877,14 @@ private fun WizardColumn(
     val columnModifier = if (scrollable) {
         Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(appPagePadding())
     } else {
         Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .padding(appPagePadding(bottom = AppLayout.BottomSafeSpace))
     }
     Column(
@@ -875,7 +896,7 @@ private fun WizardColumn(
             Text(
                 stringResource(R.string.app_disguise_step_progress, step),
                 style = AppTextStyles.Caption,
-                color = AppColors.AccentPrimary,
+                color = VaultMainColors.Highlight,
             )
         }
         content()
@@ -885,13 +906,12 @@ private fun WizardColumn(
 @Composable
 private fun DisguiseIcon(iconId: DisguiseIconId, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.background(AppColors.SurfaceSecondary, AppShapes.Medium),
+        modifier = modifier.vaultMainPanel(shape = AppShapes.Medium),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = iconVector(iconId),
+        VaultMainGlyph(
+            icon = iconVector(iconId),
             contentDescription = stringResource(iconLabel(iconId)),
-            tint = AppColors.AccentPrimary,
             modifier = Modifier.padding(AppSpacing.sm),
         )
     }
@@ -918,13 +938,15 @@ private fun errorText(error: AppDisguiseError?) {
 
 @Composable
 private fun disguiseTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = AppColors.TextPrimary,
-    unfocusedTextColor = AppColors.TextPrimary,
-    focusedBorderColor = AppColors.AccentPrimary,
-    unfocusedBorderColor = AppColors.BorderSubtle,
-    focusedLabelColor = AppColors.AccentPrimary,
-    unfocusedLabelColor = AppColors.TextTertiary,
-    cursorColor = AppColors.AccentPrimary,
+    focusedTextColor = VaultMainColors.TextPrimary,
+    unfocusedTextColor = VaultMainColors.TextPrimary,
+    focusedBorderColor = VaultMainColors.Accent,
+    unfocusedBorderColor = VaultMainColors.Border,
+    focusedContainerColor = VaultMainColors.Card,
+    unfocusedContainerColor = VaultMainColors.Card,
+    focusedLabelColor = VaultMainColors.Highlight,
+    unfocusedLabelColor = VaultMainColors.TextSecondary,
+    cursorColor = VaultMainColors.Accent,
 )
 
 private fun iconVector(iconId: DisguiseIconId): ImageVector = when (iconId) {

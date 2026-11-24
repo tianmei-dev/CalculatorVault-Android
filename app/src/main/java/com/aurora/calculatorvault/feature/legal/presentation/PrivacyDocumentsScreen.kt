@@ -17,7 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
@@ -31,10 +31,15 @@ import androidx.compose.ui.res.stringResource
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
+import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultIconButton
+import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.component.VaultVisualAlertDialog
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
@@ -57,6 +62,7 @@ fun PrivacyDocumentsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         VaultTopAppBar(
@@ -90,13 +96,15 @@ fun PrivacyDocumentsScreen(
                         },
                         onClick = { onOpenDocument(type) },
                         showDivider = index != documents.lastIndex,
+                        adaptiveHeight = true,
                     )
                 }
             }
             Text(
                 text = stringResource(R.string.privacy_management),
                 modifier = Modifier.padding(top = AppSpacing.lg),
-                color = AppColors.TextSecondary,
+                style = AppTextStyles.SectionTitle,
+                color = if (useVaultDarkVisuals()) VaultMainColors.TextPrimary else MaterialTheme.colorScheme.onSurface,
             )
             VaultCard(modifier = Modifier.fillMaxWidth()) {
                 VaultSettingItem(
@@ -104,16 +112,23 @@ fun PrivacyDocumentsScreen(
                     icon = VaultIcons.Privacy,
                     showDivider = false,
                     enabled = !saving,
+                    adaptiveHeight = true,
                     onClick = { showConfirmation = true },
                 )
             }
         }
     }
     if (showConfirmation) {
-        AlertDialog(
+        VaultVisualAlertDialog(
             onDismissRequest = { if (!saving) showConfirmation = false },
             title = { Text(stringResource(R.string.privacy_withdraw_title)) },
-            text = { Text(stringResource(R.string.privacy_withdraw_message)) },
+            text = {
+                Text(
+                    stringResource(R.string.privacy_withdraw_message),
+                    style = AppTextStyles.Body,
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = controller::withdraw, enabled = !saving) {
                     Text(stringResource(R.string.privacy_withdraw_confirm), color = AppColors.Error)

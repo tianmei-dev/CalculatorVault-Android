@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,20 +34,25 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +65,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,6 +76,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -90,8 +98,16 @@ import com.aurora.calculatorvault.feature.privatemedia.domain.VaultAlbumSummary
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaType
 import com.aurora.calculatorvault.feature.privatemedia.domain.VaultMediaWithFile
 import com.aurora.calculatorvault.ui.component.VaultCard
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainGlyph
+import com.aurora.calculatorvault.ui.component.VaultMainHeader
+import com.aurora.calculatorvault.ui.component.VaultMainIconTile
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSectionTitle
+import com.aurora.calculatorvault.ui.component.VaultVisualAlertDialog
+import com.aurora.calculatorvault.ui.component.vaultMainBackdrop
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.appFabScrollContentPadding
 import com.aurora.calculatorvault.ui.message.AppMessage
 import com.aurora.calculatorvault.ui.message.AppMessageType
@@ -583,15 +599,15 @@ private fun PrivateMediaContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(AppColors.BackgroundPrimary.copy(alpha = 0.58f)),
+                    .background(VaultMainColors.Background.copy(alpha = 0.58f)),
                 contentAlignment = Alignment.Center,
             ) {
                 VaultCard {
-                    CircularProgressIndicator(color = AppColors.AccentPrimary)
+                    CircularProgressIndicator(color = VaultMainColors.Accent)
                     Text(
                         text = progressMessage(state),
                         style = AppTextStyles.Body,
-                        color = AppColors.TextPrimary,
+                        color = VaultMainColors.TextPrimary,
                     )
                 }
             }
@@ -650,20 +666,21 @@ private fun AlbumHomeContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .vaultMainBackdrop()
             .padding(
-                start = AppSpacing.xl,
-                top = AppSpacing.xl,
-                end = AppSpacing.xl,
+                start = AppSpacing.lg,
+                top = AppSpacing.lg,
+                end = AppSpacing.lg,
             ),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
-        PageHeader(
+        VaultMainHeader(
             title = stringResource(R.string.tab_private_media),
             description = stringResource(R.string.private_media_folder_home_description),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ImportMediaHeroButton(
@@ -683,7 +700,7 @@ private fun AlbumHomeContent(
         Text(
             text = stringResource(R.string.private_media_folder_count, state.albumSummaries.size),
             style = AppTextStyles.SectionTitle,
-            color = AppColors.TextPrimary,
+            color = VaultMainColors.TextPrimary,
         )
         LazyVerticalGrid(
             modifier = Modifier
@@ -723,7 +740,7 @@ private fun AlbumDetailContent(
     onRequestDeleteSelection: () -> Unit,
 ) {
     LazyVerticalGrid(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().vaultSecondaryBackdrop(),
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(
             start = AppSpacing.xl,
@@ -758,23 +775,27 @@ private fun AlbumDetailContent(
                             Icon(
                                 VaultIcons.Back,
                                 contentDescription = stringResource(R.string.private_media_back_to_folders),
-                                tint = AppColors.TextPrimary,
+                                tint = VaultMainColors.Highlight,
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = state.currentAlbumName ?: stringResource(R.string.tab_private_media),
                                 style = AppTextStyles.PageTitle,
-                                color = AppColors.TextPrimary,
+                                color = VaultMainColors.TextPrimary,
                                 maxLines = 1,
                             )
                             Text(
                                 text = stringResource(R.string.private_media_folder_detail_count, state.media.size),
                                 style = AppTextStyles.BodySecondary,
-                                color = AppColors.TextTertiary,
+                                color = VaultMainColors.TextSecondary,
                             )
                         }
-                        TextButton(onClick = onImport, enabled = !state.isImporting) {
+                        TextButton(
+                            onClick = onImport,
+                            enabled = !state.isImporting,
+                            colors = ButtonDefaults.textButtonColors(contentColor = VaultMainColors.Highlight),
+                        ) {
                             Text(stringResource(R.string.import_media))
                         }
                     }
@@ -817,28 +838,29 @@ private fun ImportMediaHeroButton(
 ) {
     Row(
         modifier = modifier
-            .height(76.dp)
-            .clip(AppShapes.Large)
-            .background(
-                if (enabled) AppColors.AccentPrimary else AppColors.SurfaceSecondary,
-            )
+            .heightIn(min = 76.dp)
+            .vaultMainPanel(emphasized = enabled, shape = AppShapes.Large)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = AppSpacing.lg),
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        Icon(
-            VaultIcons.Image,
-            contentDescription = null,
-            tint = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
-            modifier = Modifier.size(30.dp),
+        VaultMainIconTile(
+            icon = VaultIcons.Image,
+            modifier = Modifier.alpha(if (enabled) 1f else 0.48f),
+            emphasized = enabled,
+            size = 44.dp,
+            iconSize = 25.dp,
         )
-        Spacer(modifier = Modifier.size(AppSpacing.md))
+        VerticalDivider(
+            modifier = Modifier.height(28.dp),
+            color = VaultMainColors.Border,
+        )
         Text(
             text = stringResource(R.string.import_media),
             style = AppTextStyles.SectionTitle,
-            color = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
-            maxLines = 1,
+            color = if (enabled) VaultMainColors.TextPrimary else AppColors.TextDisabled,
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -850,37 +872,42 @@ private fun CreateFolderShortcut(
 ) {
     Column(
         modifier = Modifier
-            .size(width = 108.dp, height = 92.dp)
+            .widthIn(min = 76.dp, max = 100.dp)
+            .heightIn(min = 80.dp)
             .clip(AppShapes.Large)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Box(contentAlignment = Alignment.BottomEnd) {
-            Icon(
-                VaultIcons.Files,
+            VaultMainGlyph(
+                icon = VaultIcons.Files,
                 contentDescription = null,
-                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier
+                    .size(38.dp)
+                    .alpha(if (enabled) 1f else 0.48f),
             )
             Icon(
                 VaultIcons.Add,
                 contentDescription = null,
-                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
+                tint = if (enabled) VaultMainColors.Highlight else AppColors.TextDisabled,
                 modifier = Modifier
-                    .size(18.dp)
-                    .background(AppColors.BackgroundPrimary, AppShapes.Small),
+                    .size(17.dp)
+                    .background(VaultMainColors.Background, AppShapes.Full),
             )
         }
         Spacer(modifier = Modifier.height(AppSpacing.xs))
         Text(
             text = stringResource(R.string.private_media_create_folder),
             style = AppTextStyles.BodySecondary,
-            color = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
-            maxLines = 1,
+            color = if (enabled) VaultMainColors.TextSecondary else AppColors.TextDisabled,
+            textAlign = TextAlign.Center,
         )
     }
 }
+
+private val AlbumFolderCoverSize = 64.dp
 
 @Composable
 private fun FolderCard(
@@ -889,19 +916,22 @@ private fun FolderCard(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    VaultCard(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .vaultMainPanel(shape = AppShapes.Large)
+            .clickable(onClick = onClick)
+            .padding(start = AppSpacing.md, top = AppSpacing.md, end = AppSpacing.md, bottom = AppSpacing.xxs),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            FolderCover(
-                cover = summary.cover,
-                modifier = Modifier.size(88.dp),
+            FolderCover(cover = summary.cover)
+            VerticalDivider(
+                modifier = Modifier.height(44.dp),
+                color = VaultMainColors.Border,
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -910,56 +940,72 @@ private fun FolderCard(
                 Text(
                     text = summary.album.name,
                     style = AppTextStyles.SectionTitle,
-                    color = AppColors.TextPrimary,
-                    maxLines = 2,
+                    color = VaultMainColors.TextPrimary,
                 )
                 Text(
                     text = stringResource(R.string.private_media_folder_item_count, summary.mediaCount),
                     style = AppTextStyles.BodySecondary,
-                    color = AppColors.TextTertiary,
-                    maxLines = 1,
+                    color = VaultMainColors.TextSecondary,
                 )
             }
             Icon(
                 VaultIcons.Chevron,
                 contentDescription = null,
-                tint = AppColors.TextTertiary,
-                modifier = Modifier.size(28.dp),
+                tint = VaultMainColors.Highlight,
+                modifier = Modifier.size(22.dp),
             )
         }
+        HorizontalDivider(
+            modifier = Modifier.padding(start = AlbumFolderCoverSize + AppSpacing.sm * 2, top = AppSpacing.sm),
+            color = VaultMainColors.Border,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onRename) {
+            TextButton(
+                onClick = onRename,
+                modifier = Modifier.weight(1f, fill = false),
+                contentPadding = PaddingValues(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            ) {
                 Icon(
                     VaultIcons.Edit,
                     contentDescription = null,
-                    tint = AppColors.AccentPrimary,
+                    tint = VaultMainColors.Highlight,
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.size(AppSpacing.xs))
                 Text(
                     text = stringResource(R.string.private_media_rename_folder),
-                    color = AppColors.AccentPrimary,
-                    maxLines = 1,
+                    color = VaultMainColors.Highlight,
                 )
+            }
+            VerticalDivider(
+                modifier = Modifier.height(18.dp),
+                color = VaultMainColors.Border,
+            )
+            val deleteColor = if (summary.album.isDefault) {
+                VaultMainColors.TextSecondary.copy(alpha = 0.48f)
+            } else {
+                AppColors.Error
             }
             TextButton(
                 onClick = onDelete,
                 enabled = !summary.album.isDefault,
+                modifier = Modifier.weight(1f, fill = false),
+                contentPadding = PaddingValues(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
             ) {
                 Icon(
                     VaultIcons.Delete,
                     contentDescription = null,
-                    tint = if (summary.album.isDefault) AppColors.TextDisabled else AppColors.Error,
+                    tint = deleteColor,
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.size(AppSpacing.xs))
                 Text(
                     text = stringResource(R.string.delete),
-                    color = if (summary.album.isDefault) AppColors.TextDisabled else AppColors.Error,
-                    maxLines = 1,
+                    color = deleteColor,
                 )
             }
         }
@@ -969,20 +1015,17 @@ private fun FolderCard(
 @Composable
 private fun FolderCover(
     cover: VaultMediaWithFile?,
-    modifier: Modifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(1.18f),
 ) {
+    if (cover == null) {
+        VaultMainIconTile(icon = VaultIcons.Files, size = AlbumFolderCoverSize, iconSize = 30.dp)
+        return
+    }
     Box(
-        modifier = modifier
-            .clip(AppShapes.Medium)
-            .background(AppColors.SurfaceSecondary),
+        modifier = Modifier
+            .size(AlbumFolderCoverSize)
+            .vaultMainPanel(shape = AppShapes.Medium),
         contentAlignment = Alignment.Center,
     ) {
-        if (cover == null) {
-            Icon(VaultIcons.Files, contentDescription = null, tint = AppColors.AccentPrimary)
-            return@Box
-        }
         val bitmap by produceState<Bitmap?>(initialValue = null, cover.file.absolutePath) {
             value = withContext(Dispatchers.IO) {
                 when (cover.media.mediaType) {
@@ -1003,7 +1046,7 @@ private fun FolderCover(
             Icon(
                 if (cover.media.mediaType == VaultMediaType.VIDEO) VaultIcons.Video else VaultIcons.Image,
                 contentDescription = null,
-                tint = AppColors.TextDisabled,
+                tint = VaultMainColors.Highlight,
             )
         }
         if (cover.media.mediaType == VaultMediaType.VIDEO) {
@@ -1154,23 +1197,24 @@ private fun EmptyPrivateMedia(
             .fillMaxWidth()
             .padding(top = AppSpacing.xl),
     ) {
-        Icon(VaultIcons.Photos, contentDescription = null, tint = AppColors.AccentPrimary)
+        VaultMainIconTile(icon = VaultIcons.Photos, size = 36.dp, iconSize = 20.dp)
         Text(
             text = stringResource(R.string.private_media_empty_title),
             style = AppTextStyles.SectionTitle,
-            color = AppColors.TextPrimary,
+            color = VaultMainColors.TextPrimary,
         )
         Spacer(modifier = Modifier.height(AppSpacing.md))
         Text(
             text = stringResource(R.string.private_media_empty_description),
             style = AppTextStyles.BodySecondary,
-            color = AppColors.TextTertiary,
+            color = VaultMainColors.TextSecondary,
         )
         Spacer(modifier = Modifier.height(AppSpacing.xxl))
         VaultPrimaryButton(
             text = stringResource(R.string.import_media),
             onClick = onImport,
             enabled = !isImporting,
+            polished = true,
         )
     }
 }
@@ -1205,7 +1249,12 @@ private fun VaultMediaGridItem(
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(AppShapes.Medium)
-            .background(AppColors.SurfaceSecondary)
+            .background(VaultMainColors.Card)
+            .border(
+                width = if (isSelected && isSelectionMode) 1.5.dp else 1.dp,
+                color = if (isSelected && isSelectionMode) VaultMainColors.Accent else VaultMainColors.Border,
+                shape = AppShapes.Medium,
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -1232,7 +1281,7 @@ private fun VaultMediaGridItem(
             Icon(
                 if (item.media.mediaType == VaultMediaType.VIDEO) VaultIcons.Video else VaultIcons.Image,
                 contentDescription = null,
-                tint = AppColors.TextDisabled,
+                tint = VaultMainColors.TextSecondary,
             )
         }
         if (item.media.mediaType == VaultMediaType.VIDEO) {
@@ -1265,7 +1314,7 @@ private fun VaultMediaGridItem(
                 contentDescription = stringResource(
                     if (isSelected) R.string.hidden_app_selected else R.string.hidden_app_unselected,
                 ),
-                tint = if (isSelected) AppColors.AccentPrimary else AppColors.TextSecondary,
+                tint = if (isSelected) VaultMainColors.Highlight else VaultMainColors.TextSecondary,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(6.dp),
@@ -1547,11 +1596,9 @@ private fun AlbumNameDialog(
 ) {
     var name by remember(initialName) { mutableStateOf(initialName) }
     val trimmed = name.trim()
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onCancel,
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = { Text(title) },
         text = {
             OutlinedTextField(
@@ -1559,6 +1606,14 @@ private fun AlbumNameDialog(
                 onValueChange = { name = it.take(MAX_ALBUM_NAME_LENGTH) },
                 label = { Text(stringResource(R.string.private_media_folder_name)) },
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = VaultMainColors.Accent,
+                    unfocusedBorderColor = VaultMainColors.Border,
+                    focusedLabelColor = VaultMainColors.Highlight,
+                    unfocusedLabelColor = VaultMainColors.TextSecondary,
+                    focusedContainerColor = VaultMainColors.Card,
+                    unfocusedContainerColor = VaultMainColors.Card,
+                ),
             )
         },
         confirmButton = {
@@ -1586,11 +1641,9 @@ private fun AlbumPickerDialog(
     onCreate: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onCancel,
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
@@ -1599,44 +1652,36 @@ private fun AlbumPickerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(AppShapes.Medium)
+                            .vaultMainPanel(shape = AppShapes.Medium)
                             .clickable(enabled = enabled) { onSelect(summary.album.id) }
                             .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(AppShapes.Small)
-                                .background(AppColors.AccentContainer),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                VaultIcons.Files,
-                                contentDescription = null,
-                                tint = if (enabled) AppColors.AccentPrimary else AppColors.TextDisabled,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
+                        VaultMainIconTile(
+                            icon = VaultIcons.Files,
+                            modifier = Modifier.alpha(if (enabled) 1f else 0.44f),
+                            size = 42.dp,
+                            iconSize = 24.dp,
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = summary.album.name,
                                 style = AppTextStyles.Body,
-                                color = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
+                                color = if (enabled) VaultMainColors.TextPrimary else AppColors.TextDisabled,
                                 maxLines = 1,
                             )
                             Text(
                                 text = stringResource(R.string.private_media_folder_item_count, summary.mediaCount),
                                 style = AppTextStyles.Caption,
-                                color = if (enabled) AppColors.TextTertiary else AppColors.TextDisabled,
+                                color = if (enabled) VaultMainColors.TextSecondary else AppColors.TextDisabled,
                                 maxLines = 1,
                             )
                         }
                         Icon(
                             VaultIcons.Chevron,
                             contentDescription = null,
-                            tint = if (enabled) AppColors.TextTertiary else AppColors.TextDisabled,
+                            tint = if (enabled) VaultMainColors.Highlight else AppColors.TextDisabled,
                         )
                     }
                 }
@@ -1663,11 +1708,9 @@ private fun DeleteAlbumDialog(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onCancel,
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = {
             Text(
                 text = when {
@@ -1714,11 +1757,9 @@ private fun DeletePrivateMediaDialog(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = { if (!isDeleting) onCancel() },
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = {
             Text(
                 text = stringResource(
@@ -1759,11 +1800,9 @@ private fun RestoreMediaDialog(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = { if (!isRestoring) onCancel() },
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = {
             Text(text = stringResource(R.string.private_media_restore_title))
         },
@@ -1795,11 +1834,9 @@ private fun OriginalMediaRemovalDialog(
     onRemove: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    VaultVisualAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = AppColors.SurfacePrimary,
-        titleContentColor = AppColors.TextPrimary,
-        textContentColor = AppColors.TextSecondary,
         title = {
             Text(text = stringResource(R.string.private_media_original_remove_title))
         },

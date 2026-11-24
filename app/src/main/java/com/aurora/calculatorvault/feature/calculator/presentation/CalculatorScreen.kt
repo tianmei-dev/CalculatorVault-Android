@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Icon
-import androidx.compose.material3.AlertDialog
+import com.aurora.calculatorvault.ui.component.VaultVisualAlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -289,13 +289,12 @@ private fun PasswordRevealDialog(
     when (state) {
         CalculatorPasswordRevealState.Hidden -> Unit
         is CalculatorPasswordRevealState.Visible -> {
-            AlertDialog(
+            VaultVisualAlertDialog(
                 onDismissRequest = onDismiss,
                 title = {
                     Text(
                         text = stringResource(R.string.password_reveal_title),
                         style = AppTextStyles.SectionTitle,
-                        color = AppColors.TextPrimary,
                     )
                 },
                 text = {
@@ -303,12 +302,11 @@ private fun PasswordRevealDialog(
                         Text(
                             text = stringResource(R.string.password_reveal_message),
                             style = AppTextStyles.Body,
-                            color = AppColors.TextSecondary,
                         )
                         Text(
                             text = state.password.concatToString(),
                             style = AppTextStyles.NumericMedium,
-                            color = AppColors.AccentPrimary,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -319,31 +317,27 @@ private fun PasswordRevealDialog(
                         Text(
                             text = stringResource(R.string.got_it),
                             style = AppTextStyles.Button,
-                            color = AppColors.AccentPrimary,
                         )
                     }
                 },
-                containerColor = AppColors.SurfaceElevated,
                 shape = AppShapes.ExtraLarge,
             )
         }
         CalculatorPasswordRevealState.Unavailable,
         CalculatorPasswordRevealState.Failed,
         -> {
-            AlertDialog(
+            VaultVisualAlertDialog(
                 onDismissRequest = onDismiss,
                 title = {
                     Text(
                         text = stringResource(R.string.password_reveal_unavailable_title),
                         style = AppTextStyles.SectionTitle,
-                        color = AppColors.TextPrimary,
                     )
                 },
                 text = {
                     Text(
                         text = stringResource(R.string.password_reveal_unavailable_message),
                         style = AppTextStyles.Body,
-                        color = AppColors.TextSecondary,
                     )
                 },
                 confirmButton = {
@@ -351,11 +345,9 @@ private fun PasswordRevealDialog(
                         Text(
                             text = stringResource(R.string.got_it),
                             style = AppTextStyles.Button,
-                            color = AppColors.AccentPrimary,
                         )
                     }
                 },
-                containerColor = AppColors.SurfaceElevated,
                 shape = AppShapes.ExtraLarge,
             )
         }

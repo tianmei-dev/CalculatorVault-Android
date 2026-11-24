@@ -9,12 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -23,19 +24,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
-import com.aurora.calculatorvault.feature.disguise.presentation.PageHeader
-import com.aurora.calculatorvault.ui.component.VaultCard
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainHeader
+import com.aurora.calculatorvault.ui.component.VaultMainIconTile
+import com.aurora.calculatorvault.ui.component.vaultMainBackdrop
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
 import com.aurora.calculatorvault.ui.layout.appPagePadding
 
 @Composable
@@ -77,11 +81,12 @@ internal fun AppManagementContent(
         modifier = Modifier
             .fillMaxSize()
             .testTag("app_management_screen")
+            .vaultMainBackdrop()
             .verticalScroll(rememberScrollState())
-            .padding(appPagePadding()),
+            .padding(appPagePadding(horizontal = AppSpacing.lg, top = AppSpacing.lg)),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
-        PageHeader(
+        VaultMainHeader(
             title = stringResource(R.string.tab_app_management),
             description = stringResource(R.string.app_management_description),
         )
@@ -93,6 +98,7 @@ internal fun AppManagementContent(
             contentDescription = disguiseEntryDescription,
             testTag = "app_disguise_entry",
             hasError = state.disguiseLoadFailed,
+            emphasized = true,
             onClick = onOpenDisguise,
         )
         AppManagementEntryCard(
@@ -103,12 +109,13 @@ internal fun AppManagementContent(
             contentDescription = entryDescription,
             testTag = "private_apps_entry",
             hasError = state.loadFailed,
+            emphasized = false,
             onClick = onOpenPrivateApps,
         )
         Text(
             text = stringResource(R.string.app_management_scope_note),
             style = AppTextStyles.BodySecondary,
-            color = AppColors.TextTertiary,
+            color = VaultMainColors.TextSecondary,
             modifier = Modifier.padding(horizontal = AppSpacing.xs),
         )
     }
@@ -123,52 +130,41 @@ private fun AppManagementEntryCard(
     contentDescription: String,
     testTag: String,
     hasError: Boolean,
+    emphasized: Boolean,
     onClick: () -> Unit,
 ) {
-    VaultCard(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 144.dp)
+            .heightIn(min = 130.dp)
+            .vaultMainPanel(
+                emphasized = emphasized,
+                shape = RoundedCornerShape(20.dp),
+                accentSweep = !emphasized,
+            )
             .testTag(testTag)
             .semantics { this.contentDescription = contentDescription }
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        VaultMainIconTile(icon, emphasized = emphasized, size = 52.dp, iconSize = 29.dp)
+        Spacer(Modifier.width(AppSpacing.sm))
+        Box(Modifier.width(1.dp).height(54.dp).background(VaultMainColors.Border))
+        Spacer(Modifier.width(AppSpacing.sm))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(AppColors.SurfaceSecondary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = AppColors.AccentPrimary,
-                    modifier = Modifier.size(30.dp),
-                )
-            }
-            Spacer(Modifier.width(AppSpacing.md))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Text(title, style = AppTextStyles.CardTitle, color = AppColors.TextPrimary)
-                Text(
-                    description,
-                    style = AppTextStyles.BodySecondary,
-                    color = AppColors.TextSecondary,
-                )
-                Text(
-                    status,
-                    style = AppTextStyles.Caption,
-                    color = if (hasError) AppColors.Warning else AppColors.AccentSecondary,
-                )
-            }
-            Icon(VaultIcons.Chevron, contentDescription = null, tint = AppColors.TextTertiary)
+            Text(title, style = AppTextStyles.SectionTitle, color = VaultMainColors.TextPrimary)
+            Text(description, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
+            Text(
+                status,
+                style = AppTextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
+                color = if (hasError) AppColors.Warning else VaultMainColors.Accent,
+            )
         }
+        Spacer(Modifier.width(AppSpacing.xxs))
+        Icon(VaultIcons.Chevron, contentDescription = null, tint = VaultMainColors.Highlight, modifier = Modifier.size(19.dp))
     }
 }

@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,10 +24,14 @@ import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultDialog
 import com.aurora.calculatorvault.ui.component.VaultIconButton
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainHeader
 import com.aurora.calculatorvault.ui.component.VaultNumericKeypad
 import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.AppLayout
 
 @Composable
@@ -63,10 +70,14 @@ fun ChangePasswordScreen(
         state.step == ChangePasswordStep.CreateNew -> R.string.continue_action
         else -> R.string.confirm_password_change
     }
+    val dark = useVaultDarkVisuals()
+    val colors = MaterialTheme.colorScheme
+    val secondary = if (dark) VaultMainColors.TextSecondary else colors.onSurfaceVariant
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .padding(horizontal = AppLayout.PageHorizontalPadding, vertical = AppSpacing.sm)
             .padding(bottom = AppLayout.BottomSafeSpace),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -76,22 +87,19 @@ fun ChangePasswordScreen(
             contentDescription = stringResource(R.string.back),
             onClick = exitOrReturn,
         )
-        Text(
-            text = stringResource(titleRes),
-            style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary,
-        )
+        if (dark) VaultMainHeader(title = stringResource(titleRes))
+        else Text(stringResource(titleRes), style = AppTextStyles.PageTitle, color = colors.onSurface)
         Text(
             text = stringResource(descriptionRes),
             style = AppTextStyles.Body,
-            color = AppColors.TextSecondary,
+            color = secondary,
         )
         VaultPasswordDots(state.activeInputLength)
         Text(
             text = stringResource(R.string.password_length_hint),
             modifier = Modifier.align(Alignment.CenterHorizontally),
             style = AppTextStyles.Caption,
-            color = AppColors.TextTertiary,
+            color = secondary,
         )
         if (state.step == ChangePasswordStep.CreateNew) {
             Text(
@@ -104,7 +112,7 @@ fun ChangePasswordScreen(
                 text = stringResource(R.string.password_recovery_change_hint),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
+                color = secondary,
             )
         }
         ChangePasswordErrorText(state.error)
@@ -118,6 +126,7 @@ fun ChangePasswordScreen(
             text = stringResource(buttonRes),
             enabled = state.canSubmit,
             onClick = onSubmit,
+            polished = true,
             modifier = Modifier.padding(bottom = AppLayout.CtaBottomSpacing),
         )
     }
@@ -158,8 +167,11 @@ private fun ChangePasswordErrorText(error: ChangePasswordError?) {
 @Composable
 fun ForgotPasswordScreen(onBack: () -> Unit) {
     BackHandler(onBack = onBack)
+    val dark = useVaultDarkVisuals()
+    val colors = MaterialTheme.colorScheme
+    val secondary = if (dark) VaultMainColors.TextSecondary else colors.onSurfaceVariant
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().vaultSecondaryBackdrop(),
     ) {
         VaultTopAppBar(
             title = stringResource(R.string.forgot_password_title),
@@ -174,6 +186,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = AppLayout.PageHorizontalPadding, vertical = AppSpacing.md)
                 .padding(bottom = AppLayout.BottomSafeSpace),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
@@ -182,13 +195,13 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.forgot_password_intro),
                     style = AppTextStyles.CardTitle,
-                    color = AppColors.TextPrimary,
+                    color = if (dark) VaultMainColors.TextPrimary else colors.onSurface,
                 )
                 Text(
                     text = stringResource(R.string.forgot_password_local_note),
                     modifier = Modifier.padding(top = AppSpacing.md),
                     style = AppTextStyles.Body,
-                    color = AppColors.TextSecondary,
+                    color = secondary,
                 )
                 Text(
                     text = stringResource(R.string.forgot_password_warning),
@@ -200,7 +213,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
             Text(
                 text = stringResource(R.string.forgot_password_no_recovery),
                 style = AppTextStyles.BodySecondary,
-                color = AppColors.TextTertiary,
+                color = secondary,
             )
         }
     }

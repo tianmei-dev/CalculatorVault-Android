@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +47,9 @@ import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultMainPanel
 import kotlinx.coroutines.delay
 
 @Composable
@@ -126,16 +130,19 @@ private fun ConfigureMessageDialogWindow() {
 @Composable
 private fun AppMessageCard(message: AppMessage) {
     val style = message.type.style()
+    val dark = useVaultDarkVisuals()
+    val colors = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(10.dp, AppShapes.Large)
+            .then(if (dark) Modifier.vaultMainPanel(shape = AppShapes.Large) else Modifier)
             .semantics {
                 liveRegion = LiveRegionMode.Assertive
                 contentDescription = message.message
             },
         shape = AppShapes.Large,
-        color = style.containerColor,
+        color = if (dark) Color.Transparent else colors.surface,
         tonalElevation = 0.dp,
     ) {
         Row(
@@ -154,7 +161,7 @@ private fun AppMessageCard(message: AppMessage) {
             Text(
                 text = message.message,
                 style = AppTextStyles.BodySecondary,
-                color = AppColors.TextPrimary,
+                color = if (dark) VaultMainColors.TextPrimary else colors.onSurface,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -163,7 +170,6 @@ private fun AppMessageCard(message: AppMessage) {
 
 private data class AppMessageStyle(
     val icon: ImageVector,
-    val containerColor: Color,
     val iconColor: Color,
     val accentColor: Color,
     val accentAlpha: Float,
@@ -172,28 +178,24 @@ private data class AppMessageStyle(
 private fun AppMessageType.style(): AppMessageStyle = when (this) {
     AppMessageType.Success -> AppMessageStyle(
         icon = VaultIcons.Success,
-        containerColor = AppColors.SurfaceElevated,
-        iconColor = AppColors.AccentPrimary,
-        accentColor = AppColors.AccentPrimary,
+        iconColor = VaultMainColors.Highlight,
+        accentColor = VaultMainColors.Accent,
         accentAlpha = 0.16f,
     )
     AppMessageType.Info -> AppMessageStyle(
         icon = VaultIcons.Info,
-        containerColor = AppColors.SurfaceElevated,
-        iconColor = AppColors.TextSecondary,
-        accentColor = AppColors.SurfaceSecondary,
-        accentAlpha = 0.35f,
+        iconColor = VaultMainColors.TextSecondary,
+        accentColor = VaultMainColors.Border,
+        accentAlpha = 0.12f,
     )
     AppMessageType.Warning -> AppMessageStyle(
         icon = VaultIcons.Warning,
-        containerColor = AppColors.SurfaceElevated,
         iconColor = AppColors.Warning,
         accentColor = AppColors.Warning,
         accentAlpha = 0.16f,
     )
     AppMessageType.Error -> AppMessageStyle(
         icon = VaultIcons.Error,
-        containerColor = AppColors.SurfaceElevated,
         iconColor = AppColors.Error,
         accentColor = AppColors.Error,
         accentAlpha = 0.16f,

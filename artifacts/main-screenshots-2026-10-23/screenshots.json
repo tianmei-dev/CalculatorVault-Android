@@ -1,0 +1,50 @@
+[
+  {
+    "page": "calculator",
+    "file": "01-calculator.png",
+    "size": [
+      1080,
+      2400
+    ]
+  },
+  {
+    "page": "management",
+    "file": "02-management.png",
+    "size": [
+      1080,
+      2400
+    ]
+  },
+  {
+    "page": "lock",
+    "file": "03-lock.png",
+    "size": [
+      1080,
+      2400
+    ]
+  },
+  {
+    "page": "album",
+    "file": "04-album.png",
+    "size": [
+      1080,
+      2400
+    ]
+  },
+  {
+    "page": "settings",
+    "file": "05-settings.png",
+    "size": [
+      1080,
+      2400
+    ]
+  },
+  {
+    "page": "vip",
+    "file": "06-vip.png",
+    "size": [
+      1080,
+      2400
+    ]
+  }
+]

@@ -26,6 +26,7 @@ import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultSettingItem
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.appPagePadding
 import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 
@@ -42,6 +43,7 @@ fun ContactUsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         VaultTopAppBar(
@@ -69,6 +71,7 @@ fun ContactUsScreen(
                     onClick = {},
                     enabled = false,
                     showChevron = false,
+                    adaptiveHeight = true,
                 )
                 VaultSettingItem(
                     title = stringResource(R.string.settings_contact_email),
@@ -84,6 +87,7 @@ fun ContactUsScreen(
                         }
                     },
                     showDivider = false,
+                    adaptiveHeight = true,
                 )
             }
         }

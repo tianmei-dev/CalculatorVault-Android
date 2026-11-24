@@ -2,7 +2,6 @@ package com.aurora.calculatorvault.feature.onboarding.presentation
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,31 +15,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
-import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultCard
 import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
+import com.aurora.calculatorvault.ui.component.VaultMainIconTile
 import com.aurora.calculatorvault.ui.component.VaultNumericKeypad
 import com.aurora.calculatorvault.ui.component.VaultPasswordDots
 import com.aurora.calculatorvault.ui.component.VaultPrimaryButton
 import com.aurora.calculatorvault.ui.component.VaultSecondaryButton
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultMainBackdrop
 import com.aurora.calculatorvault.ui.layout.AppLayout
 import com.aurora.calculatorvault.ui.layout.appPagePadding
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
@@ -51,39 +55,46 @@ fun SplashScreen(
     state: OnboardingUiState,
     onRetry: () -> Unit,
 ) {
+    val polished = useVaultDarkVisuals()
+    val palette = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(appPagePadding()),
+        modifier = Modifier
+            .fillMaxSize()
+            .onboardingBackdrop(polished)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(appPagePadding()),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            Icon(
-                imageVector = VaultIcons.Calculator,
-                contentDescription = null,
-                tint = AppColors.AccentPrimary,
-            )
+            if (polished) {
+                VaultMainIconTile(VaultIcons.Calculator, emphasized = true, size = 48.dp, iconSize = 26.dp)
+            } else {
+                Icon(VaultIcons.Calculator, contentDescription = null, tint = palette.primary)
+            }
             Text(
                 text = stringResource(R.string.splash_title),
                 style = AppTextStyles.PageTitle,
-                color = AppColors.TextPrimary,
+                color = if (polished) VaultMainColors.TextPrimary else palette.onBackground,
             )
             if (state.error == OnboardingError.StartupReadFailed) {
                 Text(
                     text = stringResource(R.string.startup_read_failed),
                     style = AppTextStyles.BodySecondary,
-                    color = AppColors.Error,
+                    color = if (polished) AppColors.Error else palette.error,
                 )
                 VaultSecondaryButton(
                     text = stringResource(R.string.retry),
                     onClick = onRetry,
+                    polished = true,
                 )
             } else {
                 Text(
                     text = stringResource(R.string.splash_subtitle),
                     style = AppTextStyles.BodySecondary,
-                    color = AppColors.TextTertiary,
+                    color = if (polished) VaultMainColors.TextSecondary else palette.onBackground,
                 )
                 VaultLoadingIndicator()
             }
@@ -100,30 +111,31 @@ fun PrivacyConsentScreen(
     onOpenPrivacyPolicy: () -> Unit,
     onOpenChildrenPrivacyPolicy: () -> Unit,
 ) {
+    val polished = useVaultDarkVisuals()
+    val palette = MaterialTheme.colorScheme
+    val titleColor = if (polished) VaultMainColors.TextPrimary else palette.onBackground
+    val bodyColor = if (polished) VaultMainColors.TextSecondary else palette.onSurface
+    val linkColor = if (polished) VaultMainColors.Highlight else palette.primary
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .onboardingBackdrop(polished)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(appPagePadding()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
     ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .background(AppColors.AccentContainer, AppShapes.ExtraLarge),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = VaultIcons.Security,
-                contentDescription = null,
-                tint = AppColors.AccentPrimary,
-            )
+        if (polished) {
+            VaultMainIconTile(VaultIcons.Security, emphasized = true, size = 72.dp, iconSize = 33.dp)
+        } else {
+            Icon(VaultIcons.Security, contentDescription = null, tint = palette.primary)
         }
         Text(
             text = stringResource(R.string.privacy_title),
-            style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary,
+            style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold),
+            color = titleColor,
+            textAlign = TextAlign.Center,
         )
         VaultCard(
             modifier = Modifier
@@ -134,24 +146,34 @@ fun PrivacyConsentScreen(
             Text(
                 text = stringResource(R.string.privacy_intro),
                 style = AppTextStyles.Body,
-                color = AppColors.TextSecondary,
+                color = bodyColor,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
             ) {
-                TextButton(onClick = onOpenUserAgreement, enabled = !state.isSaving) {
+                TextButton(
+                    onClick = onOpenUserAgreement,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.weight(1f, fill = false),
+                ) {
                     Text(
                         text = stringResource(R.string.privacy_user_agreement_link),
                         style = AppTextStyles.Button,
-                        color = AppColors.AccentPrimary,
+                        color = linkColor,
+                        textAlign = TextAlign.Center,
                     )
                 }
-                TextButton(onClick = onOpenPrivacyPolicy, enabled = !state.isSaving) {
+                TextButton(
+                    onClick = onOpenPrivacyPolicy,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.weight(1f, fill = false),
+                ) {
                     Text(
                         text = stringResource(R.string.privacy_policy_link),
                         style = AppTextStyles.Button,
-                        color = AppColors.AccentPrimary,
+                        color = linkColor,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -163,13 +185,14 @@ fun PrivacyConsentScreen(
                 Text(
                     text = stringResource(R.string.privacy_children_policy_link),
                     style = AppTextStyles.Button,
-                    color = AppColors.AccentPrimary,
+                    color = linkColor,
+                    textAlign = TextAlign.Center,
                 )
             }
             Text(
                 text = stringResource(R.string.privacy_local_note),
                 style = AppTextStyles.Body,
-                color = AppColors.TextSecondary,
+                color = bodyColor,
             )
         }
         OnboardingErrorText(state.error)
@@ -179,11 +202,13 @@ fun PrivacyConsentScreen(
             ),
             enabled = !state.isSaving,
             onClick = onAgree,
+            polished = true,
         )
         VaultSecondaryButton(
             text = stringResource(R.string.decline_and_exit),
             enabled = !state.isSaving,
             onClick = onDecline,
+            polished = true,
         )
     }
 }
@@ -252,9 +277,13 @@ private fun PasswordEntryScreen(
     showWeakHint: Boolean = false,
     topPadding: Dp = AppSpacing.sm,
 ) {
+    val polished = useVaultDarkVisuals()
+    val supportColor = if (polished) VaultMainColors.TextSecondary else MaterialTheme.colorScheme.onBackground
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .onboardingBackdrop(polished)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(
                 start = AppSpacing.xl,
@@ -274,7 +303,7 @@ private fun PasswordEntryScreen(
             text = stringResource(R.string.password_length_hint),
             modifier = Modifier.align(Alignment.CenterHorizontally),
             style = AppTextStyles.Caption,
-            color = AppColors.TextTertiary,
+            color = supportColor,
         )
         if (showWeakHint) {
             Text(
@@ -287,7 +316,7 @@ private fun PasswordEntryScreen(
                 text = stringResource(R.string.password_recovery_setup_hint),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = AppTextStyles.Caption,
-                color = AppColors.TextTertiary,
+                color = supportColor,
             )
         }
         OnboardingErrorText(state.error)
@@ -301,6 +330,7 @@ private fun PasswordEntryScreen(
             text = stringResource(buttonTextRes),
             enabled = buttonEnabled,
             onClick = onSubmit,
+            polished = true,
         )
     }
 }
@@ -311,6 +341,8 @@ private fun PasswordTitleBlock(
     @StringRes descriptionRes: Int,
     onBack: (() -> Unit)?,
 ) {
+    val polished = useVaultDarkVisuals()
+    val palette = MaterialTheme.colorScheme
     Column {
         if (onBack != null) {
             Box(modifier = Modifier.height(AppDimensions.Button)) {
@@ -324,16 +356,19 @@ private fun PasswordTitleBlock(
         Text(
             text = stringResource(titleRes),
             style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary,
+            color = if (polished) VaultMainColors.TextPrimary else palette.onBackground,
         )
         Spacer(modifier = Modifier.height(AppSpacing.sm))
         Text(
             text = stringResource(descriptionRes),
             style = AppTextStyles.Body,
-            color = AppColors.TextSecondary,
+            color = if (polished) VaultMainColors.TextSecondary else palette.onBackground,
         )
     }
 }
+
+private fun Modifier.onboardingBackdrop(polished: Boolean): Modifier =
+    if (polished) vaultMainBackdrop() else this
 
 @Composable
 private fun OnboardingErrorText(error: OnboardingError?) {

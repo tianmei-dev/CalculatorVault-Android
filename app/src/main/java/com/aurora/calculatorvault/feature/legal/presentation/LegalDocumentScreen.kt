@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,8 +28,12 @@ import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.feature.legal.data.LegalDocumentRepository
 import com.aurora.calculatorvault.ui.component.VaultIconButton
 import com.aurora.calculatorvault.ui.component.VaultLoadingIndicator
+import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultTopAppBar
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
+import com.aurora.calculatorvault.ui.component.vaultSecondaryBackdrop
 import com.aurora.calculatorvault.ui.layout.appPagePadding
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun LegalDocumentScreen(
@@ -51,6 +56,7 @@ fun LegalDocumentScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .vaultSecondaryBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         VaultTopAppBar(
@@ -79,8 +85,8 @@ fun LegalDocumentScreen(
                 content == null -> VaultLoadingIndicator()
                 else -> Text(
                     text = content.orEmpty(),
-                    style = AppTextStyles.Body,
-                    color = AppColors.TextSecondary,
+                    style = AppTextStyles.Body.copy(lineHeight = 24.sp),
+                    color = if (useVaultDarkVisuals()) VaultMainColors.TextPrimary else MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
