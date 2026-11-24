@@ -1,0 +1,235 @@
+Starting a Gradle Daemon, 2 incompatible Daemons could not be reused, use --status for details
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:38:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:49:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:71:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:96:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:112:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/core/database/CalculatorVaultDatabase.kt:153:34 The corresponding parameter in the supertype 'Migration' is named 'db'. This may cause problems when calling this function with named arguments.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/ForegroundAppDetector.kt:40:39 'static field MOVE_TO_FOREGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/ForegroundAppDetector.kt:43:39 'static field MOVE_TO_BACKGROUND: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/domain/UsageAccessPermissionHelper.kt:17:20 'fun unsafeCheckOpNoThrow(p0: String, p1: Int, p2: String): Int' is deprecated. Deprecated in Java.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/applock/presentation/AppLockScreen.kt:100:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/calculator/presentation/CalculatorScreen.kt:47:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/calculator/presentation/CalculatorScreen.kt:48:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/disguise/presentation/AppDisguiseScreen.kt:139:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/legal/presentation/LegalDocumentType.kt:8:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/membership/presentation/VipPurchaseScreen.kt:146:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/privatemedia/presentation/PrivateMediaScreen.kt:1415:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/feature/vault/presentation/VaultMainTab.kt:11:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/ui/component/VaultNumericKeypad.kt:31:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///D:/Android_Work/CalculatorVault-Android/app/src/main/java/com/aurora/calculatorvault/ui/component/VaultNumericKeypad.kt:32:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:compileDebugJavaWithJavac
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:dexBuilderDebug
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes
+
+> Task :app:testDebugUnitTest
+
+PrivacyConsentTest > reacceptanceDoesNotResetTrialOriginOrRemainingCap FAILED
+    java.lang.NullPointerException at PrivacyConsentTest.kt:103
+
+PrivacyConsentTest > lateTrialReplyAfterWithdrawalCannotConfirmState FAILED
+    java.lang.NullPointerException at PrivacyConsentTest.kt:111
+
+AppLockNotificationCoordinatorTest > notificationDenialDoesNotDetermineAppLockProtectionStatus FAILED
+    java.lang.AssertionError at AppLockNotificationCoordinatorTest.kt:113
+
+PurchaseMembershipRaceTest > fulfilledDuringInFlightMe_staleJoin_thenBoundedRefetchSyncs FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:260
+
+PurchaseMembershipRaceTest > b2_logout_clearsOwnPendingRecord_reloginDoesNotResume FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:202
+
+PurchaseMembershipRaceTest > f4_endViewingExpired_thenLatePayment_vipArrivesViaMembershipSync FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:172
+
+PurchaseMembershipRaceTest > b2_fulfilledWithoutServerMembership_neverGrantsVipOnClient FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:235
+
+VipPurchaseControllerTest > b2_returnFromBrowser_queriesOrderImmediately FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:577
+
+VipPurchaseControllerTest > queryUnauthorized_stopsAndAsksLogin FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:516
+
+VipPurchaseControllerTest > releasePolicy_rejectsTestAndHttpLinks FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:376
+
+VipPurchaseControllerTest > processRestore_unconfirmedCreate_retriesWithSameRequestId FAILED
+    java.util.NoSuchElementException at VipPurchaseControllerTest.kt:440
+
+VipPurchaseControllerTest > pollCadence_fastThenSlow FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:413
+
+VipPurchaseControllerTest > f4_pendingBackToPlans_keepsRecord_andResumes FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:840
+
+VipPurchaseControllerTest > f4_expired_manualRefreshAvailable_endViewingClearsRecord_reopenShowsPlans FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:813
+
+VipPurchaseControllerTest > lifetimeOwned_blocksPurchase_and40012Refreshes FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:210
+
+VipPurchaseControllerTest > b2_cashierLink_offAllowList_orUnconfigured_neverOpensBrowser FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:597
+
+VipPurchaseControllerTest > fulfilled_membershipSyncFails_thenRetrySucceeds FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:294
+
+VipPurchaseControllerTest > f3_staleOfflineSignal_stillProbesPeriodically FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:718
+
+VipPurchaseControllerTest > f3_networkLost_feedbackImmediate_noHttpWhileOffline_statusKept_restoreQueries FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:690
+
+VipPurchaseControllerTest > f3_repeatedRefresh_whileQueryInFlight_reusesRequest FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:732
+
+VipPurchaseControllerTest > queryFailures_keepStatus_backOff_networkRestoreQueriesNow FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:530
+
+VipPurchaseControllerTest > logoutDuringQuery_stopsPolling_lateResponseIgnored FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:471
+
+VipPurchaseControllerTest > statusFlow_pendingPaidFulfilled_refreshesMembershipOnce FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:267
+
+VipPurchaseControllerTest > plans_displayLocalCatalog_defaultYearly_noNetwork FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:98
+
+VipPurchaseControllerTest > b2_goPay_rapidTaps_openBrowserOnce_thenAllowedAgainAfterDebounce FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:555
+
+VipPurchaseControllerTest > plans_serverMismatchOrUnavailable_blocksCreate FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:112
+
+VipPurchaseControllerTest > switchAccount_stopsOldOrder_revalidationKeepsIt FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:494
+
+VipPurchaseControllerTest > pauseStopsPolling_resumeQueriesImmediately FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:395
+
+VipPurchaseControllerTest > planErrors_reloadPlans_conflictResets FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:884
+
+VipPurchaseControllerTest > f3_foregroundToggles_keepSinglePollLoop FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:773
+
+VipPurchaseControllerTest > f3_timeoutWhileOnline_isTemporary_backsOff_statusKept FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:756
+
+VipPurchaseControllerTest > serverTimeAnchorsDeadline_notDeviceWallClock FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:872
+
+VipPurchaseControllerTest > create_doubleTapCreatesOnce_queriesImmediately_urlOpensCashier FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:181
+
+VipPurchaseControllerTest > amountMismatch_blocksCashier FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:648
+
+VipPurchaseControllerTest > fulfilled_staleFirstRefresh_autoRefetchSyncs FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:319
+
+VipPurchaseControllerTest > b2_accountSwitch_neverShowsOtherAccountsOrder FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:663
+
+VipPurchaseControllerTest > changingPlanAfterFailure_startsNewPurchase FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:251
+
+VipPurchaseControllerTest > createTimeout_retryReusesClientRequestId FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:236
+
+VipPurchaseControllerTest > expired_stopsPolling_manualRefreshSeesLatePayment FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:339
+
+VipPurchaseControllerTest > testKind_debugShowsTestPayment_neverOpensBrowser FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:360
+
+592 tests completed, 40 failed, 4 skipped
+
+> Task :app:testDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testDebugUnitTest'.
+> There were failing tests. See the report at: file:///D:/Android_Work/CalculatorVault-Android/app/build/reports/tests/testDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 2m 20s
+45 actionable tasks: 16 executed, 29 up-to-date

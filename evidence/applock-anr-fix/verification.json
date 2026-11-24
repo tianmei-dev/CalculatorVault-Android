@@ -1,0 +1,15 @@
+{
+  "tests": {
+    "tests": 87,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "debug_build": "PASS",
+  "release_build": "PASS",
+  "phone_anr_reproduced": true,
+  "root_cause": "display collector calls mutating evaluate -> trial.refresh -> Keystore write on Main -> entitlement emission feedback",
+  "phone_fix_install": "WAITING_EXISTING_FORMAL_CERTIFICATE_SIGNED_APK",
+  "phone_data_cleared": false,
+  "unsigned_release_sha256": "a1e6d2553579c66fce21448ffbed2d748bafeaa25f63e88a90a2f2d3c1592b9c"
+}

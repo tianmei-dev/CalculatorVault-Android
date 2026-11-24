@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-24",
+  "debug_build": "PASS",
+  "screenshots": [
+    "annual-dark-normal.png",
+    "annual-light-normal.png",
+    "expired-dark-normal.png",
+    "expired-light-normal.png",
+    "guest-dark-normal.png",
+    "guest-light-normal.png",
+    "lifetime-dark-normal.png",
+    "lifetime-light-normal.png",
+    "monthly-dark-narrow.png",
+    "monthly-dark-normal.png",
+    "monthly-light-narrow.png",
+    "monthly-light-normal.png",
+    "trial-dark-narrow.png",
+    "trial-dark-normal.png",
+    "trial-light-narrow-scrolled.png",
+    "trial-light-narrow.png",
+    "trial-light-normal.png"
+  ],
+  "fixtures": [
+    "guest",
+    "trial",
+    "expired",
+    "monthly",
+    "annual",
+    "lifetime"
+  ],
+  "system_ui_modes": [
+    "light",
+    "dark"
+  ],
+  "narrow_content_width_dp": 320,
+  "theme_note": "Existing CalculatorVaultTheme uses fixed dark color scheme. Both system modes retain that existing behavior; no new light palette added.",
+  "business_state_or_requests_changed": false,
+  "real_login_or_payment_executed": false,
+  "test_preview": "Debug source set only; fixed in-memory presentation and no-op callbacks",
+  "scroll_bottom_and_existing_privacy_entry": "PASS",
+  "reference_layout": "Account row, three-level membership card, centered secondary refresh; existing colors, cards, header and bottom navigation retained",
+  "debug_apk_sha256": "58bb867816def20c778b89d08739e9dbede69d3956cd89fab919651bfa34b96c"
+}

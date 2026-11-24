@@ -57,6 +57,16 @@ class AppLockViewModel(
     init {
         refreshPermissions()
         observeLockedPackages()
+        viewModelScope.launch {
+            protectionCoordinator.entitlementChanges.appLockPresentationEntitled().collect { entitled ->
+                _uiState.update { current ->
+                    current.copy(
+                        protectionEntitled = entitled,
+                        isMonitorRunning = AppLockMonitorService.isRunning,
+                    )
+                }
+            }
+        }
         loadApps()
     }
 
@@ -80,8 +90,7 @@ class AppLockViewModel(
                 hasUsageAccess = usagePermissionHelper.hasUsageAccess(),
                 hasOverlayPermission = overlayPermissionHelper.isGranted(),
                 isMonitorRunning = AppLockMonitorService.isRunning,
-                protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
-                    is ActionDecision.Allowed,
+                protectionEntitled = protectionCoordinator.entitlementChanges.value.hasPaidEntitlement,
                 isRefreshingPermissions = false,
             )
         }
@@ -165,8 +174,7 @@ class AppLockViewModel(
                         lockedPackages = packages,
                         apps = state.apps.map { it.copy(locked = it.packageName in packages) },
                         isMonitorRunning = AppLockMonitorService.isRunning,
-                        protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
-                            is ActionDecision.Allowed,
+                        protectionEntitled = protectionCoordinator.entitlementChanges.value.hasPaidEntitlement,
                     )
                 }
                 syncMonitorState()
@@ -199,8 +207,7 @@ class AppLockViewModel(
         _uiState.update {
             it.copy(
                 isMonitorRunning = AppLockMonitorService.isRunning,
-                protectionEntitled = actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION)
-                    is ActionDecision.Allowed,
+                protectionEntitled = protectionCoordinator.entitlementChanges.value.hasPaidEntitlement,
             )
         }
     }

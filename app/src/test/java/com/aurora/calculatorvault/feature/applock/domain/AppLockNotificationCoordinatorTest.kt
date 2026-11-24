@@ -109,7 +109,7 @@ class AppLockNotificationCoordinatorTest {
         val flow=AppLockNotificationCoordinator(Store()); flow.onLockEnabled(denied())
         flow.confirmRequest(denied()); flow.onResult(denied())
         val app=com.aurora.calculatorvault.feature.applock.presentation.AppLockUiState(
-            lockedPackages=setOf("test.package"),hasUsageAccess=true,hasOverlayPermission=true,isMonitorRunning=true)
+            lockedPackages=setOf("test.package"),hasUsageAccess=true,hasOverlayPermission=true,isMonitorRunning=true,protectionEntitled=true)
         assertEquals(AppLockProtectionStatus.Protecting,app.protectionStatus)
     }
 }

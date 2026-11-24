@@ -44,6 +44,9 @@ class AppLockProtectionCoordinator(
     private val _pendingForegroundStart = MutableStateFlow(false)
     val pendingForegroundStart: StateFlow<Boolean> = _pendingForegroundStart.asStateFlow()
 
+    /** Same live source used by runtime reconciliation, exposed read-only for presentation. */
+    val entitlementChanges: StateFlow<EntitlementState> get() = entitlementState
+
     fun protectionGeneration(): Long = generation.get()
 
     fun bumpGeneration(): Long = generation.incrementAndGet()

@@ -1,0 +1,20 @@
+{
+  "reproduced_by_user": true,
+  "main_frames": [
+    "at com.aurora.calculatorvault.feature.login.session.KeystoreTokenStore.write(KeystoreTokenStore.kt:49)",
+    "at com.aurora.calculatorvault.feature.trial.EncryptedTrialStore.write(AndroidTrialInfrastructure.kt:47)",
+    "at com.aurora.calculatorvault.feature.trial.DeviceTrialRepository.refresh(DeviceTrialRepository.kt:91)",
+    "at com.aurora.calculatorvault.feature.entitlement.domain.EntitlementRepository$actionPolicy$1.evaluate(EntitlementRepository.kt:58)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$1$1.emit(AppLockViewModel.kt:64)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$1$1.emit(AppLockViewModel.kt:61)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$1.invokeSuspend(AppLockViewModel.kt:61)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel.<init>(AppLockViewModel.kt:60)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$Factory.create(AppLockViewModel.kt:229)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$Factory.create(AppLockViewModel.kt:219)",
+    "at com.aurora.calculatorvault.feature.applock.presentation.AppLockViewModel$Factory.create(AppLockViewModel.kt:219)",
+    "at com.aurora.calculatorvault.feature.vault.presentation.VaultMainScreenKt.VaultMainScreen$lambda$150$lambda$149$lambda$148$lambda$59(VaultMainScreen.kt:823)",
+    "at com.aurora.calculatorvault.feature.vault.presentation.VaultMainScreenKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)",
+    "at com.aurora.calculatorvault.feature.vault.presentation.VaultMainScreenKt.VaultMainScreen$lambda$150(VaultMainScreen.kt:178)",
+    "at com.aurora.calculatorvault.feature.vault.presentation.VaultMainScreenKt$$ExternalSyntheticLambda42.invoke(D8$$SyntheticClass:0)"
+  ]
+}

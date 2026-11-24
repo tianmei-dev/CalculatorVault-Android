@@ -1,0 +1,11 @@
+{
+  "tests": 592,
+  "failures": 39,
+  "errors": 0,
+  "skipped": 4,
+  "failed_suites": {
+    "com.aurora.calculatorvault.core.privacy.PrivacyConsentTest": 2,
+    "com.aurora.calculatorvault.feature.membership.PurchaseMembershipRaceTest": 4,
+    "com.aurora.calculatorvault.feature.membership.VipPurchaseControllerTest": 33
+  }
+}

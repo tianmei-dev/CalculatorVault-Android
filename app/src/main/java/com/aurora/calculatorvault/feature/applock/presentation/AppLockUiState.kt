@@ -15,21 +15,25 @@ data class AppLockUiState(
     val hasOverlayPermission: Boolean = false,
     val isMonitorRunning: Boolean = false,
     /** Live entitlement for app-lock protection; does not gate browsing or disabling locks. */
-    val protectionEntitled: Boolean = true,
+    val protectionEntitled: Boolean = false,
     val pendingPermissionTarget: AppLockPermissionTarget? = null,
     val error: AppLockError? = null,
 ) {
     val visibleApps: List<LockableApp>
         get() {
             val normalized = query.trim()
-            if (normalized.isEmpty()) return apps
-            return apps.filter {
+            val effectiveApps = apps.map { it.copy(locked = it.packageName in effectiveLockedPackages) }
+            if (normalized.isEmpty()) return effectiveApps
+            return effectiveApps.filter {
                 it.appName.contains(normalized, ignoreCase = true) ||
                     it.packageName.contains(normalized, ignoreCase = true)
             }
         }
 
-    val lockedCount: Int get() = lockedPackages.size
+    /** Configuration remains intact; only the effective projection is displayed. */
+    val effectiveLockedPackages: Set<String> get() = if (protectionEntitled) lockedPackages else emptySet()
+
+    val lockedCount: Int get() = effectiveLockedPackages.size
 
     val protectionStatus: AppLockProtectionStatus
         get() = when {

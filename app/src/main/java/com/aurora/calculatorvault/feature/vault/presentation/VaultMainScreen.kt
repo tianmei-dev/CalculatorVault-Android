@@ -362,13 +362,6 @@ fun VaultMainScreen(
                     sessionPending = sessionState is AccountSession.TemporarilyUnavailable,
                     onRetrySession = application.accountSession::revalidate,
                     sessionMessage = listOfNotNull(
-                        // Hide device-trial status once account VIP is active; otherwise keep showing it.
-                        if (entitlementState.source is EntitlementSource.Vip) {
-                            null
-                        } else {
-                            com.aurora.calculatorvault.feature.entitlement.domain.EntitlementDisplayMapper
-                                .trialSessionMessage(trialState)
-                        },
                         when (val s = sessionState) {
                             is AccountSession.Validating -> "正在校验已保存的账号"
                             is AccountSession.TemporarilyUnavailable ->

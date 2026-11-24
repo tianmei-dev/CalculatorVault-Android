@@ -1,0 +1,10 @@
+<resources>
+    <string name="settings_wechat_account_title">微信账号</string>
+    <string name="settings_account_signed_out">未登录</string>
+    <string name="settings_account_login">登录</string>
+    <string name="settings_membership_center">会员中心</string>
+    <string name="settings_membership_monthly">月度会员</string>
+    <string name="settings_membership_annual">年度会员</string>
+    <string name="settings_membership_lifetime">终身会员</string>
+    <string name="settings_membership_free_detail">继续使用高级保护功能</string>
+</resources>

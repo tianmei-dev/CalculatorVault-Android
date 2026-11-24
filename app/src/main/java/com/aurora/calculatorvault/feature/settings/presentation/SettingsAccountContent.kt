@@ -1,5 +1,16 @@
 package com.aurora.calculatorvault.feature.settings.presentation
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
+import com.aurora.calculatorvault.ui.component.VaultMainIconTile
+import com.aurora.calculatorvault.ui.component.vaultGradientAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -29,59 +40,73 @@ internal fun SettingsAccountContent(
 ) {
     var showLogout by rememberSaveable { mutableStateOf(false) }
     val loggedIn = state.account as? AccountStatus.WeChatLoggedIn
-    MainSettingsRow(
-        title = loggedIn?.displayNickname ?: stringResource(
-            if (loggedIn == null) R.string.account_wechat_login else R.string.account_wechat_user),
-        subtitle = stringResource(if (loggedIn == null) R.string.account_login_description else R.string.account_logged_in),
-        icon = Icons.Rounded.Forum,
-        onClick = if (loggedIn == null) onLogin else ({}),
-        enabled = loggedIn == null,
-        modifier = Modifier.testTag("settings_account").vaultMainPanel(),
-        showDivider = false,
-    )
-    val membership = membershipText(state)
-    val membershipSubtitle = buildString {
-        append(stringResource(membership.subtitle, *membership.arguments.toTypedArray()))
-        state.membershipSyncHint?.let { hint ->
-            if (isNotEmpty()) append('\n')
-            append(hint)
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag("settings_account").vaultMainPanel()
+            .padding(AppSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        VaultMainIconTile(Icons.Rounded.Forum, size = 42.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.settings_wechat_account_title), style = AppTextStyles.CardTitle, color = VaultMainColors.TextPrimary)
+            Text(stringResource(if (loggedIn == null) R.string.settings_account_signed_out else R.string.account_logged_in),
+                style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
+            loggedIn?.displayNickname?.let { Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary) }
         }
-    }
-    MainSettingsRow(
-        title = stringResource(membership.title),
-        subtitle = membershipSubtitle,
-        icon = Icons.Rounded.WorkspacePremium,
-        onClick = onVipMembership,
-        showDivider = false,
-        modifier = Modifier.testTag("settings_membership").vaultMainPanel(emphasized = true),
-        emphasized = true,
-    )
-    if (loggedIn != null && onRefreshMembership != null) {
-        TextButton(
-            onClick = onRefreshMembership,
-            enabled = !state.membershipRefreshing,
-            modifier = Modifier.testTag("settings_membership_refresh"),
+        Button(
+            onClick = if (loggedIn == null) onLogin else ({ showLogout = true }),
+            shape = CircleShape,
+            modifier = Modifier.testTag(if (loggedIn == null) "settings_login" else "settings_logout")
+                .vaultGradientAction(shape = CircleShape),
+            colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            contentPadding = PaddingValues(horizontal = AppSpacing.md, vertical = AppSpacing.xs),
         ) {
-            Text(
-                text = stringResource(
-                    if (state.membershipRefreshing) {
-                        R.string.account_membership_syncing
-                    } else {
-                        R.string.account_membership_refresh
-                    },
-                ),
-                style = AppTextStyles.Button,
-                color = if (state.membershipRefreshing) {
-                    VaultMainColors.Highlight.copy(alpha = 0.5f)
-                } else {
-                    VaultMainColors.Highlight
-                },
-            )
+            Text(stringResource(if (loggedIn == null) R.string.settings_account_login else R.string.account_logout),
+                style = AppTextStyles.Button, color = VaultMainColors.TextPrimary)
         }
     }
-    if (loggedIn != null) {
-        TextButton(onClick = { showLogout = true }, modifier = Modifier.testTag("settings_logout")) {
-            Text(stringResource(R.string.account_logout), style = AppTextStyles.Button, color = VaultMainColors.Highlight)
+    val membership = membershipText(state)
+    // Presentation only: consume the already selected visible membership and existing duration text.
+    val title = when (val status = state.visibleMembership) {
+        MembershipStatus.NotSubscribed, MembershipStatus.TrialExpired -> R.string.account_open_vip
+        is MembershipStatus.VipActive -> when (status.planType) {
+            com.aurora.calculatorvault.feature.membership.domain.VipPlan.Monthly -> R.string.settings_membership_monthly
+            com.aurora.calculatorvault.feature.membership.domain.VipPlan.Annual -> R.string.settings_membership_annual
+            else -> membership.title
+        }
+        MembershipStatus.VipPermanent -> R.string.settings_membership_lifetime
+        else -> membership.title
+    }
+    val detail = if (state.visibleMembership == MembershipStatus.NotSubscribed || state.visibleMembership == MembershipStatus.TrialExpired)
+        stringResource(R.string.settings_membership_free_detail)
+    else stringResource(membership.subtitle, *membership.arguments.toTypedArray())
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag("settings_membership").vaultMainPanel(emphasized = true)
+            .clickable(onClick = onVipMembership).padding(AppSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        VaultMainIconTile(Icons.Rounded.WorkspacePremium, emphasized = true, size = 42.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            Text(stringResource(R.string.settings_membership_center), style = AppTextStyles.CardTitle, color = VaultMainColors.TextPrimary)
+            Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight)
+            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
+            state.membershipSyncHint?.let { Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary) }
+        }
+        Icon(Icons.Rounded.ChevronRight, null, tint = VaultMainColors.TextSecondary, modifier = Modifier.size(20.dp))
+    }
+    if (loggedIn != null && onRefreshMembership != null) {
+        Box(Modifier.fillMaxWidth().padding(top = AppSpacing.xs), contentAlignment = Alignment.Center) {
+            OutlinedButton(
+                onClick = onRefreshMembership, enabled = !state.membershipRefreshing, shape = CircleShape,
+                modifier = Modifier.testTag("settings_membership_refresh").vaultGradientAction(
+                    enabled = !state.membershipRefreshing, secondary = true, shape = CircleShape),
+            ) {
+                Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(AppSpacing.xs))
+                Text(stringResource(if (state.membershipRefreshing) R.string.account_membership_syncing else R.string.account_membership_refresh),
+                    style = AppTextStyles.Button, color = VaultMainColors.Highlight)
+            }
         }
     }
     if (showLogout && loggedIn != null) {

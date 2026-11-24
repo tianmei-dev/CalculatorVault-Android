@@ -1,0 +1,166 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+
+> Task :app:testDebugUnitTest
+
+PrivacyConsentTest > reacceptanceDoesNotResetTrialOriginOrRemainingCap FAILED
+    java.lang.NullPointerException at PrivacyConsentTest.kt:103
+
+PrivacyConsentTest > lateTrialReplyAfterWithdrawalCannotConfirmState FAILED
+    java.lang.NullPointerException at PrivacyConsentTest.kt:111
+
+PurchaseMembershipRaceTest > fulfilledDuringInFlightMe_staleJoin_thenBoundedRefetchSyncs FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:260
+
+PurchaseMembershipRaceTest > b2_logout_clearsOwnPendingRecord_reloginDoesNotResume FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:202
+
+PurchaseMembershipRaceTest > f4_endViewingExpired_thenLatePayment_vipArrivesViaMembershipSync FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:172
+
+PurchaseMembershipRaceTest > b2_fulfilledWithoutServerMembership_neverGrantsVipOnClient FAILED
+    java.lang.ClassCastException at PurchaseMembershipRaceTest.kt:235
+
+VipPurchaseControllerTest > b2_returnFromBrowser_queriesOrderImmediately FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:577
+
+VipPurchaseControllerTest > queryUnauthorized_stopsAndAsksLogin FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:516
+
+VipPurchaseControllerTest > releasePolicy_rejectsTestAndHttpLinks FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:376
+
+VipPurchaseControllerTest > processRestore_unconfirmedCreate_retriesWithSameRequestId FAILED
+    java.util.NoSuchElementException at VipPurchaseControllerTest.kt:440
+
+VipPurchaseControllerTest > pollCadence_fastThenSlow FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:413
+
+VipPurchaseControllerTest > f4_pendingBackToPlans_keepsRecord_andResumes FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:840
+
+VipPurchaseControllerTest > f4_expired_manualRefreshAvailable_endViewingClearsRecord_reopenShowsPlans FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:813
+
+VipPurchaseControllerTest > lifetimeOwned_blocksPurchase_and40012Refreshes FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:210
+
+VipPurchaseControllerTest > b2_cashierLink_offAllowList_orUnconfigured_neverOpensBrowser FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:597
+
+VipPurchaseControllerTest > fulfilled_membershipSyncFails_thenRetrySucceeds FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:294
+
+VipPurchaseControllerTest > f3_staleOfflineSignal_stillProbesPeriodically FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:718
+
+VipPurchaseControllerTest > f3_networkLost_feedbackImmediate_noHttpWhileOffline_statusKept_restoreQueries FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:690
+
+VipPurchaseControllerTest > f3_repeatedRefresh_whileQueryInFlight_reusesRequest FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:732
+
+VipPurchaseControllerTest > queryFailures_keepStatus_backOff_networkRestoreQueriesNow FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:530
+
+VipPurchaseControllerTest > logoutDuringQuery_stopsPolling_lateResponseIgnored FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:471
+
+VipPurchaseControllerTest > statusFlow_pendingPaidFulfilled_refreshesMembershipOnce FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:267
+
+VipPurchaseControllerTest > plans_displayLocalCatalog_defaultYearly_noNetwork FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:98
+
+VipPurchaseControllerTest > b2_goPay_rapidTaps_openBrowserOnce_thenAllowedAgainAfterDebounce FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:555
+
+VipPurchaseControllerTest > plans_serverMismatchOrUnavailable_blocksCreate FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:112
+
+VipPurchaseControllerTest > switchAccount_stopsOldOrder_revalidationKeepsIt FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:494
+
+VipPurchaseControllerTest > pauseStopsPolling_resumeQueriesImmediately FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:395
+
+VipPurchaseControllerTest > planErrors_reloadPlans_conflictResets FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:884
+
+VipPurchaseControllerTest > f3_foregroundToggles_keepSinglePollLoop FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:773
+
+VipPurchaseControllerTest > f3_timeoutWhileOnline_isTemporary_backsOff_statusKept FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:756
+
+VipPurchaseControllerTest > serverTimeAnchorsDeadline_notDeviceWallClock FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:872
+
+VipPurchaseControllerTest > create_doubleTapCreatesOnce_queriesImmediately_urlOpensCashier FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:181
+
+VipPurchaseControllerTest > amountMismatch_blocksCashier FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:648
+
+VipPurchaseControllerTest > fulfilled_staleFirstRefresh_autoRefetchSyncs FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:319
+
+VipPurchaseControllerTest > b2_accountSwitch_neverShowsOtherAccountsOrder FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:663
+
+VipPurchaseControllerTest > changingPlanAfterFailure_startsNewPurchase FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:251
+
+VipPurchaseControllerTest > createTimeout_retryReusesClientRequestId FAILED
+    java.lang.AssertionError at VipPurchaseControllerTest.kt:236
+
+VipPurchaseControllerTest > expired_stopsPolling_manualRefreshSeesLatePayment FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:339
+
+VipPurchaseControllerTest > testKind_debugShowsTestPayment_neverOpensBrowser FAILED
+    java.lang.ClassCastException at VipPurchaseControllerTest.kt:360
+
+592 tests completed, 39 failed, 4 skipped
+
+> Task :app:testDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testDebugUnitTest'.
+> There were failing tests. See the report at: file:///D:/Android_Work/CalculatorVault-Android/app/build/reports/tests/testDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 7s
+27 actionable tasks: 1 executed, 26 up-to-date
