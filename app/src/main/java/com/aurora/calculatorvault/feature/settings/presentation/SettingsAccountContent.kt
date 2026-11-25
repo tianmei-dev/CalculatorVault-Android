@@ -36,9 +36,11 @@ internal fun SettingsAccountContent(
     onLogin: () -> Unit,
     onVipMembership: () -> Unit,
     onLogoutConfirmed: () -> Unit,
+    onDeleteAccountConfirmed: (() -> Unit)? = null,
     onRefreshMembership: (() -> Unit)? = null,
 ) {
     var showLogout by rememberSaveable { mutableStateOf(false) }
+    var showDelete by rememberSaveable { mutableStateOf(false) }
     val loggedIn = state.account as? AccountStatus.WeChatLoggedIn
     Row(
         modifier = Modifier.fillMaxWidth().testTag("settings_account").vaultMainPanel()
@@ -109,6 +111,21 @@ internal fun SettingsAccountContent(
             }
         }
     }
+    if (loggedIn != null && onDeleteAccountConfirmed != null) {
+        TextButton(
+            onClick = { showDelete = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = AppSpacing.xs)
+                .testTag("settings_account_delete"),
+        ) {
+            Text(
+                stringResource(R.string.account_delete),
+                style = AppTextStyles.BodySecondary,
+                color = VaultMainColors.TextSecondary,
+            )
+        }
+    }
     if (showLogout && loggedIn != null) {
         VaultDialog(
             title = stringResource(R.string.account_logout_title),
@@ -120,6 +137,19 @@ internal fun SettingsAccountContent(
                 onLogoutConfirmed()
             },
             onDismiss = { showLogout = false },
+        )
+    }
+    if (showDelete && loggedIn != null && onDeleteAccountConfirmed != null) {
+        VaultDialog(
+            title = stringResource(R.string.account_delete_title),
+            message = stringResource(R.string.account_delete_message),
+            confirmText = stringResource(R.string.account_delete_confirm),
+            dismissText = stringResource(R.string.account_delete_cancel),
+            onConfirm = {
+                showDelete = false
+                onDeleteAccountConfirmed()
+            },
+            onDismiss = { showDelete = false },
         )
     }
 }

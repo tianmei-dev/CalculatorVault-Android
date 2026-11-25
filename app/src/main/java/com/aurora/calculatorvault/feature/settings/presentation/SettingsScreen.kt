@@ -54,6 +54,7 @@ fun SettingsScreen(
     onLogin: () -> Unit,
     onVipMembership: () -> Unit,
     onLogoutConfirmed: () -> Unit,
+    onDeleteAccountConfirmed: (() -> Unit)? = null,
     accountState: AccountUiState = AccountUiState(),
     sessionMessage: String = "",
     onRetrySession: () -> Unit = {},
@@ -81,6 +82,7 @@ fun SettingsScreen(
                 onLogin = onLogin,
                 onVipMembership = onVipMembership,
                 onLogoutConfirmed = onLogoutConfirmed,
+                onDeleteAccountConfirmed = onDeleteAccountConfirmed,
                 onRefreshMembership = onRefreshMembership,
             )
             if (sessionMessage.isNotEmpty()) Text(sessionMessage, color = VaultMainColors.TextSecondary)

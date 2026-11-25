@@ -159,6 +159,49 @@ class AccountSessionRepository(
     }
 
     /**
+     * Server account deletion then local guest transition.
+     * On success: clears login/membership cache like logout; keeps private media, app-lock,
+     * disguise, vault password and device trial. Does not call /logout (sessions already closed).
+     * On business/network failure: leaves local session untouched.
+     */
+    fun deleteAccount(onResult: (AccountDeleteResult) -> Unit) {
+        val token = credential?.token
+        if (token.isNullOrBlank() || mutableState.value !is AccountSession.Authenticated) {
+            onResult(AccountDeleteResult.Failed)
+            return
+        }
+        scope.launch {
+            try {
+                api.deleteAccount(token)
+                clearLocalAfterAccountDeleted()
+                onResult(AccountDeleteResult.Success)
+            } catch (failure: AuthFailure) {
+                onResult(
+                    when (failure.code) {
+                        40016 -> AccountDeleteResult.PendingOrder
+                        40017 -> AccountDeleteResult.PaidUnfulfilled
+                        else -> AccountDeleteResult.Failed
+                    },
+                )
+            } catch (_: Exception) {
+                onResult(AccountDeleteResult.Failed)
+            }
+        }
+    }
+
+    private fun clearLocalAfterAccountDeleted() {
+        expiryJob?.cancel()
+        ++generation
+        val loggedOutUserId = mutableState.value.entitlementAccount?.userId
+        credential = null
+        mutableState.value = AccountSession.Guest
+        mutableLogoutWarning.value = !clearStorage()
+        if (loggedOutUserId != null) {
+            try { onLoggedOut(loggedOutUserId) } catch (_: Exception) { /* Must not fail local cleanup. */ }
+        }
+    }
+
+    /**
      * Drop local session + Keystore without calling server logout.
      * Used by isolation test tear-down / account switch so fixture Bearer tokens stay valid.
      */

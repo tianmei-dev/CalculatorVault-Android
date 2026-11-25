@@ -383,6 +383,29 @@ fun VaultMainScreen(
                         application.wechatAuthorization.cancel()
                         application.accountSession.logout()
                     },
+                    onDeleteAccountConfirmed = {
+                        application.wechatAuthorization.cancel()
+                        application.accountSession.deleteAccount { result ->
+                            when (result) {
+                                com.aurora.calculatorvault.feature.login.session.AccountDeleteResult.Success ->
+                                    messageController.showSuccess(
+                                        context.getString(R.string.account_delete_success),
+                                    )
+                                com.aurora.calculatorvault.feature.login.session.AccountDeleteResult.PendingOrder ->
+                                    messageController.showWarning(
+                                        context.getString(R.string.account_delete_pending_order),
+                                    )
+                                com.aurora.calculatorvault.feature.login.session.AccountDeleteResult.PaidUnfulfilled ->
+                                    messageController.showError(
+                                        context.getString(R.string.account_delete_paid_unfulfilled),
+                                    )
+                                com.aurora.calculatorvault.feature.login.session.AccountDeleteResult.Failed ->
+                                    messageController.showError(
+                                        context.getString(R.string.account_delete_failed),
+                                    )
+                            }
+                        }
+                    },
                     onLogin = { loginViewModel.open(LoginSource.Settings) },
                     onVipMembership = {
                         navController.navigate(VaultTabRoute.VipMembership.createRoute(VipPurchaseSource.Settings)) {

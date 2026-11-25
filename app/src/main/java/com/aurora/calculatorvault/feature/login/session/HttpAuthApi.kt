@@ -12,11 +12,26 @@ class SessionCredential(val token: String, val expiresAt: Instant) {
 }
 data class ServerAccount(val userId: Long)
 class LoginResult(val credential: SessionCredential, val account: ServerAccount)
-class AuthFailure(val invalidSession: Boolean = false) : Exception("Account request failed")
+class AuthFailure(
+    val invalidSession: Boolean = false,
+    val code: Int? = null,
+) : Exception("Account request failed")
+
+sealed interface AccountDeleteResult {
+    data object Success : AccountDeleteResult
+    data object PendingOrder : AccountDeleteResult
+    data object PaidUnfulfilled : AccountDeleteResult
+    data object Failed : AccountDeleteResult
+}
+
 interface AuthApi {
     suspend fun login(code: String): LoginResult
     suspend fun me(token: String): ServerAccount
     suspend fun logout(token: String)
+    /** Compliance account closure; default unused by test fakes. */
+    suspend fun deleteAccount(token: String) {
+        throw AuthFailure(code = null)
+    }
 }
 
 /** No redirects, logging, automatic retries or cookies. Each code is submitted once. */
@@ -61,7 +76,7 @@ class HttpAuthApi(
             if (trial) TrialTrace.event(5, status)
             if (path == "wechat/login" && !trial) AuthTrace.event(5, status)
             if (status == 429 && trial) throw com.aurora.calculatorvault.feature.trial.TrialRateLimited()
-            if (status == 401) throw AuthFailure(true)
+            if (status == 401) throw AuthFailure(invalidSession = true, code = 40100)
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readBounded() } ?: throw AuthFailure()
             val envelope = JSONObject(raw)
@@ -69,7 +84,9 @@ class HttpAuthApi(
             if (trial) TrialTrace.event(6, code)
             if (path == "wechat/login" && !trial) AuthTrace.event(6, code)
             if (code != 0 || status !in 200..299) throw AuthFailure(
-                code in setOf(40100, 40101, 40102, 40300, 40301, 40001, 40002))
+                invalidSession = code in setOf(40100, 40101, 40102, 40300, 40301, 40001, 40002),
+                code = code,
+            )
             envelope
         } finally { connection.disconnect() }
     }
@@ -118,4 +135,7 @@ class HttpAuthApi(
         return account(data)
     }
     override suspend fun logout(token: String) { request("logout", token, post = true) }
+    override suspend fun deleteAccount(token: String) {
+        request("account/delete", token, post = true)
+    }
 }
