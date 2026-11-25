@@ -19,6 +19,7 @@ class ShortcutPinnedReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val application = context.applicationContext as CalculatorVaultApp
+                if (!application.hasPrivacyConsent()) return@launch
                 val accepted = application.disguiseEntryRepository.markShortcutAccepted(
                     shortcutId = shortcutId,
                     callbackAt = System.currentTimeMillis(),

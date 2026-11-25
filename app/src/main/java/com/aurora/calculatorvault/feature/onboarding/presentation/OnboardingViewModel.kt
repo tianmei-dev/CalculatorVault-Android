@@ -41,6 +41,7 @@ class OnboardingViewModel(
                         StartupDestination.PrivacyConsent -> OnboardingStep.PrivacyConsent
                         StartupDestination.CreatePassword -> OnboardingStep.CreatePassword
                         StartupDestination.Calculator -> OnboardingStep.Calculator
+                        StartupDestination.CalculatorOnly -> OnboardingStep.CalculatorOnly
                     }
                     _uiState.update { it.copy(step = step, isSaving = false, error = null) }
                 }
@@ -59,7 +60,7 @@ class OnboardingViewModel(
     }
 
     fun acceptPrivacy() {
-        if (_uiState.value.isSaving) return
+        if (_uiState.value.step != OnboardingStep.PrivacyConsent || _uiState.value.isSaving) return
         _uiState.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
             when (val result = repository.acceptPrivacy()) {
@@ -81,6 +82,36 @@ class OnboardingViewModel(
                 }
             }
         }
+    }
+
+    fun declinePrivacy() {
+        if (_uiState.value.step != OnboardingStep.PrivacyConsent || _uiState.value.isSaving) return
+        _uiState.update { it.copy(isSaving = true, error = null) }
+        viewModelScope.launch {
+            when (val result = repository.declinePrivacy()) {
+                is OnboardingResult.Success -> {
+                    clearSensitiveInput()
+                    _uiState.value = OnboardingUiState(step = OnboardingStep.CalculatorOnly)
+                }
+                is OnboardingResult.Failure -> {
+                    _uiState.update { it.copy(isSaving = false, error = result.error.toUiError()) }
+                }
+            }
+        }
+    }
+
+    fun openPrivacyFromCalculator() {
+        if (_uiState.value.step != OnboardingStep.CalculatorOnly) return
+        _uiState.value = OnboardingUiState(
+            step = OnboardingStep.PrivacyConsent,
+            choosingPrivacyFromCalculator = true,
+        )
+    }
+
+    fun returnToCalculatorOnly() {
+        val current = _uiState.value
+        if (!current.choosingPrivacyFromCalculator || current.isSaving) return
+        _uiState.value = OnboardingUiState(step = OnboardingStep.CalculatorOnly)
     }
 
     fun addPasswordDigit(digit: Int) {

@@ -99,7 +99,8 @@ fun AppLockScreen(
     }
     val lifecycleOwner = LocalLifecycleOwner.current
     val usageHelper = UsageAccessPermissionHelper(
-        androidx.compose.ui.platform.LocalContext.current.applicationContext,
+        context.applicationContext,
+        consent = (context.applicationContext as CalculatorVaultApp).privacyConsent,
     )
     val overlayHelper = OverlayPermissionHelper(
         androidx.compose.ui.platform.LocalContext.current.applicationContext,

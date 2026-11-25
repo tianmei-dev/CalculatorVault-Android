@@ -1,6 +1,5 @@
 package com.aurora.calculatorvault.core.navigation
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
@@ -50,17 +49,32 @@ fun AppNavHost(
 ) {
     val context = LocalContext.current
     val application = context.applicationContext as CalculatorVaultApp
-    val withdrawalState by application.privacyWithdrawalController.state.collectAsState()
-    if (withdrawalState == PrivacyWithdrawalState.RestartRequired) {
+    val withdrawalController = application.privacyWithdrawalController
+    val withdrawalState by withdrawalController.state.collectAsState()
+    if (withdrawalState != PrivacyWithdrawalState.Idle) {
         BackHandler { /* The old vault graph is no longer accessible. */ }
-        LaunchedEffect(Unit) {
-            runCatching { PrivacyRestartActivity.restart(context) }
+        if (withdrawalState == PrivacyWithdrawalState.RestartRequired) {
+            LaunchedEffect(Unit) {
+                runCatching { PrivacyRestartActivity.restart(context) }
+            }
         }
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.privacy_withdraw_restart))
-                TextButton(onClick = { runCatching { PrivacyRestartActivity.restart(context) } }) {
-                    Text(stringResource(R.string.privacy_withdraw_return))
+                when (withdrawalState) {
+                    PrivacyWithdrawalState.Saving -> Text(stringResource(R.string.privacy_saving))
+                    PrivacyWithdrawalState.Failed -> {
+                        Text(stringResource(R.string.privacy_withdraw_failed))
+                        TextButton(onClick = withdrawalController::withdraw) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                    PrivacyWithdrawalState.RestartRequired -> {
+                        Text(stringResource(R.string.privacy_withdraw_restart))
+                        TextButton(onClick = { runCatching { PrivacyRestartActivity.restart(context) } }) {
+                            Text(stringResource(R.string.privacy_withdraw_return))
+                        }
+                    }
+                    PrivacyWithdrawalState.Idle -> Unit
                 }
             }
         }
@@ -77,9 +91,10 @@ fun AppNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    LaunchedEffect(sessionState, currentRoute) {
+    LaunchedEffect(sessionState, currentRoute, onboardingState.step) {
         if (
             currentRoute == AppRoute.VaultMain.path &&
+            onboardingState.step == OnboardingStep.Calculator &&
             VaultRouteGuard.decide(sessionState) == VaultAccessDecision.RedirectToCalculator
         ) {
             navController.navigate(AppRoute.Calculator.path) {
@@ -95,7 +110,9 @@ fun AppNavHost(
             OnboardingStep.PrivacyConsent -> {
                 if (currentRoute != AppRoute.PrivacyConsent.path) {
                     navController.navigate(AppRoute.PrivacyConsent.path) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                        if (!onboardingState.choosingPrivacyFromCalculator) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
                         launchSingleTop = true
                     }
                 }
@@ -103,16 +120,11 @@ fun AppNavHost(
 
             OnboardingStep.CreatePassword -> {
                 if (currentRoute != AppRoute.CreatePassword.path) {
-                    if (currentRoute == AppRoute.ConfirmPassword.path) {
-                        navController.popBackStack(
-                            route = AppRoute.CreatePassword.path,
-                            inclusive = false,
-                        )
-                    } else {
+                    val returnedFromConfirmation = currentRoute == AppRoute.ConfirmPassword.path &&
+                        navController.popBackStack(AppRoute.CreatePassword.path, inclusive = false)
+                    if (!returnedFromConfirmation) {
                         navController.navigate(AppRoute.CreatePassword.path) {
-                            if (currentRoute == AppRoute.PrivacyConsent.path) {
-                                popUpTo(AppRoute.PrivacyConsent.path) { inclusive = true }
-                            }
+                            popUpTo(navController.graph.id) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -130,6 +142,18 @@ fun AppNavHost(
             OnboardingStep.Calculator -> {
                 if (currentRoute != AppRoute.Calculator.path) {
                     navController.navigate(AppRoute.Calculator.path) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            OnboardingStep.CalculatorOnly -> {
+                if (
+                    currentRoute != AppRoute.CalculatorOnly.path &&
+                    !navController.popBackStack(AppRoute.CalculatorOnly.path, inclusive = false)
+                ) {
+                    navController.navigate(AppRoute.CalculatorOnly.path) {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -156,20 +180,25 @@ fun AppNavHost(
             )
         }
         composable(AppRoute.PrivacyConsent.path) {
-            PrivacyConsentScreen(
-                state = onboardingState,
-                onAgree = onboardingViewModel::acceptPrivacy,
-                onDecline = { (context as? Activity)?.finish() },
-                onOpenUserAgreement = {
-                    navController.navigate(AppRoute.UserAgreement.path)
-                },
-                onOpenPrivacyPolicy = {
-                    navController.navigate(AppRoute.PrivacyPolicy.path)
-                },
-                onOpenChildrenPrivacyPolicy = {
-                    navController.navigate(AppRoute.ChildrenPrivacyPolicy.path)
-                },
-            )
+            if (onboardingState.step == OnboardingStep.PrivacyConsent) {
+                BackHandler(enabled = onboardingState.choosingPrivacyFromCalculator) {
+                    onboardingViewModel.returnToCalculatorOnly()
+                }
+                PrivacyConsentScreen(
+                    state = onboardingState,
+                    onAgree = onboardingViewModel::acceptPrivacy,
+                    onDecline = onboardingViewModel::declinePrivacy,
+                    onOpenUserAgreement = {
+                        navController.navigate(AppRoute.UserAgreement.path)
+                    },
+                    onOpenPrivacyPolicy = {
+                        navController.navigate(AppRoute.PrivacyPolicy.path)
+                    },
+                    onOpenChildrenPrivacyPolicy = {
+                        navController.navigate(AppRoute.ChildrenPrivacyPolicy.path)
+                    },
+                )
+            }
         }
         composable(AppRoute.UserAgreement.path) {
             UserAgreementScreen(onBack = navController::popBackStack)
@@ -181,37 +210,50 @@ fun AppNavHost(
             ChildrenPrivacyPolicyScreen(onBack = navController::popBackStack)
         }
         composable(AppRoute.CreatePassword.path) {
-            CreatePasswordScreen(
-                state = onboardingState,
-                onDigit = onboardingViewModel::addPasswordDigit,
-                onDelete = onboardingViewModel::deletePasswordDigit,
-                onContinue = onboardingViewModel::continueToConfirmation,
-            )
+            if (onboardingState.step == OnboardingStep.CreatePassword) {
+                CreatePasswordScreen(
+                    state = onboardingState,
+                    onDigit = onboardingViewModel::addPasswordDigit,
+                    onDelete = onboardingViewModel::deletePasswordDigit,
+                    onContinue = onboardingViewModel::continueToConfirmation,
+                )
+            }
         }
         composable(AppRoute.ConfirmPassword.path) {
-            ConfirmPasswordScreen(
-                state = onboardingState,
-                onDigit = onboardingViewModel::addConfirmationDigit,
-                onDelete = onboardingViewModel::deleteConfirmationDigit,
-                onConfirm = onboardingViewModel::confirmPassword,
-                onBack = {
-                    onboardingViewModel.returnToCreatePassword()
-                    navController.popBackStack()
-                },
-            )
+            if (onboardingState.step == OnboardingStep.ConfirmPassword) {
+                BackHandler(onBack = onboardingViewModel::returnToCreatePassword)
+                ConfirmPasswordScreen(
+                    state = onboardingState,
+                    onDigit = onboardingViewModel::addConfirmationDigit,
+                    onDelete = onboardingViewModel::deleteConfirmationDigit,
+                    onConfirm = onboardingViewModel::confirmPassword,
+                    onBack = onboardingViewModel::returnToCreatePassword,
+                )
+            }
+        }
+        composable(AppRoute.CalculatorOnly.path) {
+            if (onboardingState.step == OnboardingStep.CalculatorOnly) {
+                val calculator: CalculatorViewModel = viewModel(factory = CalculatorViewModel.BasicFactory)
+                CalculatorScreen(
+                    viewModel = calculator,
+                    onOpenPrivacyConsent = onboardingViewModel::openPrivacyFromCalculator,
+                )
+            }
         }
         composable(AppRoute.Calculator.path) {
+            if (onboardingState.step != OnboardingStep.Calculator) return@composable
             val calculatorViewModel: CalculatorViewModel = viewModel(
                 factory = CalculatorViewModel.Factory(
                     unlockUseCase = application.vaultUnlockUseCase,
                     sessionManager = application.vaultSessionManager,
                     passwordRecoveryRepository = application.passwordRecoveryRepository,
+                    hasPrivacyConsent = application.privacyConsent::isAllowedNow,
                 ),
             )
             CalculatorScreen(
                 viewModel = calculatorViewModel,
                 onOpenVault = {
-                    if (application.vaultSessionManager.isUnlocked()) {
+                    if (application.privacyConsent.isAllowedNow() && application.vaultSessionManager.isUnlocked()) {
                         navController.navigate(AppRoute.VaultMain.path) {
                             launchSingleTop = true
                         }
@@ -220,7 +262,11 @@ fun AppNavHost(
             )
         }
         composable(AppRoute.VaultMain.path) {
-            if (sessionState == VaultSessionState.Unlocked) {
+            if (
+                onboardingState.step == OnboardingStep.Calculator &&
+                sessionState == VaultSessionState.Unlocked &&
+                application.privacyConsent.isAllowedNow()
+            ) {
                 SecureScreenEffect()
                 VaultMainScreen(
                     onExitVault = application.vaultSessionManager::lock,

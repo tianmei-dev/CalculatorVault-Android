@@ -47,6 +47,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppPicker
 import com.aurora.calculatorvault.feature.hiddenapp.presentation.HiddenAppViewModel
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaScreen
 import com.aurora.calculatorvault.feature.privatemedia.presentation.PrivateMediaViewModel
+import com.aurora.calculatorvault.feature.legal.presentation.CollectedInformationScreen
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import com.aurora.calculatorvault.feature.legal.presentation.PrivacyDocumentsScreen
@@ -435,9 +436,9 @@ fun VaultMainScreen(
                         viewModel = purchaseViewModel,
                         onBack = navController::popBackStack,
                         onRequestLogin = { loginViewModel.open(LoginSource.MembershipPurchase) },
-                        onOpenPrivacyPolicy = {
+                        onOpenDocument = { type ->
                             navController.navigate(
-                                VaultTabRoute.LegalDocument.createRoute(LegalDocumentType.PrivacyPolicy),
+                                VaultTabRoute.LegalDocument.createRoute(type),
                             ) { launchSingleTop = true }
                         },
                     )
@@ -455,7 +456,13 @@ fun VaultMainScreen(
                     onOpenDocument = { type ->
                         navController.navigate(VaultTabRoute.LegalDocument.createRoute(type))
                     },
+                    onOpenCollectedInformation = {
+                        navController.navigate(VaultTabRoute.CollectedInformation.path) { launchSingleTop = true }
+                    },
                 )
+            }
+            composable(VaultTabRoute.CollectedInformation.path) {
+                CollectedInformationScreen(onBack = navController::popBackStack)
             }
             composable(
                 route = VaultTabRoute.LegalDocument.path,

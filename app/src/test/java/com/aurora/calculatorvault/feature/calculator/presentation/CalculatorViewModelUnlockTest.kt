@@ -12,6 +12,7 @@ import com.aurora.calculatorvault.feature.calculator.domain.CalculatorAction
 import com.aurora.calculatorvault.feature.calculator.domain.CalculatorOperator
 import com.aurora.calculatorvault.feature.calculator.domain.VaultPasswordVerifier
 import com.aurora.calculatorvault.feature.calculator.domain.VaultUnlockUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -40,6 +41,68 @@ class CalculatorViewModelUnlockTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `basic mode calculates without consulting vault or recovery`() = runTest(dispatcher) {
+        val verifier = RecordingVerifier("4826")
+        val manager = foregroundManager()
+        val source = RecoveryDataSource()
+        val viewModel = CalculatorViewModel(
+            unlockUseCase = VaultUnlockUseCase(verifier),
+            sessionManager = manager,
+            passwordRecoveryRepository = PasswordRecoveryRepository(source, PlainTextTestRecoveryCipher()),
+            isBasicMode = true,
+        )
+
+        input(viewModel, "4826")
+        viewModel.onAction(CalculatorAction.Equals)
+        viewModel.revealCurrentPassword()
+        assertEquals("4826", viewModel.uiState.value.displayValue)
+        viewModel.onAction(CalculatorAction.Operator(CalculatorOperator.Add))
+        input(viewModel, "4")
+        viewModel.onAction(CalculatorAction.Equals)
+        advanceUntilIdle()
+
+        assertEquals("4830", viewModel.uiState.value.displayValue)
+        assertEquals(0, verifier.calls)
+        assertEquals(0, source.reads)
+        assertEquals(CalculatorPasswordRevealState.Hidden, viewModel.passwordRevealState.value)
+        assertFalse(manager.isUnlocked())
+    }
+
+    @Test
+    fun `withdrawal blocks an in-flight unlock and a stale recovery callback`() = runTest(dispatcher) {
+        var consent = true
+        val started = CompletableDeferred<Unit>()
+        val verified = CompletableDeferred<Boolean>()
+        val verifier = object : VaultPasswordVerifier {
+            override suspend fun verify(candidate: CharArray): Boolean {
+                started.complete(Unit)
+                return verified.await()
+            }
+        }
+        val manager = foregroundManager()
+        val source = RecoveryDataSource()
+        val viewModel = CalculatorViewModel(
+            unlockUseCase = VaultUnlockUseCase(verifier),
+            sessionManager = manager,
+            passwordRecoveryRepository = PasswordRecoveryRepository(source, PlainTextTestRecoveryCipher()),
+            hasPrivacyConsent = { consent },
+        )
+
+        input(viewModel, "4826")
+        viewModel.onAction(CalculatorAction.Equals)
+        started.await()
+        consent = false
+        viewModel.revealCurrentPassword()
+        verified.complete(true)
+        advanceUntilIdle()
+
+        assertFalse(manager.isUnlocked())
+        assertEquals(0, source.reads)
+        assertEquals(CalculatorPasswordRevealState.Hidden, viewModel.passwordRevealState.value)
+        assertEquals("4826", viewModel.uiState.value.displayValue)
     }
 
     @Test
@@ -457,7 +520,13 @@ class CalculatorViewModelUnlockTest {
     private class RecoveryDataSource(
         var preferences: SecurityPreferences = SecurityPreferences(),
     ) : SecurityPreferencesDataSource {
-        override suspend fun read(): SecurityPreferences = preferences
+        var reads = 0
+            private set
+
+        override suspend fun read(): SecurityPreferences {
+            reads += 1
+            return preferences
+        }
 
         override suspend fun acceptPrivacy(version: String, acceptedAt: Long) = Unit
 

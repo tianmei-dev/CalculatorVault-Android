@@ -17,6 +17,7 @@ data class SecurityPreferences(
     val passwordRecoveryVersion: Int? = null,
     val passwordRecoveryUpdatedAt: Long? = null,
     val onboardingCompleted: Boolean = false,
+    val privacyDeclined: Boolean = false,
 ) {
     fun hasAnyPasswordState(): Boolean =
         passwordConfigured ||

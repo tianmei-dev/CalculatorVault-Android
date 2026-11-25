@@ -6,11 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import com.aurora.calculatorvault.core.privacy.PrivacyConsentGate
 
 class UsageAccessPermissionHelper(
     private val context: Context,
+    private val consent: PrivacyConsentGate,
 ) {
-    fun hasUsageAccess(): Boolean {
+    fun hasUsageAccess(): Boolean =
+        consent.runIfAllowed { checkUsageAccess() } ?: false
+
+    private fun checkUsageAccess(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
             ?: return false
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -30,15 +35,17 @@ class UsageAccessPermissionHelper(
         return mode == AppOpsManager.MODE_ALLOWED || canQueryUsageStats()
     }
 
-    fun openUsageAccessSettings(): Boolean = try {
-        context.startActivity(
-            Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-        true
-    } catch (_: RuntimeException) {
-        false
-    }
+    fun openUsageAccessSettings(): Boolean = consent.runIfAllowed {
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            true
+        } catch (_: RuntimeException) {
+            false
+        }
+    } ?: false
 
     private fun canQueryUsageStats(): Boolean {
         val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager

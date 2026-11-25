@@ -37,6 +37,7 @@ class AppLockProtectionCoordinatorTest {
         locked: MutableStateFlow<Set<String>> = MutableStateFlow(setOf("com.example.target")),
         entitledGate: AtomicBoolean = AtomicBoolean(true),
         foreground: AtomicBoolean = AtomicBoolean(true),
+        privacyAccepted: AtomicBoolean = AtomicBoolean(true),
     ): Fixture {
         val running = AtomicBoolean(false)
         val startCount = AtomicInteger(0)
@@ -44,6 +45,9 @@ class AppLockProtectionCoordinatorTest {
         val revokeCount = AtomicInteger(0)
         val startFails = AtomicBoolean(false)
         val privacyWithdrawn = AtomicBoolean(false)
+        val usageProbeCount = AtomicInteger(0)
+        val overlayProbeCount = AtomicInteger(0)
+        val lockReadCount = AtomicInteger(0)
         val usage = AtomicBoolean(true)
         val overlay = AtomicBoolean(true)
         val policy = ActionPolicy {
@@ -54,11 +58,20 @@ class AppLockProtectionCoordinatorTest {
             entitlementState = entitlement,
             actionPolicy = policy,
             observeLockedPackages = { locked },
-            lockedPackageCount = { locked.value.size },
-            privacyOk = { !privacyWithdrawn.get() },
-            privacyWithdrawn = { privacyWithdrawn.get() },
-            usageAccessGranted = { usage.get() },
-            overlayPermissionGranted = { overlay.get() },
+            lockedPackageCount = {
+                lockReadCount.incrementAndGet()
+                locked.value.size
+            },
+            privacyOk = { privacyAccepted.get() && !privacyWithdrawn.get() },
+            privacyAllowedNow = { privacyAccepted.get() && !privacyWithdrawn.get() },
+            usageAccessGranted = {
+                usageProbeCount.incrementAndGet()
+                usage.get()
+            },
+            overlayPermissionGranted = {
+                overlayProbeCount.incrementAndGet()
+                overlay.get()
+            },
             processForeground = { foreground.get() },
             isMonitorRunning = { running.get() },
             startMonitor = {
@@ -80,6 +93,7 @@ class AppLockProtectionCoordinatorTest {
         return Fixture(
             entitlement, locked, entitledGate, coordinator, running,
             startCount, stopCount, revokeCount, startFails, foreground, privacyWithdrawn,
+            usageProbeCount, overlayProbeCount, lockReadCount,
         )
     }
 
@@ -95,6 +109,9 @@ class AppLockProtectionCoordinatorTest {
         val startFails: AtomicBoolean,
         val foreground: AtomicBoolean,
         val privacyWithdrawn: AtomicBoolean,
+        val usageProbeCount: AtomicInteger,
+        val overlayProbeCount: AtomicInteger,
+        val lockReadCount: AtomicInteger,
     )
 
     @Test
@@ -104,6 +121,24 @@ class AppLockProtectionCoordinatorTest {
         f.coordinator.reconcile()
         assertTrue("monitor should start", f.running.get())
         assertEquals(1, f.startCount.get())
+    }
+
+    @Test
+    fun `missing current consent prevents application lock probes despite stored configuration`() = runTest {
+        val accepted = AtomicBoolean(false)
+        val f = fixture(privacyAccepted = accepted)
+        f.coordinator.reconcile()
+        assertFalse(f.coordinator.allowsLiveProtection())
+        assertEquals(0, f.startCount.get())
+        assertEquals(0, f.usageProbeCount.get())
+        assertEquals(0, f.overlayProbeCount.get())
+        assertEquals(0, f.lockReadCount.get())
+
+        accepted.set(true)
+        f.coordinator.reconcile()
+        assertTrue(f.running.get())
+        assertEquals(1, f.usageProbeCount.get())
+        assertEquals(1, f.overlayProbeCount.get())
     }
 
     @Test
@@ -196,7 +231,7 @@ class AppLockProtectionCoordinatorTest {
     }
 
     @Test
-    fun `privacy withdrawal stops running monitor`() = runTest {
+    fun `privacy withdrawal stops running monitor without another permission probe`() = runTest {
         val f = fixture()
         f.coordinator.reconcile()
         assertTrue(f.running.get())
@@ -204,6 +239,10 @@ class AppLockProtectionCoordinatorTest {
         f.coordinator.reconcile()
         assertFalse(f.running.get())
         assertTrue(f.revokeCount.get() >= 1)
+        assertEquals(1, f.startCount.get())
+        assertEquals(1, f.usageProbeCount.get())
+        assertEquals(1, f.overlayProbeCount.get())
+        assertEquals(1, f.lockReadCount.get())
     }
 
     @Test
@@ -235,7 +274,7 @@ class AppLockProtectionCoordinatorTest {
                 if (live == 0) staleCounter.get() else live
             },
             privacyOk = { true },
-            privacyWithdrawn = { false },
+            privacyAllowedNow = { true },
             usageAccessGranted = { true },
             overlayPermissionGranted = { true },
             processForeground = { true },

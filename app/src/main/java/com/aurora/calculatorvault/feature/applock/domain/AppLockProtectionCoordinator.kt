@@ -26,7 +26,7 @@ class AppLockProtectionCoordinator(
     /** Suspend so callers always read a fresh Room-backed count (avoids AtomicInteger lag). */
     private val lockedPackageCount: suspend () -> Int,
     private val privacyOk: suspend () -> Boolean,
-    private val privacyWithdrawn: () -> Boolean,
+    private val privacyAllowedNow: () -> Boolean,
     private val usageAccessGranted: () -> Boolean,
     private val overlayPermissionGranted: () -> Boolean,
     private val processForeground: () -> Boolean,
@@ -51,9 +51,9 @@ class AppLockProtectionCoordinator(
 
     fun bumpGeneration(): Long = generation.incrementAndGet()
 
-    /** Live entitlement check for Service / Overlay commit boundaries. */
+    /** Live consent and entitlement check for Service / Overlay commit boundaries. */
     fun allowsLiveProtection(): Boolean {
-        if (privacyWithdrawn()) return false
+        if (!privacyAllowedNow()) return false
         return actionPolicy.evaluate(EntitlementCapability.APP_LOCK_PROTECTION) is ActionDecision.Allowed
     }
 
@@ -86,17 +86,20 @@ class AppLockProtectionCoordinator(
      * Never mutates Room lock configuration.
      */
     suspend fun reconcile() {
-        val privacy = !privacyWithdrawn() && runCatching { privacyOk() }.getOrDefault(false)
-        val entitled = allowsLiveProtection()
+        val privacyConfirmed = runCatching { privacyOk() }.getOrDefault(false)
         // Read Room count before taking the gate so we never start/stop on a stale AtomicInteger.
-        val lockedCount = runCatching { lockedPackageCount() }.getOrDefault(0)
+        val lockedCount = if (privacyConfirmed) {
+            runCatching { lockedPackageCount() }.getOrDefault(0)
+        } else 0
         synchronized(reconcileGate) {
+            // Consent may have been revoked while the Room lookup was suspended.
+            val privacy = privacyConfirmed && privacyAllowedNow()
             val inputs = AppLockProtectionInputs(
-                entitled = entitled,
+                entitled = privacy && allowsLiveProtection(),
                 lockedPackageCount = lockedCount,
                 privacyOk = privacy,
-                usageAccess = usageAccessGranted(),
-                overlayPermission = overlayPermissionGranted(),
+                usageAccess = privacy && usageAccessGranted(),
+                overlayPermission = privacy && privacyAllowedNow() && overlayPermissionGranted(),
                 processForeground = processForeground(),
                 monitorRunning = isMonitorRunning(),
             )

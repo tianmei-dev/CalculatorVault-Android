@@ -42,12 +42,9 @@ class AppLockMonitorService : Service() {
     @Volatile
     private var lockedPackages: Set<String> = emptySet()
 
-    override fun onCreate() {
-        super.onCreate()
-        isRunning = true
-        runningService = java.lang.ref.WeakReference(this)
-        if (BuildConfig.DEBUG) Log.d(TAG, "service started")
-        val app = applicationContext as CalculatorVaultApp
+    private fun startProtectionIfNeeded(app: CalculatorVaultApp, foregroundStarted: Boolean): Boolean {
+        if (isRunning) return true
+        if (!foregroundStarted && !startAsForegroundIfPossible()) return false
         overlayController = AppLockOverlayController(
             context = applicationContext,
             vaultUnlockUseCase = app.vaultUnlockUseCase,
@@ -56,39 +53,49 @@ class AppLockMonitorService : Service() {
             protectionStillAllowed = { app.appLockProtectionCoordinator.allowsLiveProtection() },
             expectedGeneration = { app.appLockProtectionCoordinator.protectionGeneration() },
         )
-        startAsForegroundIfPossible()
+        isRunning = true
+        runningService = java.lang.ref.WeakReference(this)
+        if (BuildConfig.DEBUG) Log.d(TAG, "service started")
+        return true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
-            else -> serviceScope.launch {
-                val app = applicationContext as CalculatorVaultApp
-                val privacyAllowed = runCatching { app.hasPrivacyConsent() }.getOrDefault(false)
-                val entitled = app.appLockProtectionCoordinator.allowsLiveProtection()
-                withContext(Dispatchers.Main) {
-                    if (privacyAllowed && !app.privacyWithdrawn && entitled) {
-                        observeLockedPackages()
-                        startMonitoring()
-                    } else {
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "onStartCommand refused privacy=$privacyAllowed entitled=$entitled")
-                        }
-                        app.appLockProtectionCoordinator.bumpGeneration()
-                        overlayController?.hide()
-                        app.appLockSessionManager.clearAll()
-                        stopSelf()
-                    }
+        val app = applicationContext as CalculatorVaultApp
+        if (intent?.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // A non-null request came from start() while consent was valid. Acknowledge
+        // its Android foreground-service deadline even if consent has since changed.
+        // System sticky restarts have no such request and wait for current consent.
+        val foregroundStarted = isRunning || (intent != null && startAsForegroundIfPossible())
+        if (intent != null && !foregroundStarted) return START_NOT_STICKY
+        if (intent != null && !app.privacyConsent.isAllowedNow()) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        serviceScope.launch {
+            val privacyAllowed = runCatching { app.hasPrivacyConsent() }.getOrDefault(false)
+            withContext(Dispatchers.Main) {
+                val protectionReady = privacyAllowed && app.privacyConsent.runIfAllowed {
+                    app.appLockProtectionCoordinator.allowsLiveProtection() &&
+                        startProtectionIfNeeded(app, foregroundStarted)
+                } == true
+                if (protectionReady) {
+                    observeLockedPackages()
+                    startMonitoring()
+                } else {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "onStartCommand refused protection")
+                    if (isRunning) app.appLockProtectionCoordinator.bumpGeneration()
+                    overlayController?.hide()
+                    app.appLockSessionManager.clearAll()
+                    stopSelfResult(startId)
                 }
             }
         }
-        // Sticky only while entitled; otherwise avoid restart loops without protection rights.
-        return if ((applicationContext as CalculatorVaultApp)
-                .appLockProtectionCoordinator.allowsLiveProtection()
-        ) {
+        // Preserve a system sticky restart while persisted consent is checked above. An
+        // invalid restart stops itself before posting a notification or starting monitoring.
+        return if (intent == null || app.appLockProtectionCoordinator.allowsLiveProtection()) {
             START_STICKY
         } else {
             START_NOT_STICKY
@@ -121,11 +128,12 @@ class AppLockMonitorService : Service() {
     private fun startMonitoring() {
         if (monitorJob?.isActive == true) return
         val app = applicationContext as CalculatorVaultApp
-        val usagePermissionHelper = UsageAccessPermissionHelper(applicationContext)
+        val usagePermissionHelper = UsageAccessPermissionHelper(applicationContext, app.privacyConsent)
         val overlayPermissionHelper = OverlayPermissionHelper(applicationContext)
         val detector = UsageStatsForegroundAppDetector(
             context = applicationContext,
             permissionHelper = usagePermissionHelper,
+            consent = app.privacyConsent,
         )
         monitorJob = serviceScope.launch {
             if (BuildConfig.DEBUG) Log.d(TAG, "usage access granted=${usagePermissionHelper.hasUsageAccess()}")
@@ -289,7 +297,7 @@ class AppLockMonitorService : Service() {
     private val packageNameSelf: String
         get() = packageName
 
-    private fun startAsForegroundIfPossible() {
+    private fun startAsForegroundIfPossible(): Boolean {
         createNotificationChannel()
         try {
             // API 34+ requires the declared specialUse type or startForeground fails / times out.
@@ -299,6 +307,7 @@ class AppLockMonitorService : Service() {
                 buildNotification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
             )
+            return true
         } catch (error: RuntimeException) {
             if (BuildConfig.DEBUG) Log.w(TAG, "start foreground failed=${error::class.java.simpleName}")
             // Must not leave a half-started FGS: Android kills the process with
@@ -306,6 +315,7 @@ class AppLockMonitorService : Service() {
             isRunning = false
             runningService = null
             stopSelf()
+            return false
         }
     }
 
@@ -353,39 +363,47 @@ class AppLockMonitorService : Service() {
 
         /**
          * @return true if a start was requested without an immediate rejection;
-         * false if privacy withdrawn or the platform refused background FGS start.
+         * false if current consent is missing or the platform refused background FGS start.
          * Room configuration is never cleared on failure.
          */
         fun start(context: Context): Boolean {
-            if ((context.applicationContext as CalculatorVaultApp).privacyWithdrawn) return false
-            val intent = Intent(context, AppLockMonitorService::class.java)
-            return try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
+            val app = context.applicationContext as CalculatorVaultApp
+            return app.privacyConsent.runIfAllowed {
+                val intent = Intent(context, AppLockMonitorService::class.java)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(intent)
+                    } else {
+                        context.startService(intent)
+                    }
+                    true
+                } catch (error: IllegalStateException) {
+                    if (BuildConfig.DEBUG) {
+                        Log.w(TAG, "FGS start refused=${error::class.java.simpleName}; config retained")
+                    }
+                    false
+                } catch (error: RuntimeException) {
+                    if (BuildConfig.DEBUG) {
+                        Log.w(TAG, "service start failed=${error::class.java.simpleName}; config retained")
+                    }
+                    false
                 }
-                true
-            } catch (error: IllegalStateException) {
-                if (BuildConfig.DEBUG) {
-                    Log.w(TAG, "FGS start refused=${error::class.java.simpleName}; config retained")
-                }
-                false
-            } catch (error: RuntimeException) {
-                if (BuildConfig.DEBUG) {
-                    Log.w(TAG, "service start failed=${error::class.java.simpleName}; config retained")
-                }
-                false
-            }
+            } ?: false
         }
 
         /** Re-post the existing foreground status after a notification grant, without restarting monitoring. */
         fun refreshStatusNotification() {
-            if (isRunning) runningService?.get()?.startAsForegroundIfPossible()
+            if (!isRunning) return
+            val service = runningService?.get() ?: return
+            val app = service.applicationContext as CalculatorVaultApp
+            app.privacyConsent.runIfAllowed { service.startAsForegroundIfPossible() }
         }
 
         fun stop(context: Context) {
-            runningService?.get()?.releaseMonitoring()
+            // A queued start that has not initialized protection will still reach its
+            // consent check. Stopping it before foreground promotion can crash Android.
+            val service = runningService?.get() ?: return
+            service.releaseMonitoring()
             context.stopService(Intent(context, AppLockMonitorService::class.java))
         }
 

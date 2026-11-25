@@ -101,19 +101,38 @@ class PrivacyConsentTest {
         trial.sync(); runCurrent(); assertEquals(0,identity.calls); assertEquals(0,api.calls)
     }
     @Test fun reacceptanceDoesNotResetTrialOriginOrRemainingCap() = runTest {
-        val source=Source(current().copy(privacyVersion="1.0")); val gate=PrivacyConsentGate(source::read)
+        val source=Source(current()); val gate=PrivacyConsentGate(source::read)
         val clock=DeviceTrialTest.Clock(); val store=DeviceTrialTest.Store(); val api=DeviceTrialTest.Api(clock)
         val trial=DeviceTrialRepository(store,clock,DeviceTrialTest.FakeDeviceIdentityProvider(),api,backgroundScope,gate::check,{true})
         trial.sync(); runCurrent(); val origin=store.value!!.firstOpened
-        clock.advance(3600000); repository(source).acceptPrivacy(); trial.sync(); runCurrent()
-        assertEquals(origin,store.value!!.firstOpened); assertEquals(TRIAL_MILLIS-3600000,trial.state.value.remainingMillis)
+        clock.advance(3_600_000)
+        source.value = current().copy(privacyVersion = "1.0")
+        val restartedGate = PrivacyConsentGate(source::read)
+        val restartedTrial = DeviceTrialRepository(
+            store, clock, DeviceTrialTest.FakeDeviceIdentityProvider(), api, backgroundScope, restartedGate::check, { true },
+        )
+        restartedTrial.sync()
+        runCurrent()
+        assertEquals(1, api.calls)
+        repository(source).acceptPrivacy()
+        restartedTrial.sync()
+        runCurrent()
+        assertEquals(2, api.calls)
+        assertEquals(origin, store.value!!.firstOpened)
+        assertEquals(TRIAL_MILLIS - 3_600_000, restartedTrial.state.value.remainingMillis)
     }
     @Test fun lateTrialReplyAfterWithdrawalCannotConfirmState() = runTest {
         val gate=PrivacyConsentGate { current() }; val clock=DeviceTrialTest.Clock(); val store=DeviceTrialTest.Store()
         val api=DeviceTrialTest.Api(clock).apply { this.gate=CompletableDeferred() }
         val trial=DeviceTrialRepository(store,clock,DeviceTrialTest.FakeDeviceIdentityProvider(),api,backgroundScope,gate::check,{true})
-        trial.sync(); runCurrent(); gate.revoke(); api.gate!!.complete(Unit); runCurrent()
-        assertFalse(store.value!!.verified); assertNotEquals(TrialStatus.ACTIVE,trial.state.value.status)
+        trial.sync()
+        runCurrent()
+        assertEquals(1, api.calls)
+        gate.revoke()
+        api.gate!!.complete(Unit)
+        runCurrent()
+        assertNull(store.value)
+        assertNotEquals(TrialStatus.ACTIVE, trial.state.value.status)
     }
     @Test fun wechatStartAndCallbackAreBlockedByRevokedGate() = runTest {
         val gate=PrivacyConsentGate { current() }; assertTrue(gate.check())

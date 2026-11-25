@@ -16,7 +16,8 @@
     <string name="privacy_policy_link">《隐私政策》</string>
     <string name="privacy_children_policy_link">《儿童个人信息保护规则》</string>
     <string name="agree_and_continue">同意并继续</string>
-    <string name="decline_and_exit">不同意并退出</string>
+    <string name="decline_and_use_calculator">不同意仅使用计算器</string>
+    <string name="privacy_calculator_notice">如您不同意相关协议，仍可使用基本计算器功能。</string>
     <string name="privacy_saving">正在保存…</string>
     <string name="privacy_save_failed">隐私协议状态保存失败，请重试</string>
     <string name="create_password_title">创建密码</string>

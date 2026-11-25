@@ -37,6 +37,16 @@ enum class LegalDocumentType(
         routeValue = "permission_description",
         titleRes = R.string.legal_permission_description,
         assetPath = "legal/permission_description.txt",
+    ),
+    MembershipServiceAgreement(
+        routeValue = "membership_service_agreement",
+        titleRes = R.string.legal_membership_service_agreement,
+        assetPath = "legal/membership_service_agreement.txt",
+    ),
+    ThirdPartyInformationSharingList(
+        routeValue = "third_party_information_sharing_list",
+        titleRes = R.string.legal_third_party_information_sharing_list,
+        assetPath = "legal/third_party_information_sharing_list.txt",
     );
 
     companion object {

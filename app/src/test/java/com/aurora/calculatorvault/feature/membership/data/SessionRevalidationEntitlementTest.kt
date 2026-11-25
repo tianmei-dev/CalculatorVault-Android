@@ -385,7 +385,7 @@ class SessionRevalidationEntitlementTest {
             observeLockedPackages = { locked },
             lockedPackageCount = { locked.value.size },
             privacyOk = { true },
-            privacyWithdrawn = { false },
+            privacyAllowedNow = { true },
             usageAccessGranted = { true },
             overlayPermissionGranted = { true },
             processForeground = { true },

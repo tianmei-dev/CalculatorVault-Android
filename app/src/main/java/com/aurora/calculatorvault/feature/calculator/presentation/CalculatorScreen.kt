@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -129,23 +130,28 @@ private val calculatorKeys = listOf(
 @Composable
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
-    onOpenVault: () -> Unit,
+    onOpenVault: () -> Unit = {},
+    onOpenPrivacyConsent: (() -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
-    val revealState by viewModel.passwordRevealState.collectAsState()
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            if (effect == CalculatorEffect.OpenVault) onOpenVault()
+    if (!viewModel.isBasicMode) {
+        val revealState by viewModel.passwordRevealState.collectAsState()
+        val openVault by rememberUpdatedState(onOpenVault)
+        LaunchedEffect(viewModel) {
+            viewModel.effects.collect { effect ->
+                if (effect == CalculatorEffect.OpenVault) openVault()
+            }
         }
+        PasswordRevealDialog(
+            state = revealState,
+            onDismiss = viewModel::dismissPasswordReveal,
+        )
     }
     CalculatorContent(
         state = state,
         onAction = viewModel::onAction,
-        onDeleteLongClick = viewModel::revealCurrentPassword,
-    )
-    PasswordRevealDialog(
-        state = revealState,
-        onDismiss = viewModel::dismissPasswordReveal,
+        onDeleteLongClick = if (viewModel.isBasicMode) null else viewModel::revealCurrentPassword,
+        onOpenPrivacyConsent = if (viewModel.isBasicMode) onOpenPrivacyConsent else null,
     )
 }
 
@@ -153,7 +159,8 @@ fun CalculatorScreen(
 private fun CalculatorContent(
     state: CalculatorUiState,
     onAction: (CalculatorAction) -> Unit,
-    onDeleteLongClick: () -> Unit,
+    onDeleteLongClick: (() -> Unit)?,
+    onOpenPrivacyConsent: (() -> Unit)?,
 ) {
     val displayText = when (state.error) {
         CalculatorError.DivisionByZero -> stringResource(R.string.calculator_error_division_by_zero)
@@ -174,6 +181,18 @@ private fun CalculatorContent(
             .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
+        if (onOpenPrivacyConsent != null) {
+            TextButton(
+                onClick = onOpenPrivacyConsent,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_privacy_documents),
+                    style = AppTextStyles.Button,
+                    color = AppColors.AccentPrimary,
+                )
+            }
+        }
         Column(
             modifier = Modifier.fillMaxWidth().weight(1f),
             horizontalAlignment = Alignment.End,

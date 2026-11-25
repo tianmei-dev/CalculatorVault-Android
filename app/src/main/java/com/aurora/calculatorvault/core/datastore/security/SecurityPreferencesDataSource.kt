@@ -74,6 +74,7 @@ class DataStoreSecurityPreferencesDataSource(
     override suspend fun withdrawPrivacy() {
         dataStore.edit { preferences ->
             preferences[Keys.PrivacyAccepted] = false
+            preferences[Keys.PrivacyDeclined] = true
             preferences.remove(Keys.PrivacyVersion)
             preferences.remove(Keys.PrivacyAcceptedAt)
         }
@@ -98,6 +99,7 @@ class DataStoreSecurityPreferencesDataSource(
             passwordRecoveryVersion = preferences[Keys.PasswordRecoveryVersion],
             passwordRecoveryUpdatedAt = preferences[Keys.PasswordRecoveryUpdatedAt],
             onboardingCompleted = preferences[Keys.OnboardingCompleted] ?: false,
+            privacyDeclined = preferences[Keys.PrivacyDeclined] ?: false,
         )
     }
 
@@ -107,6 +109,7 @@ class DataStoreSecurityPreferencesDataSource(
     ) {
         dataStore.edit { preferences ->
             preferences[Keys.PrivacyAccepted] = true
+            preferences.remove(Keys.PrivacyDeclined)
             preferences[Keys.PrivacyVersion] = version
             preferences[Keys.PrivacyAcceptedAt] = acceptedAt
         }
@@ -212,6 +215,7 @@ class DataStoreSecurityPreferencesDataSource(
 
     private object Keys {
         val PrivacyAccepted = booleanPreferencesKey("privacy_accepted")
+        val PrivacyDeclined = booleanPreferencesKey("privacy_declined")
         val PrivacyVersion = stringPreferencesKey("privacy_version")
         val PrivacyAcceptedAt = longPreferencesKey("privacy_accepted_at")
         val PasswordConfigured = booleanPreferencesKey("password_configured")

@@ -6,7 +6,7 @@ import com.aurora.calculatorvault.core.datastore.security.SecurityPreferences
 object PrivacyPolicy {
     const val CURRENT_VERSION = "2026-10-28"
     fun hasValidConsent(value: SecurityPreferences): Boolean =
-        value.privacyAccepted && value.privacyVersion == CURRENT_VERSION &&
+        !value.privacyDeclined && value.privacyAccepted && value.privacyVersion == CURRENT_VERSION &&
             (value.privacyAcceptedAt ?: 0L) > 0L
 }
 

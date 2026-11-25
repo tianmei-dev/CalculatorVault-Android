@@ -35,7 +35,7 @@ class OnboardingViewModelTest {
     @Test
     fun `accepting again routes an existing user to calculator without password creation`() = runTest(dispatcher) {
         val repository = FakeOnboardingRepository(
-            startupResult = OnboardingResult.Success(StartupDestination.Calculator),
+            acceptedDestination = StartupDestination.Calculator,
         )
         val viewModel = OnboardingViewModel(repository)
         advanceUntilIdle()
@@ -43,6 +43,7 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
         assertEquals(OnboardingStep.Calculator, viewModel.uiState.value.step)
         assertEquals(0, repository.passwordCalls)
+        assertEquals(1, repository.privacyCalls)
         assertFalse(viewModel.uiState.value.showVaultEntryGuide)
     }
 
@@ -71,6 +72,39 @@ class OnboardingViewModelTest {
 
         assertEquals(1, repository.privacyCalls)
         assertEquals(OnboardingStep.CreatePassword, viewModel.uiState.value.step)
+    }
+
+    @Test
+    fun `refusal is persisted then reopening may decline again or accept`() = runTest(dispatcher) {
+        val repository = FakeOnboardingRepository()
+        var started = 0
+        val viewModel = OnboardingViewModel(repository) { started++ }
+        advanceUntilIdle()
+
+        viewModel.declinePrivacy()
+        viewModel.acceptPrivacy()
+        advanceUntilIdle()
+        assertEquals(1, repository.declineCalls)
+        assertEquals(0, started)
+        assertEquals(OnboardingStep.CalculatorOnly, viewModel.uiState.value.step)
+        assertFalse(viewModel.uiState.value.showVaultEntryGuide)
+
+        val reopened = OnboardingViewModel(repository) { started++ }
+        advanceUntilIdle()
+        assertEquals(OnboardingStep.CalculatorOnly, reopened.uiState.value.step)
+        reopened.openPrivacyFromCalculator()
+        assertTrue(reopened.uiState.value.choosingPrivacyFromCalculator)
+        reopened.returnToCalculatorOnly()
+        assertEquals(OnboardingStep.CalculatorOnly, reopened.uiState.value.step)
+        reopened.openPrivacyFromCalculator()
+        reopened.declinePrivacy()
+        advanceUntilIdle()
+        assertEquals(OnboardingStep.CalculatorOnly, reopened.uiState.value.step)
+        reopened.openPrivacyFromCalculator()
+        reopened.acceptPrivacy()
+        advanceUntilIdle()
+        assertEquals(1, started)
+        assertEquals(OnboardingStep.CreatePassword, reopened.uiState.value.step)
     }
 
     @Test
@@ -188,8 +222,10 @@ class OnboardingViewModelTest {
             OnboardingResult.Success(StartupDestination.PrivacyConsent),
         private val privacyResult: OnboardingResult<Unit> = OnboardingResult.Success(Unit),
         private val passwordResult: OnboardingResult<Unit> = OnboardingResult.Success(Unit),
+        private val acceptedDestination: StartupDestination = StartupDestination.CreatePassword,
     ) : OnboardingRepositoryContract {
         var privacyCalls = 0
+        var declineCalls = 0
         var passwordCalls = 0
 
         override suspend fun resolveStartupDestination(): OnboardingResult<StartupDestination> =
@@ -197,12 +233,16 @@ class OnboardingViewModelTest {
 
         override suspend fun acceptPrivacy(): OnboardingResult<Unit> {
             privacyCalls++
-            if (privacyResult is OnboardingResult.Success &&
-                startupResult == OnboardingResult.Success(StartupDestination.PrivacyConsent)
-            ) {
-                startupResult = OnboardingResult.Success(StartupDestination.CreatePassword)
+            if (privacyResult is OnboardingResult.Success) {
+                startupResult = OnboardingResult.Success(acceptedDestination)
             }
             return privacyResult
+        }
+
+        override suspend fun declinePrivacy(): OnboardingResult<Unit> {
+            declineCalls++
+            startupResult = OnboardingResult.Success(StartupDestination.CalculatorOnly)
+            return OnboardingResult.Success(Unit)
         }
 
         override suspend fun configurePassword(password: CharArray): OnboardingResult<Unit> {

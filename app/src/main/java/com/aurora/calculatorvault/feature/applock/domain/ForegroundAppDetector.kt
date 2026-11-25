@@ -3,6 +3,7 @@ package com.aurora.calculatorvault.feature.applock.domain
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import com.aurora.calculatorvault.core.privacy.PrivacyConsentGate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,6 +21,7 @@ interface ForegroundAppDetector {
 class UsageStatsForegroundAppDetector(
     private val context: Context,
     private val permissionHelper: UsageAccessPermissionHelper,
+    private val consent: PrivacyConsentGate,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
 ) : ForegroundAppDetector {
@@ -31,7 +33,8 @@ class UsageStatsForegroundAppDetector(
         try {
             val end = currentTimeMillis()
             val start = end - AppLockMonitorConfig.FOREGROUND_LOOKBACK_MILLIS
-            val events = manager.queryEvents(start, end) ?: return@withContext ForegroundAppResult.Unavailable
+            val events = consent.runIfAllowed { manager.queryEvents(start, end) }
+                ?: return@withContext ForegroundAppResult.Unavailable
             val event = UsageEvents.Event()
             var foregroundPackage: String? = null
             while (events.hasNextEvent()) {
@@ -60,7 +63,7 @@ class UsageStatsForegroundAppDetector(
         start: Long,
         end: Long,
     ): ForegroundAppResult {
-        val latest = queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
+        val latest = consent.runIfAllowed { queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end) }
             .orEmpty()
             .filter { !it.packageName.isNullOrBlank() }
             .maxByOrNull { it.lastTimeUsed }

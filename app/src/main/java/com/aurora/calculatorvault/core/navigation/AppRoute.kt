@@ -11,6 +11,7 @@ sealed interface AppRoute {
     data object PrivacyPolicy : AppRoute { override val path = "privacy_policy" }
     data object ChildrenPrivacyPolicy : AppRoute { override val path = "children_privacy_policy" }
     data object Calculator : AppRoute { override val path = "calculator" }
+    data object CalculatorOnly : AppRoute { override val path = "calculator_only" }
     data object VaultMain : AppRoute { override val path = "vault_main" }
 }
 
@@ -38,6 +39,7 @@ sealed interface VaultTabRoute {
     data object About : VaultTabRoute { override val path = "vault/settings/about" }
     data object ContactUs : VaultTabRoute { override val path = "vault/settings/contact_us" }
     data object PrivacyDocuments : VaultTabRoute { override val path = "vault/settings/privacy_documents" }
+    data object CollectedInformation : VaultTabRoute { override val path = "vault/settings/collected_information" }
     data object LegalDocument : VaultTabRoute {
         const val TYPE_ARG = "type"
         override val path = "vault/settings/legal/{$TYPE_ARG}"

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="collected_intro">此清单根据当前会话及设备上已有的记录展示核实结果。未发现本地记录的项目仍可能有历史记录。</string>
+    <string name="collected_trial_title">设备试用</string>
+    <string name="collected_trial_status">当前试用状态 · %1$s</string>
+    <string name="collected_trial_not_initialized">未初始化</string>
+    <string name="collected_trial_active">已激活，试用进行中</string>
+    <string name="collected_trial_expired">试用已结束</string>
+    <string name="collected_trial_pending">等待核验</string>
+    <string name="collected_trial_unavailable">核验暂不可用</string>
+    <string name="collected_trial_verification_required">需要核验</string>
+    <string name="collected_trial_reply_recorded">已确认处理 · 本机保存有通过验证的试用响应记录。</string>
+    <string name="collected_trial_reply_unknown">无法核实 · 当前未核实到本机保存的核验响应，试用状态不足以确认此前是否上传过设备标识。</string>
+    <string name="collected_trial_purpose">启用联网核验时，客户端使用 Android ID 核对设备试用资格。本机加密保存试用时间及状态。清单不会读取设备标识，无法核实历史请求中的标识值或服务端保存情况。</string>
+
+    <string name="collected_account_title">账号信息</string>
+    <string name="collected_account_status">当前登录状态 · %1$s</string>
+    <string name="collected_account_guest">未登录</string>
+    <string name="collected_account_authenticating">登录验证中</string>
+    <string name="collected_account_authenticated">已登录（微信）</string>
+    <string name="collected_account_validating">会话验证中</string>
+    <string name="collected_account_unavailable">暂时无法验证会话</string>
+    <string name="collected_account_expired">会话已失效</string>
+    <string name="collected_account_login_failed">登录未完成</string>
+    <string name="collected_account_storage_failed">暂时无法核实本地会话</string>
+    <string name="collected_account_identifier_present">已确认处理 · 客户端当前持有已核实的应用账号标识。</string>
+    <string name="collected_account_credential_present">已确认处理 · 客户端当前持有登录会话凭证，按现有机制加密保存在本机。</string>
+    <string name="collected_account_credential_unverified">当前未核实到已加载的会话凭证。</string>
+    <string name="collected_account_purpose">使用微信登录核验身份、维持账号会话。退出登录后，服务端历史账号数据仍需另行核实。</string>
+
+    <string name="collected_membership_title">会员与交易信息</string>
+    <string name="collected_membership_unknown_account">当前会员状态 · 没有已核实的账号会话，无法核实会员状态。</string>
+    <string name="collected_membership_no_confirmed_vip">当前会员状态 · 未核实到有效会员。客户端无法仅凭当前状态判断是否开通过或已经到期。</string>
+    <string name="collected_membership_monthly">当前会员状态 · 有效月卡会员</string>
+    <string name="collected_membership_annual">当前会员状态 · 有效年卡会员</string>
+    <string name="collected_membership_lifetime">当前会员状态 · 有效永久会员</string>
+    <string name="collected_membership_other">当前会员状态 · 会员有效，未核实具体类型</string>
+    <string name="collected_purchase_unverified">本机待处理记录 · 暂无法核实。</string>
+    <string name="collected_purchase_no_local_record">本机待处理记录 · 当前未发现该账号的记录。</string>
+    <string name="collected_purchase_request_recorded">已确认处理 · 本机有该账号的会员套餐和购会员请求记录，尚未在本机记录订单引用。</string>
+    <string name="collected_purchase_order_reference">已确认处理 · 本机有该账号的会员套餐、购买请求及待处理订单引用，支付结果仍需核实。</string>
+    <string name="collected_purchase_purpose">本机待处理记录用于恢复购买流程。会员状态无法证明某笔订单已支付。服务端交易与历史订单需另行核实。</string>
+
+    <string name="collected_apps_title">应用管理与应用锁</string>
+    <string name="collected_hidden_apps">私密应用</string>
+    <string name="collected_disguises">应用伪装</string>
+    <string name="collected_app_locks">应用锁配置</string>
+    <string name="collected_apps_purpose">已有配置可能包含应用标识、名称、快捷入口设置和加锁状态，用于本机管理入口和保护设置。本清单仅确认是否有配置记录，不读取应用列表或使用情况。</string>
+    <string name="collected_media_title">私密相册</string>
+    <string name="collected_media_records">导入记录</string>
+    <string name="collected_media_purpose">本机导入记录用于管理所选图片、视频及其类型、大小等信息。清单仅确认记录是否存在，不核对文件、读取系统相册或展示内容。</string>
+    <string name="collected_local_row">%1$s · %2$s</string>
+    <string name="collected_local_present">有本地记录</string>
+    <string name="collected_local_absent">当前未发现本地记录</string>
+    <string name="collected_local_unknown">暂无法核实</string>
+
+    <string name="collected_sdk_title">第三方 SDK</string>
+    <string name="collected_sdk_umeng_initialized">友盟统计 · 当前进程已初始化</string>
+    <string name="collected_sdk_umeng_not_initialized">友盟统计 · 当前进程未看到初始化完成</string>
+    <string name="collected_sdk_bugly_initialized">Bugly 异常诊断 · 当前进程已初始化</string>
+    <string name="collected_sdk_bugly_not_initialized">Bugly 异常诊断 · 当前进程未看到初始化完成</string>
+    <string name="collected_sdk_wechat_registered">微信 OpenSDK · 当前进程已注册</string>
+    <string name="collected_sdk_wechat_not_registered">微信 OpenSDK · 当前进程未看到已注册状态</string>
+    <string name="collected_sdk_limits">以上为现有代码的进程状态。各 SDK 实际处理的信息字段、上传情况和历史记录无法由本机清单核实。</string>
+
+    <string name="collected_requests_title">咨询与个人信息权利申请</string>
+    <string name="collected_requests">如需核实服务端历史数据或提出个人信息权利申请，请联系 %1$s。本清单仅覆盖客户端可核实的部分。</string>
+</resources>

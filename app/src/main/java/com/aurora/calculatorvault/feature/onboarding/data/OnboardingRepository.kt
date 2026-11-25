@@ -27,6 +27,7 @@ sealed interface OnboardingResult<out T> {
 interface OnboardingRepositoryContract {
     suspend fun resolveStartupDestination(): OnboardingResult<StartupDestination>
     suspend fun acceptPrivacy(): OnboardingResult<Unit>
+    suspend fun declinePrivacy(): OnboardingResult<Unit>
     suspend fun configurePassword(password: CharArray): OnboardingResult<Unit>
 }
 
@@ -59,6 +60,13 @@ class OnboardingRepository(
             version = PRIVACY_VERSION,
             acceptedAt = currentTimeMillis(),
         )
+        OnboardingResult.Success(Unit)
+    } catch (_: Exception) {
+        OnboardingResult.Failure(OnboardingFailure.PrivacySaveFailed)
+    }
+
+    override suspend fun declinePrivacy(): OnboardingResult<Unit> = try {
+        dataSource.withdrawPrivacy()
         OnboardingResult.Success(Unit)
     } catch (_: Exception) {
         OnboardingResult.Failure(OnboardingFailure.PrivacySaveFailed)

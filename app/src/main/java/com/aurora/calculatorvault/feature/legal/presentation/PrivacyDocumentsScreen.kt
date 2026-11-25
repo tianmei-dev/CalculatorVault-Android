@@ -46,6 +46,7 @@ import com.aurora.calculatorvault.ui.layout.appPagePadding
 fun PrivacyDocumentsScreen(
     onBack: () -> Unit,
     onOpenDocument: (LegalDocumentType) -> Unit,
+    onOpenCollectedInformation: () -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as CalculatorVaultApp
     val controller = app.privacyWithdrawalController
@@ -58,7 +59,6 @@ fun PrivacyDocumentsScreen(
         if (withdrawalState == PrivacyWithdrawalState.Failed) messages.showError(failureMessage)
     }
     BackHandler(enabled = saving) {}
-    val documents = LegalDocumentType.entries
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,9 +83,15 @@ fun PrivacyDocumentsScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
         ) {
             VaultCard(modifier = Modifier.fillMaxWidth()) {
-                documents.forEachIndexed { index, type ->
+                privacyDocuments.forEach { type ->
                     VaultSettingItem(
-                        title = stringResource(type.titleRes),
+                        title = stringResource(
+                            if (type == LegalDocumentType.ChildrenPrivacyPolicy) {
+                                R.string.legal_children_privacy_policy_list_title
+                            } else {
+                                type.titleRes
+                            },
+                        ),
                         icon = when (type) {
                             LegalDocumentType.PrivacyPolicy -> VaultIcons.Privacy
                             LegalDocumentType.ChildrenPrivacyPolicy -> VaultIcons.Security
@@ -93,12 +99,21 @@ fun PrivacyDocumentsScreen(
                             LegalDocumentType.PersonalInformationList -> VaultIcons.Info
                             LegalDocumentType.ThirdPartySdkList -> VaultIcons.Apps
                             LegalDocumentType.PermissionDescription -> VaultIcons.Security
+                            LegalDocumentType.MembershipServiceAgreement -> VaultIcons.Files
+                            LegalDocumentType.ThirdPartyInformationSharingList -> VaultIcons.Apps
                         },
                         onClick = { onOpenDocument(type) },
-                        showDivider = index != documents.lastIndex,
+                        showDivider = true,
                         adaptiveHeight = true,
                     )
                 }
+                VaultSettingItem(
+                    title = stringResource(R.string.legal_collected_information_list_title),
+                    icon = VaultIcons.Info,
+                    onClick = onOpenCollectedInformation,
+                    showDivider = false,
+                    adaptiveHeight = true,
+                )
             }
             Text(
                 text = stringResource(R.string.privacy_management),
@@ -142,3 +157,14 @@ fun PrivacyDocumentsScreen(
         )
     }
 }
+
+private val privacyDocuments = listOf(
+    LegalDocumentType.PrivacyPolicy,
+    LegalDocumentType.UserAgreement,
+    LegalDocumentType.PersonalInformationList,
+    LegalDocumentType.ThirdPartySdkList,
+    LegalDocumentType.PermissionDescription,
+    LegalDocumentType.ChildrenPrivacyPolicy,
+    LegalDocumentType.MembershipServiceAgreement,
+    LegalDocumentType.ThirdPartyInformationSharingList,
+)

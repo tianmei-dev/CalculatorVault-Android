@@ -195,6 +195,11 @@ fun PrivacyConsentScreen(
                 color = bodyColor,
             )
         }
+        Text(
+            text = stringResource(R.string.privacy_calculator_notice),
+            style = AppTextStyles.Body,
+            color = bodyColor,
+        )
         OnboardingErrorText(state.error)
         VaultPrimaryButton(
             text = stringResource(
@@ -205,7 +210,7 @@ fun PrivacyConsentScreen(
             polished = true,
         )
         VaultSecondaryButton(
-            text = stringResource(R.string.decline_and_exit),
+            text = stringResource(R.string.decline_and_use_calculator),
             enabled = !state.isSaving,
             onClick = onDecline,
             polished = true,

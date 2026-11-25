@@ -46,6 +46,9 @@ class DeviceTrialRepository(
     /** Emits once when this process first receives a server-confirmed trial grant. */
     val firstTrialGrantEvents: SharedFlow<Unit> = firstGrantMutable.asSharedFlow()
     private var record: TrialRecord? = null
+
+    // A server timestamp is retained after expiry, independently of the current grant status.
+    internal fun hasVerifiedTrialResponse(): Boolean = record?.serverTime != null
     private var initialized = false
     private var unavailable = false
     private var processAnchor = false

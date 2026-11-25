@@ -85,6 +85,7 @@ import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import com.aurora.calculatorvault.feature.membership.domain.MembershipSyncAfterPurchase
 import com.aurora.calculatorvault.feature.membership.domain.OrderQueryIssue
 import com.aurora.calculatorvault.feature.membership.domain.OrderView
@@ -111,13 +112,12 @@ import kotlinx.coroutines.delay
 fun VipPurchaseScreen(
     viewModel: VipPurchaseViewModel,
     onBack: () -> Unit,
-    onOpenPrivacyPolicy: () -> Unit,
+    onOpenDocument: (LegalDocumentType) -> Unit,
     onRequestLogin: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val messages = LocalAppMessageController.current
     val context = LocalContext.current
-    val servicePending = stringResource(R.string.vip_service_pending)
     val noticeText = noticeTexts()
     val browserUnavailable = stringResource(R.string.vip_notice_browser_unavailable)
     val dark = useVaultDarkVisuals()
@@ -209,8 +209,8 @@ fun VipPurchaseScreen(
                                 PurchaseAgreement(
                                     accepted = state.agreementAccepted,
                                     onChanged = viewModel::setAgreementAccepted,
-                                    onServiceAgreement = { messages.showInfo(servicePending) },
-                                    onPrivacyPolicy = onOpenPrivacyPolicy,
+                                    onServiceAgreement = { onOpenDocument(LegalDocumentType.MembershipServiceAgreement) },
+                                    onPrivacyPolicy = { onOpenDocument(LegalDocumentType.PrivacyPolicy) },
                                 )
                                 Text(
                                     stringResource(R.string.vip_special_notice),

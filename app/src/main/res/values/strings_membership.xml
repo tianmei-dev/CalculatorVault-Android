@@ -32,7 +32,6 @@
     <string name="vip_agreement_and">和</string>
     <string name="vip_agreement_privacy">《隐私政策》</string>
     <string name="vip_agreement_required">请先阅读并同意会员服务协议和隐私政策</string>
-    <string name="vip_service_pending">会员服务协议待接入，当前仅提供页面预览</string>
     <string name="vip_payment_placeholder">支付功能即将开放</string>
     <string name="vip_non_renewing_notice">非自动续费，到期不自动扣费</string>
     <string name="vip_special_notice">本应用不提倡未成年支付，用户需确认自己具有完全民事行为能力。未成年用户需得到监护人同意，才可以进行支付。请监护人切实履行监护义务。</string>

@@ -13,6 +13,8 @@ class BuglyInitializer(
     private val appContext = context.applicationContext
     private val initialized = AtomicBoolean(false)
 
+    internal fun isInitialized(): Boolean = initialized.get()
+
     fun withdrawConsent() {
         if (!initialized.get()) return
         try {

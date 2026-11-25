@@ -1,5 +1,7 @@
 package com.aurora.calculatorvault.feature.applock.presentation
 
+import com.aurora.calculatorvault.app.CalculatorVaultApp
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -224,7 +226,10 @@ class AppLockViewModel(
             require(modelClass.isAssignableFrom(AppLockViewModel::class.java))
             return AppLockViewModel(
                 repository = repository,
-                usagePermissionHelper = UsageAccessPermissionHelper(appContext),
+                usagePermissionHelper = UsageAccessPermissionHelper(
+                    appContext,
+                    consent = (appContext.applicationContext as CalculatorVaultApp).privacyConsent,
+                ),
                 overlayPermissionHelper = OverlayPermissionHelper(appContext),
                 appContext = appContext,
                 analyticsTracker = analyticsTracker,

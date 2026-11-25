@@ -173,6 +173,8 @@ class AccountSessionRepository(
     /** Current access token for authenticated membership queries; never logged. */
     fun peekAccessToken(): String? = credential?.token
 
+    internal fun hasLocalCredential(): Boolean = credential != null
+
     /**
      * Install a server-issued Bearer session (I3.4.3-D2-A).
      *

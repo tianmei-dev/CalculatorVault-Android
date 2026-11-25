@@ -15,6 +15,8 @@ class AnalyticsInitializer(
     private val appContext = context.applicationContext
     private val initialized = AtomicBoolean(false)
 
+    internal fun isInitialized(): Boolean = initialized.get()
+
     fun withdrawConsent() {
         tracker.disable()
         if (initialized.get()) MobclickAgent.disable()

@@ -33,16 +33,18 @@ class SecurityPreferencesDataSourceTest {
         val before = store.data.first().asMap()
         source.withdrawPrivacy()
         val after = store.data.first().asMap()
-        val consentKeys = setOf("privacy_accepted", "privacy_version", "privacy_accepted_at")
+        val consentKeys = setOf("privacy_accepted", "privacy_version", "privacy_accepted_at", "privacy_declined")
         assertEquals(before.filterKeys { it.name !in consentKeys }, after.filterKeys { it.name !in consentKeys })
         val saved = DataStoreSecurityPreferencesDataSource(store).read()
         assertFalse(saved.privacyAccepted)
+        assertTrue(saved.privacyDeclined)
         assertNull(saved.privacyVersion)
         assertNull(saved.privacyAcceptedAt)
         assertTrue(saved.passwordConfigured)
         assertTrue(saved.onboardingCompleted)
         source.acceptPrivacy("1.0", 9999L)
         assertEquals("encoded-hash", source.read().passwordHash)
+        assertFalse(source.read().privacyDeclined)
     }
 
     @Test

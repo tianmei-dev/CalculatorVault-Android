@@ -34,6 +34,8 @@ import com.aurora.calculatorvault.feature.disguise.shortcut.ResolveDisguiseShort
 import com.aurora.calculatorvault.feature.disguise.shortcut.ResourceDisguiseShortcutIconFactory
 import com.aurora.calculatorvault.feature.disguise.shortcut.ShortcutSyncManager
 import com.aurora.calculatorvault.feature.disguise.shortcut.VerifyVaultPasswordUseCase
+import com.aurora.calculatorvault.feature.legal.data.LocalInformationRecords
+import com.aurora.calculatorvault.feature.legal.data.SdkProcessingIndicators
 import com.aurora.calculatorvault.feature.hiddenapp.data.CachedPackageManagerIconProvider
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppRepository
 import com.aurora.calculatorvault.feature.hiddenapp.data.DataStoreHiddenAppPreferences
@@ -54,6 +56,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -92,20 +95,28 @@ class CalculatorVaultApp : Application() {
         UmengAnalyticsTracker(applicationContext, privacyConsent)
     }
 
-    private val analyticsInitializer by lazy {
+    private val analyticsInitializerDelegate = lazy {
         AnalyticsInitializer(
             context = applicationContext,
             consent = privacyConsent,
             tracker = analyticsTracker,
         )
     }
+    private val analyticsInitializer by analyticsInitializerDelegate
 
-    private val buglyInitializer by lazy {
+    private val buglyInitializerDelegate = lazy {
         BuglyInitializer(
             context = applicationContext,
             consent = privacyConsent,
         )
     }
+    private val buglyInitializer by buglyInitializerDelegate
+
+    internal fun readSdkProcessingIndicators(): SdkProcessingIndicators = SdkProcessingIndicators(
+        umengInitialized = analyticsInitializerDelegate.isInitialized() && analyticsInitializer.isInitialized(),
+        buglyInitialized = buglyInitializerDelegate.isInitialized() && buglyInitializer.isInitialized(),
+        wechatRegistered = wechatSdkDelegate.isInitialized() && wechatSdk.isRegistered(),
+    )
 
     val thirdPartySdkInitializer by lazy {
         ThirdPartySdkInitializer(
@@ -126,20 +137,29 @@ class CalculatorVaultApp : Application() {
     suspend fun hasPrivacyConsent(): Boolean =
         !privacyWithdrawn && privacyConsent.check()
 
+    private var privacyFeaturesStarted = false
+
     suspend fun onPrivacyAccepted() {
-        if (!hasPrivacyConsent()) return
-        thirdPartySdkInitializer.initializeIfAllowed()
-        accountSession.restore()
-        deviceTrial.sync()
+        withContext(Dispatchers.Main.immediate) {
+            if (!hasPrivacyConsent() || privacyFeaturesStarted) return@withContext
+            privacyFeaturesStarted = true
+            startPrivacyFeatures()
+            thirdPartySdkInitializer.initializeIfAllowed()
+            if (privacyConsent.isAllowedNow()) {
+                accountSession.restore()
+                deviceTrial.sync()
+                appLockProtectionCoordinator.reconcile()
+            }
+        }
     }
 
     val privacyWithdrawalController by lazy {
         PrivacyWithdrawalController(
             scope = applicationScope,
             persistAndStopSdks = {
+                privacyWithdrawn = true
                 thirdPartySdkInitializer.withdrawConsent {
                     securityPreferencesDataSource.withdrawPrivacy()
-                    privacyWithdrawn = true
                 }
             },
             endSessions = {
@@ -173,6 +193,12 @@ class CalculatorVaultApp : Application() {
             CalculatorVaultDatabase.MIGRATION_5_6,
             CalculatorVaultDatabase.MIGRATION_6_7,
         ).build()
+    }
+
+    internal suspend fun readLocalInformationRecords(): LocalInformationRecords? {
+        if (!privacyConsent.isAllowedNow()) return null
+        return database.collectedInformationDao().readLocalRecords()
+            .takeIf { privacyConsent.isAllowedNow() }
     }
 
     private val launcherAppSource by lazy {
@@ -376,7 +402,8 @@ class CalculatorVaultApp : Application() {
             onLoggedOut = { userId -> paymentRepository.discardPending(userId) })
     }
 
-    val wechatSdk by lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID, privacyConsent) }
+    private val wechatSdkDelegate = lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID, privacyConsent) }
+    val wechatSdk by wechatSdkDelegate
 
     val wechatAuthorization by lazy {
         WeChatAuthorizationCoordinator(
@@ -488,8 +515,10 @@ class CalculatorVaultApp : Application() {
                 appLockRepository.observeLockedPackages().first().size
             },
             privacyOk = { hasPrivacyConsent() },
-            privacyWithdrawn = { privacyWithdrawn },
-            usageAccessGranted = { UsageAccessPermissionHelper(applicationContext).hasUsageAccess() },
+            privacyAllowedNow = privacyConsent::isAllowedNow,
+            usageAccessGranted = {
+                UsageAccessPermissionHelper(applicationContext, consent = privacyConsent).hasUsageAccess()
+            },
             overlayPermissionGranted = { OverlayPermissionHelper(applicationContext).isGranted() },
             processForeground = {
                 ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
@@ -526,6 +555,14 @@ class CalculatorVaultApp : Application() {
                 .runningAppProcesses?.firstOrNull { it.pid == Process.myPid() }?.processName
         }
         if (processName != packageName) return
+        ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleObserver(vaultSessionManager))
+        applicationScope.launch {
+            // Also covers returning with a previously accepted current policy.
+            onPrivacyAccepted()
+        }
+    }
+
+    private fun startPrivacyFeatures() {
         deviceTrial.initialize()
         deviceTrial.startTicker()
         try {
@@ -533,14 +570,20 @@ class CalculatorVaultApp : Application() {
             connectivity.registerDefaultNetworkCallback(
                 object : android.net.ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
-                        applicationScope.launch { deviceTrial.sync() }
-                        paymentRepository.onNetworkAvailable()
+                        applicationScope.launch {
+                            if (!privacyConsent.isAllowedNow()) return@launch
+                            deviceTrial.sync()
+                            paymentRepository.onNetworkAvailable()
+                        }
                     }
 
                     override fun onLost(network: android.net.Network) {
-                        // A replacement default network may already be active; only report a real loss.
-                        val active = connectivity.activeNetwork
-                        if (active == null || active == network) paymentRepository.onNetworkLost()
+                        applicationScope.launch {
+                            if (!privacyConsent.isAllowedNow()) return@launch
+                            // A replacement default network may already be active; only report a real loss.
+                            val active = connectivity.activeNetwork
+                            if (active == null || active == network) paymentRepository.onNetworkLost()
+                        }
                     }
                 })
             if (connectivity.activeNetwork == null) paymentRepository.onNetworkLost()
@@ -550,11 +593,9 @@ class CalculatorVaultApp : Application() {
                 if (hasPrivacyConsent()) deviceTrial.sync()
             }
         }
-        ProcessLifecycleOwner.get().lifecycle.addObserver(
-            AppLifecycleObserver(vaultSessionManager),
-        )
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
             override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                if (!privacyConsent.isAllowedNow()) return
                 accountSession.revalidate()
                 deviceTrial.refresh()
                 deviceTrial.sync()
@@ -564,13 +605,6 @@ class CalculatorVaultApp : Application() {
         })
         appLockProtectionCoordinator.start()
         membershipRefreshCoordinator.start()
-        applicationScope.launch {
-            // Persisted consent is read before either third-party SDK is touched.
-            thirdPartySdkInitializer.initializeIfAllowed()
-            if (hasPrivacyConsent()) accountSession.restore()
-            deviceTrial.sync()
-            appLockProtectionCoordinator.reconcile()
-        }
     }
 
     private companion object {

@@ -107,10 +107,18 @@ class StartupDestinationResolverTest {
     @Test
     fun `privacy rejection takes precedence over complete password material`() {
         assertEquals(
-            StartupDestination.PrivacyConsent,
+            StartupDestination.CalculatorOnly,
             StartupDestinationResolver.resolve(
-                completePreferences().copy(privacyAccepted = false),
+                completePreferences().copy(privacyDeclined = true),
             ),
+        )
+    }
+
+    @Test
+    fun `previous privacy version still needs a choice`() {
+        assertEquals(
+            StartupDestination.PrivacyConsent,
+            StartupDestinationResolver.resolve(completePreferences().copy(privacyVersion = "older")),
         )
     }
 

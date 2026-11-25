@@ -35,10 +35,8 @@ class WXEntryActivity : ComponentActivity(), IWXAPIEventHandler {
     private fun processCallback(callback: Intent) {
         lifecycleScope.launch {
             try {
-                if (!app.hasPrivacyConsent()) {
-                    app.wechatAuthorization.cancel(privacyWithdrawn = true)
-                    showResult()
-                } else if (app.wechatAuthorization.hasPendingRequest()) {
+                if (!app.hasPrivacyConsent()) return@launch
+                if (app.wechatAuthorization.hasPendingRequest()) {
                     if (!app.wechatSdk.handleIntent(callback, this@WXEntryActivity)) {
                         app.wechatAuthorization.rejectIntent()
                         showResult()
@@ -47,8 +45,10 @@ class WXEntryActivity : ComponentActivity(), IWXAPIEventHandler {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                app.wechatAuthorization.rejectIntent()
-                showResult()
+                if (app.privacyConsent.isAllowedNow()) {
+                    app.wechatAuthorization.rejectIntent()
+                    showResult()
+                }
             } finally {
                 // Do not keep incoming authorization extras in an Activity intent/history.
                 callback.replaceExtras(null as Bundle?)
@@ -60,7 +60,8 @@ class WXEntryActivity : ComponentActivity(), IWXAPIEventHandler {
     override fun onReq(req: BaseReq) = Unit
 
     override fun onResp(resp: BaseResp) {
-        if (resp is SendAuth.Resp && resp.type == ConstantsAPI.COMMAND_SENDAUTH && !app.privacyWithdrawn) {
+        if (!app.privacyConsent.isAllowedNow()) return
+        if (resp is SendAuth.Resp && resp.type == ConstantsAPI.COMMAND_SENDAUTH) {
             app.wechatAuthorization.onAuthorizationResponse(resp.errCode, resp.state, resp.code)
         } else {
             app.wechatAuthorization.rejectIntent()

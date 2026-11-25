@@ -48,9 +48,11 @@ class PrivacyWithdrawalPersistenceTest {
         try {
             val reopened = PreferenceDataStoreFactory.create(scope = CoroutineScope(secondJob + Dispatchers.IO)) { file }
             val restored = DataStoreSecurityPreferencesDataSource(reopened)
-            assertEquals(StartupDestination.PrivacyConsent, StartupDestinationResolver.resolve(restored.read()))
+            assertEquals(StartupDestination.CalculatorOnly, StartupDestinationResolver.resolve(restored.read()))
+            assertTrue(restored.read().privacyDeclined)
             assertNull(restored.read().privacyAcceptedAt)
             restored.acceptPrivacy(PrivacyPolicy.CURRENT_VERSION, 789L)
+            assertFalse(restored.read().privacyDeclined)
             assertEquals(StartupDestination.Calculator, StartupDestinationResolver.resolve(restored.read()))
             assertTrue(StoredVaultPasswordVerifier(restored, hasher).verify("0123".toCharArray()))
             GuideType.entries.forEach { assertFalse(GuidePreferences(reopened).claim(it)) }

@@ -381,12 +381,16 @@ class PrivateMediaEntitlementInstrumentationTest {
     private suspend fun ensureInitialized() {
         when (val dest = app.onboardingRepository.resolveStartupDestination()) {
             is OnboardingResult.Success -> when (dest.value) {
-                StartupDestination.PrivacyConsent -> {
+                StartupDestination.PrivacyConsent, StartupDestination.CalculatorOnly -> {
                     assertTrue(app.onboardingRepository.acceptPrivacy() is OnboardingResult.Success)
-                    assertTrue(
-                        app.onboardingRepository.configurePassword(charArrayOf('1', '3', '5', '7', '9', '0'))
-                            is OnboardingResult.Success,
-                    )
+                    if (app.onboardingRepository.resolveStartupDestination() ==
+                        OnboardingResult.Success(StartupDestination.CreatePassword)
+                    ) {
+                        assertTrue(
+                            app.onboardingRepository.configurePassword(charArrayOf('1', '3', '5', '7', '9', '0'))
+                                is OnboardingResult.Success,
+                        )
+                    }
                 }
                 StartupDestination.CreatePassword -> {
                     assertTrue(

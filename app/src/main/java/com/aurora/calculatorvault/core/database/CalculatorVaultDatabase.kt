@@ -10,6 +10,7 @@ import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppDao
 import com.aurora.calculatorvault.feature.hiddenapp.data.HiddenAppEntity
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryDao
 import com.aurora.calculatorvault.feature.disguise.data.DisguiseEntryEntity
+import com.aurora.calculatorvault.feature.legal.data.CollectedInformationDao
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultAlbumDao
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultAlbumEntity
 import com.aurora.calculatorvault.feature.privatemedia.data.VaultMediaDao
@@ -32,6 +33,7 @@ abstract class CalculatorVaultDatabase : RoomDatabase() {
     abstract fun appLockDao(): AppLockDao
     abstract fun vaultAlbumDao(): VaultAlbumDao
     abstract fun vaultMediaDao(): VaultMediaDao
+    abstract fun collectedInformationDao(): CollectedInformationDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {

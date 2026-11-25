@@ -6,6 +6,7 @@ enum class OnboardingStep {
     CreatePassword,
     ConfirmPassword,
     Calculator,
+    CalculatorOnly,
 }
 
 sealed interface OnboardingError {
@@ -26,6 +27,7 @@ data class OnboardingUiState(
     val isSaving: Boolean = false,
     val error: OnboardingError? = null,
     val showVaultEntryGuide: Boolean = false,
+    val choosingPrivacyFromCalculator: Boolean = false,
 ) {
     val canContinuePassword: Boolean
         get() = passwordLength in 4..8 && !isSaving

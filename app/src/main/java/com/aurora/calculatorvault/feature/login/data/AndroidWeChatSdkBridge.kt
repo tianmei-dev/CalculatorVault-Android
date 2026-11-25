@@ -18,6 +18,9 @@ class AndroidWeChatSdkBridge(context: Context, private val appId: String, privat
     private var registered = false
 
     @Synchronized
+    internal fun isRegistered(): Boolean = registered
+
+    @Synchronized
     override fun prepare(): WeChatSdkAvailability =
         consent.runIfAllowed { prepareWithConsent() } ?: WeChatSdkAvailability.InitializationFailed
 

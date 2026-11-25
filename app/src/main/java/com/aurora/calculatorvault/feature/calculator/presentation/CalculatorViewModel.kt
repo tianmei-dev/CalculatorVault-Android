@@ -26,6 +26,8 @@ class CalculatorViewModel(
     private val unlockUseCase: VaultUnlockUseCase? = null,
     private val sessionManager: VaultSessionManager? = null,
     private val passwordRecoveryRepository: PasswordRecoveryRepository? = null,
+    val isBasicMode: Boolean = false,
+    private val hasPrivacyConsent: () -> Boolean = { true },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalculatorState())
@@ -48,10 +50,10 @@ class CalculatorViewModel(
     private var unlockJobActive = false
 
     init {
-        sessionManager?.let { manager ->
+        if (!isBasicMode && sessionManager != null) {
             viewModelScope.launch {
-                var observedGeneration = initialLockGeneration ?: manager.lockGeneration.value
-                manager.lockGeneration.collect { generation ->
+                var observedGeneration = initialLockGeneration ?: sessionManager.lockGeneration.value
+                sessionManager.lockGeneration.collect { generation ->
                     if (generation != observedGeneration) {
                         observedGeneration = generation
                         unlockJobActive = false
@@ -65,6 +67,10 @@ class CalculatorViewModel(
     }
 
     fun onAction(action: CalculatorAction) {
+        if (!canAccessVault()) {
+            _uiState.update { state -> engine.reduce(state, action) }
+            return
+        }
         if (unlockJobActive) return
         val currentState = _uiState.value
         when (action) {
@@ -86,14 +92,21 @@ class CalculatorViewModel(
     }
 
     fun revealCurrentPassword() {
+        if (!canAccessVault()) return
         if (_passwordRevealState.value is CalculatorPasswordRevealState.Visible) return
         val repository = passwordRecoveryRepository ?: run {
             _passwordRevealState.value = CalculatorPasswordRevealState.Unavailable
             return
         }
         viewModelScope.launch {
+            if (!canAccessVault()) return@launch
             dismissPasswordReveal()
-            _passwordRevealState.value = when (val result = repository.reveal()) {
+            val result = repository.reveal()
+            if (!canAccessVault()) {
+                (result as? PasswordRecoveryResult.Success)?.password?.fill(NULL_CHAR)
+                return@launch
+            }
+            _passwordRevealState.value = when (result) {
                 is PasswordRecoveryResult.Success ->
                     CalculatorPasswordRevealState.Visible(result.password)
                 PasswordRecoveryResult.Unavailable,
@@ -127,8 +140,13 @@ class CalculatorViewModel(
         unlockJobActive = true
         viewModelScope.launch {
             try {
-                val verified = useCase.verify(candidate)
-                if (_uiState.value == candidateState && verified && manager.tryUnlock()) {
+                val verified = if (canAccessVault()) {
+                    useCase.verify(candidate)
+                } else {
+                    candidate.fill(NULL_CHAR)
+                    false
+                }
+                if (_uiState.value == candidateState && verified && canAccessVault() && manager.tryUnlock()) {
                     clearUnlockCandidate(allowNewRound = true)
                     _uiState.value = CalculatorState()
                     _effects.send(CalculatorEffect.OpenVault)
@@ -158,7 +176,7 @@ class CalculatorViewModel(
         }
         try {
             withTimeoutOrNull(RECOVERY_BACKFILL_TIMEOUT_MS) {
-                if (!repository.hasMaterial()) {
+                if (canAccessVault() && !repository.hasMaterial() && canAccessVault()) {
                     repository.store(candidate)
                 } else {
                     candidate.fill(NULL_CHAR)
@@ -168,6 +186,8 @@ class CalculatorViewModel(
             candidate.fill(NULL_CHAR)
         }
     }
+
+    private fun canAccessVault(): Boolean = !isBasicMode && hasPrivacyConsent()
 
     private fun recordUnlockDigit(
         state: CalculatorState,
@@ -228,6 +248,7 @@ class CalculatorViewModel(
         private val unlockUseCase: VaultUnlockUseCase,
         private val sessionManager: VaultSessionManager,
         private val passwordRecoveryRepository: PasswordRecoveryRepository,
+        private val hasPrivacyConsent: () -> Boolean,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -236,7 +257,16 @@ class CalculatorViewModel(
                 unlockUseCase = unlockUseCase,
                 sessionManager = sessionManager,
                 passwordRecoveryRepository = passwordRecoveryRepository,
+                hasPrivacyConsent = hasPrivacyConsent,
             ) as T
+        }
+    }
+
+    object BasicFactory : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            require(modelClass.isAssignableFrom(CalculatorViewModel::class.java))
+            return CalculatorViewModel(isBasicMode = true) as T
         }
     }
 
