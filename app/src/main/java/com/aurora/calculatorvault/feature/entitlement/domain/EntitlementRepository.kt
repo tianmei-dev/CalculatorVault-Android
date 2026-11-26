@@ -1,5 +1,6 @@
 package com.aurora.calculatorvault.feature.entitlement.domain
 
+import com.aurora.calculatorvault.feature.admin.AdminSession
 import com.aurora.calculatorvault.feature.login.session.AccountSession
 import com.aurora.calculatorvault.feature.login.session.AccountSessionRepository
 import com.aurora.calculatorvault.feature.login.session.entitlementAccount
@@ -17,7 +18,8 @@ import kotlinx.coroutines.flow.onEach
 
 /**
  * Application-scoped entitlement truth.
- * Combines device trial, account session, and [MembershipProvider] without mutating those sources.
+ * Combines admin session, device trial, account session, and [MembershipProvider]
+ * without mutating those sources. Priority: Admin > WeChat VIP > device trial > none.
  */
 class EntitlementRepository(
     private val deviceTrial: DeviceTrialRepository,
@@ -26,6 +28,7 @@ class EntitlementRepository(
     private val elapsedRealtime: () -> Long,
     private val wallClockEpochMillis: () -> Long,
     scope: CoroutineScope,
+    private val adminSession: StateFlow<AdminSession> = MutableStateFlow(AdminSession.Inactive),
 ) {
     private val mutableState = MutableStateFlow(EntitlementState())
     val state: StateFlow<EntitlementState> = mutableState.asStateFlow()
@@ -59,7 +62,13 @@ class EntitlementRepository(
             }
             val trial = deviceTrial.state.value
             val session = accountSession.state.value
-            val snap = computeState(trial, session, elapsedRealtime(), wallClockEpochMillis())
+            val snap = computeState(
+                trial,
+                session,
+                adminSession.value,
+                elapsedRealtime(),
+                wallClockEpochMillis(),
+            )
             mutableState.value = snap
             return decide(capability, resolveEffectiveSource(snap, elapsedRealtime(), wallClockEpochMillis()))
         }
@@ -69,8 +78,13 @@ class EntitlementRepository(
         // Optional membership revision ticks (ServerMembershipProvider); Default/Fake ignore.
         val membershipRevision =
             (membershipProvider as? MembershipStateSignal)?.membershipStateRevision ?: flowOf(0L)
-        combine(deviceTrial.state, accountSession.state, membershipRevision) { trial, session, _ ->
-            computeState(trial, session, elapsedRealtime(), wallClockEpochMillis())
+        combine(
+            deviceTrial.state,
+            accountSession.state,
+            membershipRevision,
+            adminSession,
+        ) { trial, session, _, admin ->
+            computeState(trial, session, admin, elapsedRealtime(), wallClockEpochMillis())
         }.onEach { mutableState.value = it }.launchIn(scope)
     }
 
@@ -80,6 +94,7 @@ class EntitlementRepository(
         mutableState.value = computeState(
             deviceTrial.state.value,
             accountSession.state.value,
+            adminSession.value,
             elapsedRealtime(),
             wallClockEpochMillis(),
         )
@@ -136,6 +151,7 @@ class EntitlementRepository(
     private fun computeState(
         trial: DeviceTrialState,
         session: AccountSession,
+        admin: AdminSession,
         nowElapsed: Long,
         nowWall: Long,
     ): EntitlementState {
@@ -143,8 +159,10 @@ class EntitlementRepository(
         stateOverride?.invoke()?.let { return it }
         val accountId = entitledAccountId(session)
         val trialGrant = resolveTrialGrant(trial)
+        val adminGrant = resolveAdmin(admin)
         val vip = resolveVip(accountId, accountGeneration, nowWall)
         val source = when {
+            adminGrant != null -> adminGrant
             vip != null -> vip
             trialGrant != null -> trialGrant
             else -> EntitlementSource.None
@@ -156,12 +174,22 @@ class EntitlementRepository(
             trialDeadlineElapsedMillis = trialGrant?.let { nowElapsed + trial.remainingMillis },
             accountId = accountId,
             accountGeneration = accountGeneration,
-            vipExpiresAtEpochMillis = (vip as? EntitlementSource.Vip)?.expiresAtEpochMillis,
-            vipPermanent = (vip as? EntitlementSource.Vip)?.permanent == true,
-            vipPlanType = (vip as? EntitlementSource.Vip)?.planType,
-            vipContributingPlanTypes = (vip as? EntitlementSource.Vip)?.contributingPlanTypes.orEmpty(),
+            vipExpiresAtEpochMillis = (source as? EntitlementSource.Vip)?.expiresAtEpochMillis,
+            vipPermanent = source is EntitlementSource.Admin ||
+                (source as? EntitlementSource.Vip)?.permanent == true,
+            vipPlanType = when (source) {
+                is EntitlementSource.Admin -> "ADMIN"
+                is EntitlementSource.Vip -> source.planType
+                else -> null
+            },
+            vipContributingPlanTypes = (source as? EntitlementSource.Vip)?.contributingPlanTypes.orEmpty(),
             evaluatedAtElapsedMillis = nowElapsed,
         )
+    }
+
+    private fun resolveAdmin(admin: AdminSession): EntitlementSource.Admin? = when (admin) {
+        is AdminSession.Active -> EntitlementSource.Admin(admin.username)
+        AdminSession.Inactive -> null
     }
 
     /**
@@ -208,8 +236,9 @@ class EntitlementRepository(
             nowElapsed: Long,
             nowWall: Long,
         ): EntitlementSource {
-            // VIP first — wall expiry is checked live so a Fake claim can lapse without a flow tick.
             when (val current = snap.source) {
+                is EntitlementSource.Admin -> return current
+                // VIP next — wall expiry is checked live so a Fake claim can lapse without a flow tick.
                 is EntitlementSource.Vip -> {
                     if (current.permanent) return current
                     val expires = current.expiresAtEpochMillis
@@ -242,6 +271,7 @@ class EntitlementRepository(
         ): ActionDecision {
             if (!capability.requiresPaidEntitlement()) return ActionDecision.Allowed
             return when (source) {
+                is EntitlementSource.Admin,
                 is EntitlementSource.Vip,
                 is EntitlementSource.DeviceTrial,
                 -> ActionDecision.Allowed

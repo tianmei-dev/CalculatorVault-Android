@@ -21,6 +21,7 @@ class VipPurchaseDependencies(
     val membership: PurchaseMembershipPort,
     val payLaunchPolicy: PayLaunchPolicy,
     val elapsedRealtime: () -> Long,
+    val adminPurchaseBlocked: () -> Boolean = { false },
 )
 
 /**
@@ -37,6 +38,7 @@ class VipPurchaseViewModel(source: VipPurchaseSource, deps: VipPurchaseDependenc
         membership = deps.membership,
         payLaunchPolicy = deps.payLaunchPolicy,
         elapsedRealtime = deps.elapsedRealtime,
+        adminPurchaseBlocked = deps.adminPurchaseBlocked,
     )
 
     val state: StateFlow<VipPurchaseState> = controller.state

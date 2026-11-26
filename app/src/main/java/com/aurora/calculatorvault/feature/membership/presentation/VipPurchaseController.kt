@@ -79,6 +79,7 @@ class VipPurchaseController(
     private val payLaunchPolicy: PayLaunchPolicy,
     private val elapsedRealtime: () -> Long,
     private val membershipSyncTimeoutMillis: Long = 20_000L,
+    private val adminPurchaseBlocked: () -> Boolean = { false },
 ) {
     private val mutableState = MutableStateFlow(VipPurchaseState(purchaseSource = source))
     val state: StateFlow<VipPurchaseState> = mutableState.asStateFlow()
@@ -157,6 +158,7 @@ class VipPurchaseController(
         ) {
             return
         }
+        if (adminPurchaseBlocked()) return notice(PurchaseNotice.AdminPurchaseBlocked)
         if (!current.agreementAccepted) return notice(PurchaseNotice.AgreementRequired)
         if (current.lifetimeOwned) return notice(PurchaseNotice.LifetimeOwned)
         val plan = current.selectedPlan ?: return notice(PurchaseNotice.PlansNotReady)
@@ -262,6 +264,7 @@ class VipPurchaseController(
             }
             PaymentError.PlanDisabled, PaymentError.PlanNotFound -> notice(PurchaseNotice.PlanUnavailable)
             PaymentError.EndpointNotConfigured -> notice(PurchaseNotice.PaymentConfigMissing)
+            PaymentError.AdminPurchaseBlocked -> notice(PurchaseNotice.AdminPurchaseBlocked)
             else -> Unit
         }
     }

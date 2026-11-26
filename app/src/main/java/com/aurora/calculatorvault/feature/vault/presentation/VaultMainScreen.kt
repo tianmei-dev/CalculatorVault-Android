@@ -105,6 +105,7 @@ fun VaultMainScreen(
     }
     val sessionState by application.accountSession.state.collectAsState()
     val entitlementState by application.entitlementRepository.state.collectAsState()
+    LaunchedEffect(Unit) { application.adminSession.revalidate() }
     val logoutWarning by application.accountSession.logoutWarning.collectAsState()
     LaunchedEffect(logoutWarning) {
         if (logoutWarning) android.widget.Toast.makeText(context,
@@ -446,9 +447,10 @@ fun VaultMainScreen(
                 val source = VipPurchaseSource.fromRoute(
                     entry.arguments?.getString(VaultTabRoute.VipMembership.SOURCE_ARG),
                 )
-                // Account VIP only — device trial must open the purchase page, not the info page.
-                val accountVip = entitlementState.source as? EntitlementSource.Vip
-                if (accountVip != null) {
+                // Account VIP / Admin only — device trial must open the purchase page, not the info page.
+                val hasAccountGrant = entitlementState.source is EntitlementSource.Vip ||
+                    entitlementState.source is EntitlementSource.Admin
+                if (hasAccountGrant) {
                     VipMembershipInfoScreen(
                         entitlement = entitlementState,
                         onBack = navController::popBackStack,
@@ -473,7 +475,21 @@ fun VaultMainScreen(
                 AboutScreen(onBack = navController::popBackStack)
             }
             composable(VaultTabRoute.ContactUs.path) {
-                ContactUsScreen(onBack = navController::popBackStack)
+                ContactUsScreen(
+                    onBack = navController::popBackStack,
+                    onAdminLogin = {
+                        navController.navigate(VaultTabRoute.AdminLogin.path) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable(VaultTabRoute.AdminLogin.path) {
+                com.aurora.calculatorvault.feature.admin.presentation.AdminLoginScreen(
+                    repository = application.adminSession,
+                    onBack = navController::popBackStack,
+                    onLoginSuccess = navController::popBackStack,
+                )
             }
             composable(VaultTabRoute.PrivacyDocuments.path) {
                 PrivacyDocumentsScreen(

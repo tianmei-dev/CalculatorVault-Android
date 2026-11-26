@@ -38,6 +38,7 @@ sealed interface VaultTabRoute {
     data object ForgotPassword : VaultTabRoute { override val path = "vault/settings/forgot_password" }
     data object About : VaultTabRoute { override val path = "vault/settings/about" }
     data object ContactUs : VaultTabRoute { override val path = "vault/settings/contact_us" }
+    data object AdminLogin : VaultTabRoute { override val path = "vault/settings/admin_login" }
     data object PrivacyDocuments : VaultTabRoute { override val path = "vault/settings/privacy_documents" }
     data object CollectedInformation : VaultTabRoute { override val path = "vault/settings/collected_information" }
     data object LegalDocument : VaultTabRoute {

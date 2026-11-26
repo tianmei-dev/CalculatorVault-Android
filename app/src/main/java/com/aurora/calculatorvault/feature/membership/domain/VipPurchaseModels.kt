@@ -100,6 +100,8 @@ enum class PurchaseNotice {
     OrderNotFound,
     PurchaseCompleted,
     MembershipUnconfirmed,
+    /** Admin session is active — purchase is blocked even if WeChat is also signed in. */
+    AdminPurchaseBlocked,
 }
 
 data class VipPurchaseState(

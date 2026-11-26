@@ -36,6 +36,14 @@ sealed interface EntitlementSource {
         val planType: String? = null,
         val contributingPlanTypes: List<String> = emptyList(),
     ) : EntitlementSource
+
+    /**
+     * Admin login grant — independent of WeChat VIP sticky.
+     * Priority: Admin > Vip > DeviceTrial > None.
+     */
+    data class Admin(
+        val username: String,
+    ) : EntitlementSource
 }
 
 /**

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="admin_entry">管理员</string>
+    <string name="admin_login_title">管理员登录</string>
+    <string name="admin_login_hint">请输入管理员账号和密码</string>
+    <string name="admin_login_entry_hint">管理员入口仅用于指定账号登录</string>
+    <string name="admin_username">账号</string>
+    <string name="admin_password">密码</string>
+    <string name="admin_login_action">登录</string>
+    <string name="admin_logout_action">退出管理员</string>
+    <string name="admin_logged_in">已登录</string>
+    <string name="admin_account_label">账号：%1$s</string>
+    <string name="admin_login_success">管理员登录成功</string>
+    <string name="admin_logout_success">已退出管理员登录</string>
+    <string name="admin_empty_credentials">请输入账号和密码</string>
+    <string name="admin_invalid_credentials">账号或密码错误</string>
+    <string name="admin_account_disabled">管理员账号已停用</string>
+    <string name="admin_rate_limited">失败次数过多，请稍后重试</string>
+    <string name="admin_service_unavailable">登录服务暂不可用，请稍后重试</string>
+    <string name="admin_membership_title">管理员 · 全功能可用</string>
+    <string name="admin_membership_detail">管理员会话有效期间可使用全部会员功能</string>
+    <string name="admin_purchase_blocked">管理员账号不可购买会员</string>
+    <string name="admin_info_status">管理员权益已启用</string>
+    <string name="vip_notice_admin_blocked">管理员登录期间不可下单购买</string>
+</resources>

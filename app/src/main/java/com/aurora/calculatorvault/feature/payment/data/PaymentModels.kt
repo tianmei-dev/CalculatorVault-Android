@@ -76,6 +76,9 @@ sealed interface PaymentError {
     /** This build has no usable API address (empty, or cleartext where not allowed); nothing was sent. */
     data object EndpointNotConfigured : PaymentError
 
+    /** Admin session forbids creating VIP orders. */
+    data object AdminPurchaseBlocked : PaymentError
+
     /** Connect / read failure or timeout: the request may or may not have reached the server. */
     data class Network(val timeout: Boolean) : PaymentError
 

@@ -41,6 +41,8 @@ class PaymentRepository(
     private val store: PendingPurchaseStore,
     private val session: PaymentSessionPort,
     private val newRequestId: () -> String = { UUID.randomUUID().toString() },
+    /** When true, createOrder is rejected without touching the network. */
+    private val adminPurchaseBlocked: () -> Boolean = { false },
 ) {
     private val createMutex = Mutex()
 
@@ -85,8 +87,14 @@ class PaymentRepository(
         retrySamePurchase: Boolean,
         payChannel: String,
     ): CreateOutcome {
+        if (adminPurchaseBlocked()) {
+            return CreateOutcome.Failed(PaymentError.AdminPurchaseBlocked, retryKept = false)
+        }
         if (createMutex.isLocked) return CreateOutcome.Busy
         return createMutex.withLock {
+            if (adminPurchaseBlocked()) {
+                return@withLock CreateOutcome.Failed(PaymentError.AdminPurchaseBlocked, retryKept = false)
+            }
             if (session.currentOwner(requireAuthenticated = true) != owner) return@withLock CreateOutcome.AccountChanged
             val token = session.accessToken() ?: return@withLock CreateOutcome.AccountChanged
             val existing = store.read()

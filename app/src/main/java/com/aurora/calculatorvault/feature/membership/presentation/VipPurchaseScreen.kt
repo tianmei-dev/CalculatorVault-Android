@@ -628,6 +628,7 @@ private fun noticeTexts(): NoticeTexts = NoticeTexts(
         PurchaseNotice.OrderNotFound to stringResource(R.string.vip_notice_order_not_found),
         PurchaseNotice.PurchaseCompleted to stringResource(R.string.vip_notice_purchase_completed),
         PurchaseNotice.MembershipUnconfirmed to stringResource(R.string.vip_notice_membership_unconfirmed),
+        PurchaseNotice.AdminPurchaseBlocked to stringResource(R.string.vip_notice_admin_blocked),
     ),
 )
 

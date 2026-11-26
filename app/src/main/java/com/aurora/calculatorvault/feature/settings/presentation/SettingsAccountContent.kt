@@ -71,8 +71,10 @@ internal fun SettingsAccountContent(
         }
     }
     val membership = membershipText(state)
+    val adminActive = state.visibleMembership is MembershipStatus.AdminFullAccess
     // Presentation only: consume the already selected visible membership and existing duration text.
     val title = when (val status = state.visibleMembership) {
+        MembershipStatus.AdminFullAccess -> R.string.admin_membership_title
         MembershipStatus.NotSubscribed, MembershipStatus.TrialExpired -> R.string.account_open_vip
         is MembershipStatus.VipActive -> when (status.planType) {
             com.aurora.calculatorvault.feature.membership.domain.VipPlan.Monthly -> R.string.settings_membership_monthly
@@ -82,12 +84,17 @@ internal fun SettingsAccountContent(
         MembershipStatus.VipPermanent -> R.string.settings_membership_lifetime
         else -> membership.title
     }
-    val detail = if (state.visibleMembership == MembershipStatus.NotSubscribed || state.visibleMembership == MembershipStatus.TrialExpired)
-        stringResource(R.string.settings_membership_free_detail)
-    else stringResource(membership.subtitle, *membership.arguments.toTypedArray())
+    val detail = when {
+        adminActive -> stringResource(R.string.admin_membership_detail)
+        state.visibleMembership == MembershipStatus.NotSubscribed ||
+            state.visibleMembership == MembershipStatus.TrialExpired ->
+            stringResource(R.string.settings_membership_free_detail)
+        else -> stringResource(membership.subtitle, *membership.arguments.toTypedArray())
+    }
     Row(
         modifier = Modifier.fillMaxWidth().testTag("settings_membership").vaultMainPanel(emphasized = true)
-            .clickable(onClick = onVipMembership).padding(AppSpacing.md),
+            .then(if (adminActive) Modifier else Modifier.clickable(onClick = onVipMembership))
+            .padding(AppSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
@@ -104,7 +111,9 @@ internal fun SettingsAccountContent(
                 Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             }
         }
-        Icon(Icons.Rounded.ChevronRight, null, tint = VaultMainColors.TextSecondary, modifier = Modifier.size(20.dp))
+        if (!adminActive) {
+            Icon(Icons.Rounded.ChevronRight, null, tint = VaultMainColors.TextSecondary, modifier = Modifier.size(20.dp))
+        }
     }
     if (loggedIn != null && onRefreshMembership != null) {
         Box(Modifier.fillMaxWidth().padding(top = AppSpacing.xs), contentAlignment = Alignment.Center) {

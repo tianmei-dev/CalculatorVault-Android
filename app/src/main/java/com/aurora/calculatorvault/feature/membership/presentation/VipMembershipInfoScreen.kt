@@ -46,6 +46,7 @@ fun VipMembershipInfoScreen(
     entitlement: EntitlementState,
     onBack: () -> Unit,
 ) {
+    val admin = entitlement.source as? EntitlementSource.Admin
     val vip = entitlement.source as? EntitlementSource.Vip
     val dark = useVaultDarkVisuals()
     val theme = MaterialTheme.colorScheme
@@ -95,13 +96,26 @@ fun VipMembershipInfoScreen(
                 ) {
                     if (dark) VaultMainIconTile(VaultIcons.Security, emphasized = true, size = 32.dp, iconSize = 20.dp)
                     Text(
-                        stringResource(R.string.vip_info_status_active),
+                        stringResource(
+                            if (admin != null) R.string.admin_info_status else R.string.vip_info_status_active,
+                        ),
                         style = AppTextStyles.SectionTitle.copy(fontSize = AppTextStyles.CardTitle.fontSize),
                         color = accent,
                         modifier = Modifier.testTag("vip_info_status"),
                     )
                 }
-                if (vip != null) {
+                if (admin != null) {
+                    Text(
+                        stringResource(R.string.admin_account_label, admin.username),
+                        style = AppTextStyles.Body,
+                        color = primary,
+                    )
+                    Text(
+                        stringResource(R.string.admin_membership_detail),
+                        style = AppTextStyles.BodySecondary,
+                        color = secondary,
+                    )
+                } else if (vip != null) {
                     // Same plan-code mapping as the settings membership card.
                     val plan = EntitlementDisplayMapper.resolveDisplayPlan(
                         vip.planType,

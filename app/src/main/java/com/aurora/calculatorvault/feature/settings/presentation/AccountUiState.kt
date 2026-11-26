@@ -36,6 +36,9 @@ sealed interface MembershipStatus {
     data object VipPermanent : MembershipStatus {
         override val planType = VipPlan.Lifetime
     }
+
+    /** Admin session grant — display only; authorization uses EntitlementSource.Admin. */
+    data object AdminFullAccess : MembershipStatus
 }
 
 data class AccountUiState(
@@ -54,12 +57,13 @@ data class AccountUiState(
 
     /**
      * Display priority aligned with product entitlement:
-     * account VIP (signed-in only) > device trial > free/not subscribed.
+     * admin > account VIP (signed-in only) > device trial > free/not subscribed.
      * Guests never surface a stale account VIP; signed-in users may still show an active device trial
      * when no real VIP claim is present.
      */
     val visibleMembership: MembershipStatus
         get() {
+            if (accountMembership is MembershipStatus.AdminFullAccess) return accountMembership
             val accountVip = account != AccountStatus.Guest &&
                 (accountMembership is MembershipStatus.VipActive ||
                     accountMembership is MembershipStatus.VipPermanent)
@@ -97,4 +101,8 @@ internal fun membershipText(state: AccountUiState): MembershipText = when (val s
         arguments = listOf(status.expiresAt.toString()),
     )
     MembershipStatus.VipPermanent -> MembershipText(R.string.account_vip_permanent, R.string.vip_duration_lifetime)
+    MembershipStatus.AdminFullAccess -> MembershipText(
+        R.string.admin_membership_title,
+        R.string.admin_membership_detail,
+    )
 }

@@ -148,6 +148,7 @@ class CalculatorVaultApp : Application() {
             thirdPartySdkInitializer.initializeIfAllowed()
             if (privacyConsent.isAllowedNow()) {
                 accountSession.restore()
+                adminSession.revalidate()
                 deviceTrial.sync()
                 appLockProtectionCoordinator.reconcile()
             }
@@ -166,6 +167,7 @@ class CalculatorVaultApp : Application() {
             endSessions = {
                 wechatAuthorization.cancel(privacyWithdrawn = true)
                 accountSession.logout()
+                adminSession.clearLocal()
                 vaultSessionManager.lock()
                 appLockProtectionCoordinator.bumpGeneration()
                 appLockSessionManager.clearAll()
@@ -404,7 +406,21 @@ class CalculatorVaultApp : Application() {
             KeystoreTokenStore(applicationContext), applicationScope, ::hasPrivacyConsent,
             serverIssuedInstallAllowed = BuildConfig.DEBUG && BuildConfig.TEST_SESSION_INSTALL_ENABLED,
             // Logging out ends that account's local purchase context; server orders and VIP are untouched.
+            // Does not clear AdminSession (WeChat logout ≠ admin logout).
             onLoggedOut = { userId -> paymentRepository.discardPending(userId) })
+    }
+
+    val adminSession: com.aurora.calculatorvault.feature.admin.AdminSessionRepository by lazy {
+        com.aurora.calculatorvault.feature.admin.AdminSessionRepository(
+            api = com.aurora.calculatorvault.feature.admin.HttpAdminAuthApi(
+                baseUrl = BuildConfig.API_BASE_URL,
+                debug = BuildConfig.DEBUG,
+                localHttpBaseUrl = BuildConfig.LOCAL_HTTP_BASE_URL,
+            ),
+            store = com.aurora.calculatorvault.feature.admin.KeystoreAdminSessionStore(applicationContext),
+            scope = applicationScope,
+            privacyAllowed = ::hasPrivacyConsent,
+        )
     }
 
     private val wechatSdkDelegate = lazy { AndroidWeChatSdkBridge(applicationContext, BuildConfig.WECHAT_APP_ID, privacyConsent) }
@@ -448,6 +464,7 @@ class CalculatorVaultApp : Application() {
             elapsedRealtime = { SystemClock.elapsedRealtime() },
             wallClockEpochMillis = { System.currentTimeMillis() },
             scope = applicationScope,
+            adminSession = adminSession.state,
         )
     }
 
@@ -486,6 +503,7 @@ class CalculatorVaultApp : Application() {
 
                 override fun onUnauthorized(userId: Long) = accountSession.notifyRemoteSessionInvalid(userId)
             },
+            adminPurchaseBlocked = { adminSession.isActive() },
         )
     }
 
@@ -508,6 +526,7 @@ class CalculatorVaultApp : Application() {
                     .parseHosts(BuildConfig.PAYMENT_CASHIER_HOSTS),
             ),
             elapsedRealtime = { SystemClock.elapsedRealtime() },
+            adminPurchaseBlocked = { adminSession.isActive() },
         )
     }
 

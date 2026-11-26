@@ -33,6 +33,7 @@ import com.aurora.calculatorvault.ui.message.LocalAppMessageController
 @Composable
 fun ContactUsScreen(
     onBack: () -> Unit,
+    onAdminLogin: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -86,6 +87,13 @@ fun ContactUsScreen(
                             messageController.showInfo(emailCopied)
                         }
                     },
+                    adaptiveHeight = true,
+                )
+                VaultSettingItem(
+                    title = stringResource(R.string.admin_entry),
+                    subtitle = stringResource(R.string.admin_login_entry_hint),
+                    icon = VaultIcons.Security,
+                    onClick = onAdminLogin,
                     showDivider = false,
                     adaptiveHeight = true,
                 )

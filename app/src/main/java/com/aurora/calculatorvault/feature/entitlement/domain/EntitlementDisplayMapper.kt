@@ -38,15 +38,23 @@ object EntitlementDisplayMapper {
     }
 
     fun toAccountMembership(entitlement: EntitlementState): MembershipStatus {
-        val vip = entitlement.source as? EntitlementSource.Vip ?: return MembershipStatus.NotSubscribed
-        if (vip.permanent || vip.expiresAtEpochMillis == null) {
-            return MembershipStatus.VipPermanent
+        return when (val source = entitlement.source) {
+            is EntitlementSource.Admin -> MembershipStatus.AdminFullAccess
+            is EntitlementSource.Vip -> {
+                if (source.permanent || source.expiresAtEpochMillis == null) {
+                    MembershipStatus.VipPermanent
+                } else {
+                    val expiresAt = Instant.ofEpochMilli(source.expiresAtEpochMillis)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                    val plan = resolveDisplayPlan(source.planType, source.contributingPlanTypes, permanent = false)
+                    MembershipStatus.VipActive(planType = plan, expiresAt = expiresAt)
+                }
+            }
+            is EntitlementSource.DeviceTrial,
+            EntitlementSource.None,
+            -> MembershipStatus.NotSubscribed
         }
-        val expiresAt = Instant.ofEpochMilli(vip.expiresAtEpochMillis)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-        val plan = resolveDisplayPlan(vip.planType, vip.contributingPlanTypes, permanent = false)
-        return MembershipStatus.VipActive(planType = plan, expiresAt = expiresAt)
     }
 
     /**
@@ -110,6 +118,7 @@ object EntitlementDisplayMapper {
         sync: MembershipSyncUi,
     ): String? {
         if (session.entitlementAccount == null) return null
+        if (entitlement.source is EntitlementSource.Admin) return null
         val hasVip = entitlement.source is EntitlementSource.Vip
         return when (sync) {
             MembershipSyncUi.Syncing ->
