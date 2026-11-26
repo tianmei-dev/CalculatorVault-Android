@@ -40,7 +40,7 @@
 
     <string name="collected_apps_title">应用管理及应用锁信息</string>
     <string name="collected_hidden_apps">私密应用</string>
-    <string name="collected_disguises">应用伪装</string>
+    <string name="collected_disguises">应用自定义</string>
     <string name="collected_app_locks">应用锁配置</string>
     <string name="collected_media_title">私密相册</string>
     <string name="collected_media_records">导入记录</string>

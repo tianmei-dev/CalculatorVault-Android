@@ -71,7 +71,7 @@ fun VipMembershipInfoScreen(
                 )
                 Text(
                     stringResource(R.string.vip_info_title),
-                    style = AppTextStyles.SectionTitle,
+                    style = AppTextStyles.SectionTitle.copy(fontSize = AppTextStyles.PageTitle.fontSize),
                     color = primary,
                 )
             }
@@ -96,7 +96,7 @@ fun VipMembershipInfoScreen(
                     if (dark) VaultMainIconTile(VaultIcons.Security, emphasized = true, size = 32.dp, iconSize = 20.dp)
                     Text(
                         stringResource(R.string.vip_info_status_active),
-                        style = AppTextStyles.SectionTitle,
+                        style = AppTextStyles.SectionTitle.copy(fontSize = AppTextStyles.CardTitle.fontSize),
                         color = accent,
                         modifier = Modifier.testTag("vip_info_status"),
                     )

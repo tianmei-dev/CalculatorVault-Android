@@ -118,11 +118,15 @@ fun VaultMainHeader(title: String, description: String? = null, modifier: Modifi
     Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(
             title,
-            style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 37.sp),
+            style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold, lineHeight = 37.sp),
             color = VaultMainColors.TextPrimary,
         )
         if (description != null) {
-            Text(description, style = AppTextStyles.Body, color = VaultMainColors.TextSecondary)
+            Text(
+                description,
+                style = AppTextStyles.Body.copy(fontSize = AppTextStyles.BodySecondary.fontSize),
+                color = VaultMainColors.TextSecondary,
+            )
         }
     }
 }

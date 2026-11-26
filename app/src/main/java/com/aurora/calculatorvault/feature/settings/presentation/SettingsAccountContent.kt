@@ -8,7 +8,6 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.ui.component.VaultMainIconTile
 import com.aurora.calculatorvault.ui.component.vaultGradientAction
@@ -52,12 +51,11 @@ internal fun SettingsAccountContent(
                 text = stringResource(R.string.settings_wechat_account_title),
                 style = AppTextStyles.CardTitle,
                 color = VaultMainColors.TextPrimary,
-                fontSize = 15.sp,
             )
             Text(stringResource(if (loggedIn == null) R.string.settings_account_signed_out else R.string.account_logged_in),
-                style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+                style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             loggedIn?.displayNickname?.let {
-                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             }
         }
         Button(
@@ -99,12 +97,11 @@ internal fun SettingsAccountContent(
                 text = stringResource(R.string.settings_membership_center),
                 style = AppTextStyles.CardTitle,
                 color = VaultMainColors.TextPrimary,
-                fontSize = 15.sp,
             )
-            Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight, fontSize = 15.sp)
-            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+            Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight)
+            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             state.membershipSyncHint?.let {
-                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             }
         }
         Icon(Icons.Rounded.ChevronRight, null, tint = VaultMainColors.TextSecondary, modifier = Modifier.size(20.dp))

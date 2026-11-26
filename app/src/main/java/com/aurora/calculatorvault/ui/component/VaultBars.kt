@@ -51,7 +51,8 @@ fun VaultTopAppBar(
 ) {
     val dark = useVaultDarkVisuals()
     val colors = MaterialTheme.colorScheme
-    val titleLine = with(LocalDensity.current) { AppTextStyles.SectionTitle.lineHeight.toDp() }
+    val titleStyle = AppTextStyles.SectionTitle.copy(fontSize = AppTextStyles.PageTitle.fontSize)
+    val titleLine = with(LocalDensity.current) { titleStyle.lineHeight.toDp() }
     val barHeight = maxOf(AppDimensions.TopAppBar, titleLine * 2 + 12.dp)
     TopAppBar(
         modifier = modifier.heightIn(min = AppDimensions.TopAppBar)
@@ -66,7 +67,7 @@ fun VaultTopAppBar(
             } else Modifier),
         title = {
             Text(
-                title, style = AppTextStyles.SectionTitle,
+                title, style = titleStyle,
                 color = if (dark) VaultMainColors.TextPrimary else colors.onSurface,
                 maxLines = 2,
             )

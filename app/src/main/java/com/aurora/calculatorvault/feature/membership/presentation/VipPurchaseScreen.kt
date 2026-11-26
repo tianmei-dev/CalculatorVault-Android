@@ -179,10 +179,16 @@ fun VipPurchaseScreen(
                         modifier = Modifier.testTag("vip_back"),
                     )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                        Text(stringResource(R.string.vip_purchase_title), style = AppTextStyles.SectionTitle,
-                            color = colors.onSurface)
-                        Text(stringResource(R.string.vip_purchase_subtitle), style = AppTextStyles.Caption,
-                            color = colors.onSurfaceVariant)
+                        Text(
+                            stringResource(R.string.vip_purchase_title),
+                            style = AppTextStyles.SectionTitle.copy(fontSize = AppTextStyles.PageTitle.fontSize),
+                            color = colors.onSurface,
+                        )
+                        Text(
+                            stringResource(R.string.vip_purchase_subtitle),
+                            style = AppTextStyles.Caption.copy(fontSize = AppTextStyles.BodySecondary.fontSize),
+                            color = colors.onSurfaceVariant,
+                        )
                     }
                 }
             },
@@ -208,7 +214,7 @@ fun VipPurchaseScreen(
                                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                             ) {
                                 Text(stringResource(R.string.vip_non_renewing_notice),
-                                    style = AppTextStyles.Caption.copy(fontSize = 11.sp), color = colors.onSurfaceVariant,
+                                    style = AppTextStyles.Caption, color = colors.onSurfaceVariant,
                                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                                 PurchaseAgreement(
                                     accepted = state.agreementAccepted,
@@ -218,10 +224,7 @@ fun VipPurchaseScreen(
                                 )
                                 Text(
                                     stringResource(R.string.vip_special_notice),
-                                    style = AppTextStyles.Caption.copy(
-                                        fontSize = 11.sp,
-                                        lineBreak = LineBreak.Paragraph,
-                                    ),
+                                    style = AppTextStyles.Caption.copy(lineBreak = LineBreak.Paragraph),
                                     color = colors.onSurfaceVariant,
                                     modifier = Modifier.fillMaxWidth().testTag("vip_special_notice"),
                                 )
@@ -446,7 +449,6 @@ private fun PayChannelChip(
         Text(
             label,
             style = AppTextStyles.BodySecondary.copy(
-                fontSize = 13.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             ),
             color = if (selected) colors.primary else colors.onSurfaceVariant,
@@ -662,6 +664,14 @@ private fun BenefitsCard(room: Dp) {
 @Composable
 private fun Benefit(icon: ImageVector, title: String, description: String, modifier: Modifier = Modifier, inline: Boolean = false) {
     val colors = vipPurchaseColors()
+    val titleStyle = AppTextStyles.BodySecondary.copy(
+        fontSize = AppTextStyles.CardTitle.fontSize,
+        fontWeight = FontWeight.SemiBold,
+    )
+    val descriptionStyle = AppTextStyles.Caption.copy(
+        fontSize = AppTextStyles.BodySecondary.fontSize,
+        lineBreak = LineBreak.Paragraph,
+    )
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -671,21 +681,18 @@ private fun Benefit(icon: ImageVector, title: String, description: String, modif
         if (inline) {
             Text(
                 buildAnnotatedString {
-                    withStyle(AppTextStyles.BodySecondary.toSpanStyle().copy(fontWeight = FontWeight.SemiBold,
-                        color = colors.onSurface)) { append(title) }
+                    withStyle(titleStyle.toSpanStyle().copy(color = colors.onSurface)) { append(title) }
                     append("  ")
                     append(description)
                 },
                 modifier = Modifier.weight(1f),
-                style = AppTextStyles.Caption.copy(lineBreak = LineBreak.Paragraph),
+                style = descriptionStyle,
                 color = colors.onSurfaceVariant,
             )
         } else {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                Text(title, style = AppTextStyles.BodySecondary.copy(fontWeight = FontWeight.SemiBold),
-                    color = colors.onSurface)
-                Text(description, style = AppTextStyles.Caption.copy(lineBreak = LineBreak.Paragraph),
-                    color = colors.onSurfaceVariant)
+                Text(title, style = titleStyle, color = colors.onSurface)
+                Text(description, style = descriptionStyle, color = colors.onSurfaceVariant)
             }
         }
     }
@@ -738,6 +745,7 @@ private fun PlanSelector(
                         Text(
                             plan.displayName,
                             style = AppTextStyles.BodySecondary.copy(
+                                fontSize = AppTextStyles.CardTitle.fontSize,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             ),
                             color = colors.onSurface,
@@ -745,7 +753,7 @@ private fun PlanSelector(
                         )
                         Text(
                             stringResource(R.string.vip_price, plan.priceDisplay),
-                            style = AppTextStyles.PageTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold),
+                            style = AppTextStyles.PageTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
                             color = if (isSelected) colors.primary else colors.onSurface,
                             textAlign = TextAlign.Center,
                         )
@@ -753,7 +761,7 @@ private fun PlanSelector(
                             plan.durationDays?.takeIf { !plan.isLifetime }
                                 ?.let { stringResource(R.string.vip_duration_days, it) }
                                 ?: stringResource(R.string.vip_duration_lifetime),
-                            style = AppTextStyles.Caption.copy(fontSize = 11.sp),
+                            style = AppTextStyles.Caption.copy(fontSize = AppTextStyles.BodySecondary.fontSize),
                             color = colors.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
@@ -833,7 +841,7 @@ private fun PurchaseAgreement(
                 }
             },
             modifier = Modifier.weight(1f),
-            style = AppTextStyles.BodySecondary.copy(fontSize = 13.sp, lineBreak = LineBreak.Paragraph),
+            style = AppTextStyles.BodySecondary.copy(lineBreak = LineBreak.Paragraph),
             color = colors.onSurfaceVariant,
         )
     }

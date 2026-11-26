@@ -2,8 +2,10 @@ package com.aurora.calculatorvault.feature.appmanagement.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,11 +36,13 @@ import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.color.AppColors
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
+import com.aurora.calculatorvault.core.designsystem.shape.AppShapes
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
 import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultMainHeader
 import com.aurora.calculatorvault.ui.component.VaultMainIconTile
+import com.aurora.calculatorvault.ui.component.useVaultDarkVisuals
 import com.aurora.calculatorvault.ui.component.vaultMainBackdrop
 import com.aurora.calculatorvault.ui.component.vaultMainPanel
 import com.aurora.calculatorvault.ui.layout.appPagePadding
@@ -77,47 +82,102 @@ internal fun AppManagementContent(
     }
     val disguiseEntryDescription = stringResource(R.string.app_disguise) + "，" + disguiseStatus
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .testTag("app_management_screen")
-            .vaultMainBackdrop()
-            .verticalScroll(rememberScrollState())
-            .padding(appPagePadding(horizontal = AppSpacing.lg, top = AppSpacing.lg)),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+            .vaultMainBackdrop(),
     ) {
-        VaultMainHeader(
-            title = stringResource(R.string.tab_app_management),
-            description = stringResource(R.string.app_management_description),
-        )
-        AppManagementEntryCard(
-            title = stringResource(R.string.app_disguise),
-            description = stringResource(R.string.app_disguise_entry_description),
-            status = disguiseStatus,
-            icon = VaultIcons.Disguise,
-            contentDescription = disguiseEntryDescription,
-            testTag = "app_disguise_entry",
-            hasError = state.disguiseLoadFailed,
-            emphasized = true,
-            onClick = onOpenDisguise,
-        )
-        AppManagementEntryCard(
-            title = stringResource(R.string.private_apps),
-            description = stringResource(R.string.private_apps_description),
-            status = status,
-            icon = VaultIcons.Apps,
-            contentDescription = entryDescription,
-            testTag = "private_apps_entry",
-            hasError = state.loadFailed,
-            emphasized = false,
-            onClick = onOpenPrivateApps,
-        )
-        Text(
-            text = stringResource(R.string.app_management_scope_note),
-            style = AppTextStyles.BodySecondary,
-            color = VaultMainColors.TextSecondary,
-            modifier = Modifier.padding(horizontal = AppSpacing.xs),
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("app_management_screen")
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(appPagePadding(horizontal = AppSpacing.lg, top = AppSpacing.lg, bottom = AppSpacing.sm)),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)) {
+                VaultMainHeader(
+                    title = stringResource(R.string.tab_app_management),
+                    description = stringResource(R.string.app_management_description),
+                )
+                AppManagementEntryCard(
+                    title = stringResource(R.string.app_disguise),
+                    description = stringResource(R.string.app_disguise_entry_description),
+                    status = disguiseStatus,
+                    icon = VaultIcons.Disguise,
+                    contentDescription = disguiseEntryDescription,
+                    testTag = "app_disguise_entry",
+                    hasError = state.disguiseLoadFailed,
+                    emphasized = true,
+                    onClick = onOpenDisguise,
+                )
+                AppManagementEntryCard(
+                    title = stringResource(R.string.private_apps),
+                    description = stringResource(R.string.private_apps_description),
+                    status = status,
+                    icon = VaultIcons.Apps,
+                    contentDescription = entryDescription,
+                    testTag = "private_apps_entry",
+                    hasError = state.loadFailed,
+                    emphasized = false,
+                    onClick = onOpenPrivateApps,
+                )
+            }
+            AppManagementNotice(
+                modifier = Modifier.padding(
+                    start = AppSpacing.xs,
+                    top = AppSpacing.lg,
+                    end = AppSpacing.xs,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppManagementNotice(modifier: Modifier = Modifier) {
+    val dark = useVaultDarkVisuals()
+    val textColor = if (dark) VaultMainColors.TextSecondary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = AppShapes.Small
+    val notes = listOf(
+        stringResource(R.string.app_management_notice_collection),
+        stringResource(R.string.app_management_notice_shortcut),
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(VaultMainColors.Border.copy(alpha = if (dark) 0.24f else 0.08f), shape)
+            .border(1.dp, VaultMainColors.Border.copy(alpha = if (dark) 0.52f else 0.20f), shape)
+            .padding(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = VaultIcons.Info,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = textColor,
+            )
+            Text(
+                text = stringResource(R.string.app_management_notice_title),
+                style = AppTextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
+                color = textColor,
+            )
+        }
+        notes.forEachIndexed { index, note ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+            ) {
+                Text("${index + 1}.", style = AppTextStyles.Caption, color = textColor)
+                Text(note, modifier = Modifier.weight(1f), style = AppTextStyles.Caption, color = textColor)
+            }
+        }
     }
 }
 
@@ -156,7 +216,12 @@ private fun AppManagementEntryCard(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
         ) {
-            Text(title, style = AppTextStyles.SectionTitle, color = VaultMainColors.TextPrimary)
+            Text(
+                title,
+                style = AppTextStyles.SectionTitle,
+                color = VaultMainColors.TextPrimary,
+                fontSize = AppTextStyles.CardTitle.fontSize,
+            )
             Text(description, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             Text(
                 status,

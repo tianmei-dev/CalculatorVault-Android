@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.aurora.calculatorvault.R
@@ -206,6 +207,7 @@ private fun CalculatorContent(
                         contentDescription = expressionDescription
                     },
                 style = AppTextStyles.Body,
+                fontSize = 15.sp,
                 color = AppColors.TextTertiary,
                 textAlign = TextAlign.End,
                 maxLines = 2,

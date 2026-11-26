@@ -16,7 +16,7 @@ object AppTextStyles {
     val PageTitle = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
+        fontSize = 22.sp,
         lineHeight = 36.sp,
     )
     val SectionTitle = TextStyle(
@@ -34,13 +34,13 @@ object AppTextStyles {
     val Body = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
         lineHeight = 22.sp,
     )
     val BodySecondary = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
+        fontSize = 13.sp,
         lineHeight = 20.sp,
     )
     val Caption = TextStyle(
@@ -52,7 +52,7 @@ object AppTextStyles {
     val Button = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
         lineHeight = 20.sp,
     )
     val NumericLarge = TextStyle(
@@ -78,6 +78,7 @@ object AppTextStyles {
 val VaultTypography = Typography(
     displayLarge = AppTextStyles.Display,
     headlineLarge = AppTextStyles.PageTitle,
+    headlineSmall = Typography().headlineSmall.copy(fontSize = AppTextStyles.SectionTitle.fontSize),
     titleLarge = AppTextStyles.SectionTitle,
     titleMedium = AppTextStyles.CardTitle,
     bodyLarge = AppTextStyles.Body,

@@ -865,6 +865,7 @@ private fun ImportMediaHeroButton(
         Text(
             text = stringResource(R.string.import_media),
             style = AppTextStyles.SectionTitle,
+            fontSize = AppTextStyles.Button.fontSize,
             color = if (enabled) VaultMainColors.TextPrimary else AppColors.TextDisabled,
             modifier = Modifier.weight(1f),
         )
@@ -907,6 +908,7 @@ private fun CreateFolderShortcut(
         Text(
             text = stringResource(R.string.private_media_create_folder),
             style = AppTextStyles.BodySecondary,
+            fontSize = AppTextStyles.Button.fontSize,
             color = if (enabled) VaultMainColors.TextSecondary else AppColors.TextDisabled,
             textAlign = TextAlign.Center,
         )
@@ -946,13 +948,12 @@ private fun FolderCard(
                 Text(
                     text = summary.album.name,
                     style = AppTextStyles.SectionTitle,
-                    fontSize = 17.sp,
+                    fontSize = 15.sp,
                     color = VaultMainColors.TextPrimary,
                 )
                 Text(
                     text = stringResource(R.string.private_media_folder_item_count, summary.mediaCount),
                     style = AppTextStyles.BodySecondary,
-                    fontSize = 13.sp,
                     color = VaultMainColors.TextSecondary,
                 )
             }
@@ -986,7 +987,6 @@ private fun FolderCard(
                 Spacer(modifier = Modifier.size(AppSpacing.xs))
                 Text(
                     text = stringResource(R.string.private_media_rename_folder),
-                    fontSize = 14.sp,
                     color = VaultMainColors.Highlight,
                 )
             }
@@ -1014,7 +1014,6 @@ private fun FolderCard(
                 Spacer(modifier = Modifier.size(AppSpacing.xs))
                 Text(
                     text = stringResource(R.string.delete),
-                    fontSize = 14.sp,
                     color = deleteColor,
                 )
             }
@@ -1678,6 +1677,7 @@ private fun AlbumPickerDialog(
                             Text(
                                 text = summary.album.name,
                                 style = AppTextStyles.Body,
+                                fontSize = 15.sp,
                                 color = if (enabled) VaultMainColors.TextPrimary else AppColors.TextDisabled,
                                 maxLines = 1,
                             )

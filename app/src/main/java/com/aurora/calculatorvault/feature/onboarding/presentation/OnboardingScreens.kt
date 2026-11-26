@@ -192,7 +192,7 @@ fun PrivacyConsentScreen(
         }
         Text(
             text = stringResource(R.string.privacy_calculator_notice),
-            style = AppTextStyles.Body,
+            style = AppTextStyles.Body.copy(fontSize = AppTextStyles.BodySecondary.fontSize),
             color = bodyColor,
         )
         OnboardingErrorText(state.error)

@@ -123,7 +123,6 @@ fun WeChatLoginDialog(
                     stringResource(R.string.wechat_login_welcome),
                     modifier = Modifier.fillMaxWidth(),
                     style = AppTextStyles.SectionTitle.copy(
-                        fontSize = 20.sp,
                         lineHeight = 26.sp,
                         fontWeight = FontWeight.Bold,
                         lineBreak = LineBreak.Heading,
@@ -134,7 +133,10 @@ fun WeChatLoginDialog(
                 Text(
                     stringResource(R.string.wechat_login_description),
                     modifier = Modifier.fillMaxWidth(),
-                    style = AppTextStyles.Body.copy(lineBreak = LineBreak.Paragraph),
+                    style = AppTextStyles.Body.copy(
+                        fontSize = AppTextStyles.BodySecondary.fontSize,
+                        lineBreak = LineBreak.Paragraph,
+                    ),
                     color = bodyColor,
                     textAlign = TextAlign.Center,
                 )

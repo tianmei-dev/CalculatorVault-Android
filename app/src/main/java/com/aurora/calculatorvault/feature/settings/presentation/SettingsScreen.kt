@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
@@ -94,7 +93,11 @@ fun SettingsScreen(
                 onRefreshMembership = onRefreshMembership,
             )
             if (sessionMessage.isNotEmpty()) {
-                Text(sessionMessage, color = VaultMainColors.TextSecondary, fontSize = 14.sp)
+                Text(
+                    sessionMessage,
+                    color = VaultMainColors.TextSecondary,
+                    fontSize = AppTextStyles.BodySecondary.fontSize,
+                )
             }
             if (sessionPending) {
                 androidx.compose.material3.TextButton(onClick = onRetrySession) { Text("重新校验账号") }
@@ -227,10 +230,9 @@ internal fun MainSettingsRow(
                     text = title,
                     style = AppTextStyles.CardTitle.copy(fontWeight = FontWeight.SemiBold),
                     color = VaultMainColors.TextPrimary,
-                    fontSize = 15.sp,
                 )
                 subtitle?.let {
-                    Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+                    Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
                 }
             }
             if (enabled) {
