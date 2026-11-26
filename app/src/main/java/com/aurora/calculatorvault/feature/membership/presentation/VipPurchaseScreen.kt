@@ -51,8 +51,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +79,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.aurora.calculatorvault.R
@@ -204,7 +208,7 @@ fun VipPurchaseScreen(
                                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                             ) {
                                 Text(stringResource(R.string.vip_non_renewing_notice),
-                                    style = AppTextStyles.Caption, color = colors.onSurfaceVariant,
+                                    style = AppTextStyles.Caption.copy(fontSize = 11.sp), color = colors.onSurfaceVariant,
                                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                                 PurchaseAgreement(
                                     accepted = state.agreementAccepted,
@@ -214,7 +218,10 @@ fun VipPurchaseScreen(
                                 )
                                 Text(
                                     stringResource(R.string.vip_special_notice),
-                                    style = AppTextStyles.Caption.copy(lineBreak = LineBreak.Paragraph),
+                                    style = AppTextStyles.Caption.copy(
+                                        fontSize = 11.sp,
+                                        lineBreak = LineBreak.Paragraph,
+                                    ),
                                     color = colors.onSurfaceVariant,
                                     modifier = Modifier.fillMaxWidth().testTag("vip_special_notice"),
                                 )
@@ -438,7 +445,10 @@ private fun PayChannelChip(
         Icon(painterResource(iconRes), contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Unspecified)
         Text(
             label,
-            style = AppTextStyles.BodySecondary.copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal),
+            style = AppTextStyles.BodySecondary.copy(
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            ),
             color = if (selected) colors.primary else colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -735,7 +745,7 @@ private fun PlanSelector(
                         )
                         Text(
                             stringResource(R.string.vip_price, plan.priceDisplay),
-                            style = AppTextStyles.PageTitle.copy(fontWeight = FontWeight.Bold),
+                            style = AppTextStyles.PageTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold),
                             color = if (isSelected) colors.primary else colors.onSurface,
                             textAlign = TextAlign.Center,
                         )
@@ -743,20 +753,36 @@ private fun PlanSelector(
                             plan.durationDays?.takeIf { !plan.isLifetime }
                                 ?.let { stringResource(R.string.vip_duration_days, it) }
                                 ?: stringResource(R.string.vip_duration_lifetime),
-                            style = AppTextStyles.Caption,
+                            style = AppTextStyles.Caption.copy(fontSize = 11.sp),
                             color = colors.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
                     }
                     if (plan.planCode == RECOMMENDED_PLAN) {
+                        val badgeShape = AppShapes.Full
                         Text(
                             stringResource(R.string.vip_plan_recommended),
                             modifier = Modifier.align(Alignment.TopEnd)
                                 .offset(x = -AppSpacing.xs)
-                                .vipPanel(emphasized = true, shape = AppShapes.Full)
-                                .padding(horizontal = AppSpacing.xs, vertical = 2.dp),
-                            style = AppTextStyles.Caption.copy(fontWeight = FontWeight.SemiBold),
-                            color = colors.primary,
+                                .shadow(
+                                    elevation = 3.dp,
+                                    shape = badgeShape,
+                                    clip = false,
+                                    ambientColor = Color(0x4DFFB84D),
+                                    spotColor = Color(0x80702B12),
+                                )
+                                .background(
+                                    Brush.linearGradient(listOf(Color(0xFFFFB84D), Color(0xFFFF8A3D))),
+                                    badgeShape,
+                                )
+                                .border(0.5.dp, Color.White.copy(alpha = 0.32f), badgeShape)
+                                .padding(horizontal = AppSpacing.sm, vertical = 3.dp),
+                            style = AppTextStyles.Caption.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                shadow = Shadow(Color(0x80582512), Offset(0f, 0.8f), blurRadius = 1.5f),
+                            ),
+                            color = Color.White,
                         )
                     }
                 }
@@ -807,7 +833,7 @@ private fun PurchaseAgreement(
                 }
             },
             modifier = Modifier.weight(1f),
-            style = AppTextStyles.BodySecondary.copy(lineBreak = LineBreak.Paragraph),
+            style = AppTextStyles.BodySecondary.copy(fontSize = 13.sp, lineBreak = LineBreak.Paragraph),
             color = colors.onSurfaceVariant,
         )
     }

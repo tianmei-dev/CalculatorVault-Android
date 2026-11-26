@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -53,6 +55,7 @@ import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import com.aurora.calculatorvault.feature.legal.presentation.PrivacyDocumentsScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.GuideTargetShape
 import com.aurora.calculatorvault.feature.onboarding.presentation.ProgressiveGuideOverlay
+import com.aurora.calculatorvault.feature.onboarding.presentation.TapGestureGuideOverlay
 import com.aurora.calculatorvault.feature.settings.presentation.AboutScreen
 import com.aurora.calculatorvault.feature.settings.presentation.ContactUsScreen
 import com.aurora.calculatorvault.feature.settings.presentation.SettingsScreen
@@ -120,12 +123,6 @@ fun VaultMainScreen(
             delay(1000)
         }
     }
-    LaunchedEffect(currentRoute) {
-        // First non-forced WeChat login prompt fires on App Lock (default home), once only.
-        if (currentRoute == VaultTabRoute.AppLock.path) {
-            loginViewModel.onHomeEntered()
-        }
-    }
     val messageController = LocalAppMessageController.current
     val passwordChangedMessage = stringResource(R.string.password_change_success)
     var activeGuide by remember { mutableStateOf<GuideType?>(null) }
@@ -133,6 +130,36 @@ fun VaultMainScreen(
     var disguiseTargetBounds by remember { mutableStateOf<Rect?>(null) }
     var appLockTargetBounds by remember { mutableStateOf<Rect?>(null) }
     var privateAlbumTargetBounds by remember { mutableStateOf<Rect?>(null) }
+    val featureGuide = when (currentRoute) {
+        VaultTabRoute.AppLock.path -> GuideType.APP_LOCK
+        VaultTabRoute.PrivateMedia.path -> GuideType.PRIVATE_ALBUM
+        else -> null
+    }
+    var featureGuideStep by remember(currentRoute) { mutableStateOf<FeatureGuideStep?>(null) }
+    LaunchedEffect(currentRoute) {
+        val guide = featureGuide ?: return@LaunchedEffect
+        if (guide == GuideType.APP_LOCK) {
+            // Resolve the one-time login prompt before either guide step is eligible.
+            loginViewModel.onHomeEntered()
+        }
+        val hasLegacyUsage = runCatching {
+            if (guide == GuideType.APP_LOCK) application.guideLegacyUsageRepository.hasEnabledAppLock()
+            else application.guideLegacyUsageRepository.hasPrivateMedia()
+        }.getOrDefault(true)
+        if (application.guidePreferences.shouldShowWithLegacyUsage(guide, hasLegacyUsage)) {
+            featureGuideStep = FeatureGuideStep.Gesture
+        }
+    }
+    val canShowFeatureGuide = activeGuide == null &&
+        loginState.source == null && loginViewModel.state.value.source == null
+    val featureTarget = when (featureGuide) {
+        GuideType.APP_LOCK -> appLockTargetBounds
+        GuideType.PRIVATE_ALBUM -> privateAlbumTargetBounds
+        else -> null
+    }
+    val gestureTarget = featureTarget?.takeIf {
+        canShowFeatureGuide && featureGuideStep == FeatureGuideStep.Gesture && !it.isEmpty
+    }
     val tabs = VaultMainTab.entries
     val tabRoutes = tabs.map { it.route.path }.toSet()
 
@@ -141,6 +168,7 @@ fun VaultMainScreen(
     }
 
     Scaffold(
+        modifier = if (gestureTarget != null) Modifier.clearAndSetSemantics {} else Modifier,
         containerColor = AppColors.BackgroundPrimary,
         contentWindowInsets = WindowInsets.safeDrawing,
         bottomBar = {
@@ -240,19 +268,6 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.AppLock.path) {
-                LaunchedEffect(Unit) {
-                    val hasEnabledEntries = runCatching {
-                        application.guideLegacyUsageRepository.hasEnabledAppLock()
-                    }.getOrDefault(true)
-                    if (
-                        application.guidePreferences.claimWithLegacyUsage(
-                            GuideType.APP_LOCK,
-                            hasEnabledEntries,
-                        )
-                    ) {
-                        activeGuide = GuideType.APP_LOCK
-                    }
-                }
                 val appLockViewModel: AppLockViewModel = viewModel(
                     factory = AppLockViewModel.Factory(
                         application.appLockRepository,
@@ -313,19 +328,6 @@ fun VaultMainScreen(
                 )
             }
             composable(VaultTabRoute.PrivateMedia.path) {
-                LaunchedEffect(Unit) {
-                    val hasExistingMedia = runCatching {
-                        application.guideLegacyUsageRepository.hasPrivateMedia()
-                    }.getOrDefault(true)
-                    if (
-                        application.guidePreferences.claimWithLegacyUsage(
-                            GuideType.PRIVATE_ALBUM,
-                            hasExistingMedia,
-                        )
-                    ) {
-                        activeGuide = GuideType.PRIVATE_ALBUM
-                    }
-                }
                 val privateMediaViewModel: PrivateMediaViewModel = viewModel(
                     factory = PrivateMediaViewModel.Factory(
                         application.vaultMediaRepository,
@@ -538,8 +540,8 @@ fun VaultMainScreen(
         }
     }
 
-    LaunchedEffect(activeGuide, pendingDisguiseCreatedGuide) {
-        if (activeGuide == null && pendingDisguiseCreatedGuide) {
+    LaunchedEffect(activeGuide, featureGuideStep, pendingDisguiseCreatedGuide) {
+        if (activeGuide == null && featureGuideStep == null && pendingDisguiseCreatedGuide) {
             pendingDisguiseCreatedGuide = false
             if (application.guidePreferences.claimPendingDisguiseCreated()) {
                 activeGuide = GuideType.APP_DISGUISE_CREATED
@@ -569,7 +571,10 @@ fun VaultMainScreen(
         )
     }
 
-    activeGuide?.let { guide ->
+    val featureIntro = featureGuide?.takeIf {
+        canShowFeatureGuide && featureGuideStep == FeatureGuideStep.Introduction
+    }
+    (activeGuide ?: featureIntro)?.let { guide ->
         val targetBounds = when (guide) {
             GuideType.APP_DISGUISE_INTRO -> disguiseTargetBounds
             GuideType.APP_LOCK -> appLockTargetBounds
@@ -587,7 +592,28 @@ fun VaultMainScreen(
                 GuideTargetShape.RoundedRectangle
             },
             avoidBottomNavigation = currentRoute in tabRoutes,
-            onDismiss = { activeGuide = null },
+            onDismiss = {
+                if (guide == featureIntro) featureGuideStep = null
+                else activeGuide = null
+            },
+            onAcknowledge = if (guide == featureIntro) {
+                { application.acknowledgeGuide(guide) }
+            } else {
+                null
+            },
+        )
+    }
+    if (gestureTarget != null) {
+        TapGestureGuideOverlay(
+            targetBounds = gestureTarget,
+            targetCornerRadius = 20.dp,
+            hint = stringResource(
+                if (featureGuide == GuideType.APP_LOCK) R.string.guide_app_lock_tap_hint
+                else R.string.guide_private_album_tap_hint,
+            ),
+            onTargetTap = { featureGuideStep = FeatureGuideStep.Introduction },
         )
     }
 }
+
+private enum class FeatureGuideStep { Gesture, Introduction }

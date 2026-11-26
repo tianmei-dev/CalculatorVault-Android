@@ -30,6 +30,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -146,6 +148,10 @@ fun AppLockScreen(
             )
         }
         item {
+            val reportGuideTarget by rememberUpdatedState(onGuideTargetBoundsChanged)
+            DisposableEffect(Unit) {
+                onDispose { reportGuideTarget(Rect.Zero) }
+            }
             AppLockStatusCard(
                 state = state,
                 modifier = Modifier.onGloballyPositioned {
@@ -295,6 +301,7 @@ private fun AppLockStatusCard(
             Text(
                 text = stringResource(R.string.app_lock_status_title),
                 style = AppTextStyles.SectionTitle,
+                fontSize = 17.sp,
                 color = VaultMainColors.TextPrimary,
             )
             Text(
@@ -308,6 +315,7 @@ private fun AppLockStatusCard(
                     state.lockedCount,
                 ),
                 style = AppTextStyles.BodySecondary,
+                fontSize = 13.sp,
                 color = when (state.protectionStatus) {
                     AppLockProtectionStatus.Protecting -> AppColors.Success
                     AppLockProtectionStatus.NeedsPermission -> AppColors.Warning
@@ -321,6 +329,7 @@ private fun AppLockStatusCard(
                     stringResource(if (state.hasOverlayPermission) R.string.app_lock_permission_on else R.string.app_lock_permission_off),
                 ),
                 style = AppTextStyles.Caption,
+                fontSize = 11.sp,
                 color = VaultMainColors.TextSecondary,
             )
         }
@@ -350,11 +359,13 @@ private fun AppLockAppRow(
             Text(
                 text = app.appName,
                 style = AppTextStyles.CardTitle.copy(fontWeight = FontWeight.SemiBold),
+                fontSize = 15.sp,
                 color = VaultMainColors.TextPrimary,
             )
             Text(
                 text = app.packageName,
                 style = AppTextStyles.Caption,
+                fontSize = 11.sp,
                 color = VaultMainColors.TextSecondary,
             )
         }

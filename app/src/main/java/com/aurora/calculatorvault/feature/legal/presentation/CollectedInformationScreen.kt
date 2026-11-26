@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import com.aurora.calculatorvault.app.CalculatorVaultApp
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
+import com.aurora.calculatorvault.feature.legal.data.LegalDocumentRepository
 import com.aurora.calculatorvault.feature.legal.data.LocalInformationRecords
 import com.aurora.calculatorvault.feature.login.session.entitlementAccount
 import com.aurora.calculatorvault.ui.component.VaultCard
@@ -55,6 +57,9 @@ fun CollectedInformationScreen(
     val sdk = app.readSdkProcessingIndicators()
     var records by remember(app) { mutableStateOf<LocalInformationRecords?>(null) }
     var purchase by remember(account) { mutableStateOf(PendingPurchaseEvidence.Unknown) }
+    val document by produceState<Result<String>?>(initialValue = null, key1 = app) {
+        value = LegalDocumentRepository(app).readCollectedInformation()
+    }
 
     LaunchedEffect(app) {
         records = readIfAvailable { app.readLocalInformationRecords() }
@@ -107,7 +112,6 @@ fun CollectedInformationScreen(
                         else R.string.collected_trial_reply_unknown,
                     ),
                 )
-                InformationLine(stringResource(R.string.collected_trial_purpose))
             }
             InformationSection(stringResource(R.string.collected_account_title)) {
                 InformationLine(
@@ -122,22 +126,18 @@ fun CollectedInformationScreen(
                         else R.string.collected_account_credential_unverified,
                     ),
                 )
-                InformationLine(stringResource(R.string.collected_account_purpose))
             }
             InformationSection(stringResource(R.string.collected_membership_title)) {
                 InformationLine(stringResource(session.collectedMembershipStatus(entitlement.source)))
                 InformationLine(stringResource(purchase.description))
-                InformationLine(stringResource(R.string.collected_purchase_purpose))
             }
             InformationSection(stringResource(R.string.collected_apps_title)) {
                 RecordLine(stringResource(R.string.collected_hidden_apps), records?.hasHiddenApps)
                 RecordLine(stringResource(R.string.collected_disguises), records?.hasDisguises)
                 RecordLine(stringResource(R.string.collected_app_locks), records?.hasAppLocks)
-                InformationLine(stringResource(R.string.collected_apps_purpose))
             }
             InformationSection(stringResource(R.string.collected_media_title)) {
                 RecordLine(stringResource(R.string.collected_media_records), records?.hasMedia)
-                InformationLine(stringResource(R.string.collected_media_purpose))
             }
             InformationSection(stringResource(R.string.collected_sdk_title)) {
                 InformationLine(
@@ -162,6 +162,11 @@ fun CollectedInformationScreen(
             }
             InformationSection(stringResource(R.string.collected_requests_title)) {
                 InformationLine(stringResource(R.string.collected_requests, stringResource(R.string.contact_email)))
+            }
+            document?.let { result ->
+                InformationSection(stringResource(R.string.collected_details_title)) {
+                    InformationLine(result.getOrNull() ?: stringResource(R.string.legal_document_load_failed))
+                }
             }
         }
     }

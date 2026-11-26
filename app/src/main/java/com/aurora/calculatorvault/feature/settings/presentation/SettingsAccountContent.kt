@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.ui.component.VaultMainIconTile
 import com.aurora.calculatorvault.ui.component.vaultGradientAction
@@ -15,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,11 +36,9 @@ internal fun SettingsAccountContent(
     onLogin: () -> Unit,
     onVipMembership: () -> Unit,
     onLogoutConfirmed: () -> Unit,
-    onDeleteAccountConfirmed: (() -> Unit)? = null,
     onRefreshMembership: (() -> Unit)? = null,
 ) {
     var showLogout by rememberSaveable { mutableStateOf(false) }
-    var showDelete by rememberSaveable { mutableStateOf(false) }
     val loggedIn = state.account as? AccountStatus.WeChatLoggedIn
     Row(
         modifier = Modifier.fillMaxWidth().testTag("settings_account").vaultMainPanel()
@@ -50,10 +48,17 @@ internal fun SettingsAccountContent(
     ) {
         VaultMainIconTile(Icons.Rounded.Forum, size = 42.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.settings_wechat_account_title), style = AppTextStyles.CardTitle, color = VaultMainColors.TextPrimary)
+            Text(
+                text = stringResource(R.string.settings_wechat_account_title),
+                style = AppTextStyles.CardTitle,
+                color = VaultMainColors.TextPrimary,
+                fontSize = 15.sp,
+            )
             Text(stringResource(if (loggedIn == null) R.string.settings_account_signed_out else R.string.account_logged_in),
-                style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
-            loggedIn?.displayNickname?.let { Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary) }
+                style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+            loggedIn?.displayNickname?.let {
+                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+            }
         }
         Button(
             onClick = if (loggedIn == null) onLogin else ({ showLogout = true }),
@@ -90,10 +95,17 @@ internal fun SettingsAccountContent(
     ) {
         VaultMainIconTile(Icons.Rounded.WorkspacePremium, emphasized = true, size = 42.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text(stringResource(R.string.settings_membership_center), style = AppTextStyles.CardTitle, color = VaultMainColors.TextPrimary)
-            Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight)
-            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
-            state.membershipSyncHint?.let { Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary) }
+            Text(
+                text = stringResource(R.string.settings_membership_center),
+                style = AppTextStyles.CardTitle,
+                color = VaultMainColors.TextPrimary,
+                fontSize = 15.sp,
+            )
+            Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight, fontSize = 15.sp)
+            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+            state.membershipSyncHint?.let {
+                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+            }
         }
         Icon(Icons.Rounded.ChevronRight, null, tint = VaultMainColors.TextSecondary, modifier = Modifier.size(20.dp))
     }
@@ -111,21 +123,6 @@ internal fun SettingsAccountContent(
             }
         }
     }
-    if (loggedIn != null && onDeleteAccountConfirmed != null) {
-        TextButton(
-            onClick = { showDelete = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = AppSpacing.xs)
-                .testTag("settings_account_delete"),
-        ) {
-            Text(
-                stringResource(R.string.account_delete),
-                style = AppTextStyles.BodySecondary,
-                color = VaultMainColors.TextSecondary,
-            )
-        }
-    }
     if (showLogout && loggedIn != null) {
         VaultDialog(
             title = stringResource(R.string.account_logout_title),
@@ -137,19 +134,6 @@ internal fun SettingsAccountContent(
                 onLogoutConfirmed()
             },
             onDismiss = { showLogout = false },
-        )
-    }
-    if (showDelete && loggedIn != null && onDeleteAccountConfirmed != null) {
-        VaultDialog(
-            title = stringResource(R.string.account_delete_title),
-            message = stringResource(R.string.account_delete_message),
-            confirmText = stringResource(R.string.account_delete_confirm),
-            dismissText = stringResource(R.string.account_delete_cancel),
-            onConfirm = {
-                showDelete = false
-                onDeleteAccountConfirmed()
-            },
-            onDismiss = { showDelete = false },
         )
     }
 }

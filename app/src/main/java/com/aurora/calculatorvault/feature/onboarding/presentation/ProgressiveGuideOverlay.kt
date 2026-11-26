@@ -85,6 +85,7 @@ fun ProgressiveGuideOverlay(
     targetBounds: Rect? = null,
     targetShape: GuideTargetShape = GuideTargetShape.RoundedRectangle,
     avoidBottomNavigation: Boolean = false,
+    onAcknowledge: (() -> Unit)? = null,
 ) {
     var visible by remember(type) { mutableStateOf(false) }
     var showOrganizationSteps by remember(type) { mutableStateOf(false) }
@@ -102,10 +103,11 @@ fun ProgressiveGuideOverlay(
         guideContent(type)
     }
 
-    fun requestDismiss() {
+    fun requestDismiss(acknowledged: Boolean = false) {
         if (isClosing) return
         isClosing = true
         visible = false
+        if (acknowledged) onAcknowledge?.invoke()
         scope.launch {
             delay(EXIT_ANIMATION_MILLIS.toLong())
             onDismiss()
@@ -113,7 +115,7 @@ fun ProgressiveGuideOverlay(
     }
 
     LaunchedEffect(type) { visible = true }
-    BackHandler(onBack = ::requestDismiss)
+    BackHandler { requestDismiss() }
 
     AnimatedVisibility(
         visible = visible,
@@ -129,7 +131,7 @@ fun ProgressiveGuideOverlay(
             SpotlightScrim(
                 targetBounds = localTarget,
                 targetShape = targetShape,
-                onOutsideClick = ::requestDismiss,
+                onOutsideClick = { requestDismiss() },
             )
 
             AnimatedVisibility(
@@ -158,7 +160,7 @@ fun ProgressiveGuideOverlay(
                     } else {
                         null
                     },
-                    onDismiss = ::requestDismiss,
+                    onDismiss = { requestDismiss(acknowledged = true) },
                 )
             }
         }

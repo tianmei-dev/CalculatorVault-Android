@@ -10,9 +10,14 @@ class LegalDocumentRepository(
 ) {
     private val appContext = context.applicationContext
 
-    suspend fun read(type: LegalDocumentType): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun read(type: LegalDocumentType): Result<String> = readAsset(type.assetPath)
+
+    internal suspend fun readCollectedInformation(): Result<String> =
+        readAsset("legal/collected_personal_information_list.txt")
+
+    private suspend fun readAsset(assetPath: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            appContext.assets.open(type.assetPath).bufferedReader(Charsets.UTF_8).use { it.readText() }
+            appContext.assets.open(assetPath).bufferedReader(Charsets.UTF_8).use { it.readText() }
         }
     }
 }

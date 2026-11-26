@@ -23,24 +23,20 @@ class GuidePreferences(
         shouldShow
     }.getOrDefault(false)
 
-    suspend fun claimWithLegacyUsage(
+    /** Keeps the existing migration, but leaves a new guide pending until acknowledgement. */
+    suspend fun shouldShowWithLegacyUsage(
         type: GuideType,
         legacyUsageExists: Boolean,
     ): Boolean = runCatching {
-        var shouldShow = false
-        dataStore.edit { preferences ->
+        val shownKey = shownKey(type)
+        val preferences = dataStore.edit { preferences ->
             val migrationKey = migrationKey(type)
-            val shownKey = shownKey(type)
             if (preferences[migrationKey] != true) {
                 preferences[migrationKey] = true
                 if (legacyUsageExists) preferences[shownKey] = true
             }
-            if (preferences[shownKey] != true) {
-                preferences[shownKey] = true
-                shouldShow = true
-            }
         }
-        shouldShow
+        preferences[shownKey] != true
     }.getOrDefault(false)
 
     suspend fun migrateLegacyUsage(

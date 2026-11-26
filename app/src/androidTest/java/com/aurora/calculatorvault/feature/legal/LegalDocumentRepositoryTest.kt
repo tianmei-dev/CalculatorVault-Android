@@ -8,6 +8,7 @@ import com.aurora.calculatorvault.feature.legal.data.LegalDocumentRepository
 import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,11 +30,11 @@ class LegalDocumentRepositoryTest {
 
         val membership = documents.getValue(LegalDocumentType.MembershipServiceAgreement)
         assertTrue(membership.startsWith("应用加密计算器会员服务协议"))
-        assertTrue("待发布审核稿" in membership)
+        assertFalse("待发布审核稿" in membership)
 
         val sharing = documents.getValue(LegalDocumentType.ThirdPartyInformationSharingList)
         assertTrue(sharing.startsWith("应用加密计算器与第三方共享个人信息清单"))
-        assertTrue("待发布审核稿" in sharing)
+        assertFalse("待发布审核稿" in sharing)
         assertNotEquals(documents.getValue(LegalDocumentType.ThirdPartySdkList), sharing)
     }
 }

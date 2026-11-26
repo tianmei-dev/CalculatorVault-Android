@@ -28,17 +28,39 @@ class GuidePreferencesTest {
     fun `legacy usage suppresses only the matching feature guide`() = runTest {
         withPreferences { preferences ->
             assertFalse(
-                preferences.claimWithLegacyUsage(
+                preferences.shouldShowWithLegacyUsage(
                     GuideType.APP_LOCK,
                     legacyUsageExists = true,
                 ),
             )
             assertTrue(
-                preferences.claimWithLegacyUsage(
+                preferences.shouldShowWithLegacyUsage(
                     GuideType.PRIVATE_ALBUM,
                     legacyUsageExists = false,
                 ),
             )
+        }
+    }
+
+    @Test
+    fun `feature guides stay pending until acknowledged independently`() = runTest {
+        withPreferences { preferences ->
+            assertTrue(preferences.shouldShowWithLegacyUsage(GuideType.APP_LOCK, false))
+            assertTrue(preferences.shouldShowWithLegacyUsage(GuideType.APP_LOCK, false))
+            assertTrue(preferences.shouldShowWithLegacyUsage(GuideType.PRIVATE_ALBUM, false))
+
+            preferences.markShown(GuideType.APP_LOCK)
+            assertFalse(preferences.shouldShowWithLegacyUsage(GuideType.APP_LOCK, false))
+            assertTrue(preferences.shouldShowWithLegacyUsage(GuideType.PRIVATE_ALBUM, false))
+        }
+    }
+
+    @Test
+    fun `feature guide respects saved completion from earlier versions`() = runTest {
+        withPreferences { preferences ->
+            assertTrue(preferences.claim(GuideType.PRIVATE_ALBUM))
+            assertFalse(preferences.shouldShowWithLegacyUsage(GuideType.PRIVATE_ALBUM, false))
+            assertTrue(preferences.shouldShowWithLegacyUsage(GuideType.APP_LOCK, false))
         }
     }
 

@@ -7,7 +7,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,13 +18,17 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aurora.calculatorvault.R
@@ -116,6 +119,8 @@ fun PrivacyConsentScreen(
     val titleColor = if (polished) VaultMainColors.TextPrimary else palette.onBackground
     val bodyColor = if (polished) VaultMainColors.TextSecondary else palette.onSurface
     val linkColor = if (polished) VaultMainColors.Highlight else palette.primary
+    val linkStyle = AppTextStyles.Button.toSpanStyle().copy(color = linkColor)
+    val linkStyles = TextLinkStyles(style = linkStyle)
 
     Column(
         modifier = Modifier
@@ -148,49 +153,39 @@ fun PrivacyConsentScreen(
                 style = AppTextStyles.Body,
                 color = bodyColor,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                TextButton(
-                    onClick = onOpenUserAgreement,
-                    enabled = !state.isSaving,
-                    modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    Text(
-                        text = stringResource(R.string.privacy_user_agreement_link),
-                        style = AppTextStyles.Button,
-                        color = linkColor,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                TextButton(
-                    onClick = onOpenPrivacyPolicy,
-                    enabled = !state.isSaving,
-                    modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    Text(
-                        text = stringResource(R.string.privacy_policy_link),
-                        style = AppTextStyles.Button,
-                        color = linkColor,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-            TextButton(
-                onClick = onOpenChildrenPrivacyPolicy,
-                enabled = !state.isSaving,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                Text(
-                    text = stringResource(R.string.privacy_children_policy_link),
-                    style = AppTextStyles.Button,
-                    color = linkColor,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            Spacer(Modifier.height(AppSpacing.md))
             Text(
-                text = stringResource(R.string.privacy_local_note),
+                text = buildAnnotatedString {
+                    fun appendAgreement(label: String, type: LegalDocumentType, onOpen: () -> Unit) {
+                        if (state.isSaving) {
+                            withStyle(linkStyle) { append(label) }
+                        } else {
+                            withLink(LinkAnnotation.Clickable(type.routeValue, linkStyles) { onOpen() }) {
+                                append(label)
+                            }
+                        }
+                    }
+
+                    append(stringResource(R.string.privacy_reading_prefix))
+                    appendAgreement(
+                        stringResource(R.string.privacy_user_agreement_link),
+                        LegalDocumentType.UserAgreement,
+                        onOpenUserAgreement,
+                    )
+                    append("、")
+                    appendAgreement(
+                        stringResource(R.string.privacy_policy_link),
+                        LegalDocumentType.PrivacyPolicy,
+                        onOpenPrivacyPolicy,
+                    )
+                    append("及")
+                    appendAgreement(
+                        stringResource(R.string.privacy_children_policy_link),
+                        LegalDocumentType.ChildrenPrivacyPolicy,
+                        onOpenChildrenPrivacyPolicy,
+                    )
+                    append(stringResource(R.string.privacy_reading_suffix))
+                },
                 style = AppTextStyles.Body,
                 color = bodyColor,
             )

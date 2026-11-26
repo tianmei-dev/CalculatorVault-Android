@@ -102,7 +102,8 @@ class VipPurchaseControllerTest {
         val state = env.controller.state.value
         val plans = (state.plans as PlansState.Ready).plans
         assertEquals(listOf("月卡", "年卡", "永久会员"), plans.map { it.displayName })
-        assertEquals(listOf("5.90", "19.90", "29.90"), plans.map { it.priceDisplay })
+        assertEquals(listOf(590, 1990, 3990), plans.map { it.priceFen })
+        assertEquals(listOf("5.90", "19.90", "39.90"), plans.map { it.priceDisplay })
         assertEquals("YEARLY", state.selectedPlanCode)
         assertTrue(state.canRequestPurchase)
         assertEquals(0, env.api.plansCalls)

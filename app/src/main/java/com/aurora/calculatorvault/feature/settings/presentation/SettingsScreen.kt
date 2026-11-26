@@ -24,18 +24,25 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aurora.calculatorvault.R
 import com.aurora.calculatorvault.core.designsystem.icon.VaultIcons
 import com.aurora.calculatorvault.core.designsystem.spacing.AppDimensions
 import com.aurora.calculatorvault.core.designsystem.spacing.AppSpacing
 import com.aurora.calculatorvault.core.designsystem.typography.AppTextStyles
+import com.aurora.calculatorvault.ui.component.VaultDialog
 import com.aurora.calculatorvault.ui.component.VaultMainColors
 import com.aurora.calculatorvault.ui.component.VaultMainHeader
 import com.aurora.calculatorvault.ui.component.VaultMainIconTile
@@ -64,6 +71,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val messageController = LocalAppMessageController.current
     val appSettingsFallbackMessage = stringResource(R.string.settings_app_detail_open_failed)
+    val deleteAccount = onDeleteAccountConfirmed?.takeIf { accountState.account is AccountStatus.WeChatLoggedIn }
+    var showDelete by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,10 +91,11 @@ fun SettingsScreen(
                 onLogin = onLogin,
                 onVipMembership = onVipMembership,
                 onLogoutConfirmed = onLogoutConfirmed,
-                onDeleteAccountConfirmed = onDeleteAccountConfirmed,
                 onRefreshMembership = onRefreshMembership,
             )
-            if (sessionMessage.isNotEmpty()) Text(sessionMessage, color = VaultMainColors.TextSecondary)
+            if (sessionMessage.isNotEmpty()) {
+                Text(sessionMessage, color = VaultMainColors.TextSecondary, fontSize = 14.sp)
+            }
             if (sessionPending) {
                 androidx.compose.material3.TextButton(onClick = onRetrySession) { Text("重新校验账号") }
                 androidx.compose.material3.TextButton(onClick = onLogoutConfirmed) { Text("退出本地账号") }
@@ -117,8 +127,17 @@ fun SettingsScreen(
                         }
                     }
                 },
-                showDivider = false,
+                showDivider = deleteAccount != null,
             )
+            if (deleteAccount != null) {
+                MainSettingsRow(
+                    title = stringResource(R.string.account_delete),
+                    icon = VaultIcons.Delete,
+                    onClick = { showDelete = true },
+                    modifier = Modifier.testTag("settings_account_delete"),
+                    showDivider = false,
+                )
+            }
         }
         SettingsGroup(title = stringResource(R.string.about_group)) {
             MainSettingsRow(
@@ -138,6 +157,19 @@ fun SettingsScreen(
                 showDivider = false,
             )
         }
+    }
+    if (showDelete && deleteAccount != null) {
+        VaultDialog(
+            title = stringResource(R.string.account_delete_title),
+            message = stringResource(R.string.account_delete_message),
+            confirmText = stringResource(R.string.account_delete_confirm),
+            dismissText = stringResource(R.string.account_delete_cancel),
+            onConfirm = {
+                showDelete = false
+                deleteAccount()
+            },
+            onDismiss = { showDelete = false },
+        )
     }
 }
 
@@ -195,8 +227,11 @@ internal fun MainSettingsRow(
                     text = title,
                     style = AppTextStyles.CardTitle.copy(fontWeight = FontWeight.SemiBold),
                     color = VaultMainColors.TextPrimary,
+                    fontSize = 15.sp,
                 )
-                subtitle?.let { Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary) }
+                subtitle?.let {
+                    Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary, fontSize = 13.sp)
+                }
             }
             if (enabled) {
                 Icon(

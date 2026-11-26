@@ -13,6 +13,7 @@ import com.aurora.calculatorvault.core.database.CalculatorVaultDatabase
 import com.aurora.calculatorvault.core.datastore.security.DataStoreSecurityPreferencesDataSource
 import com.aurora.calculatorvault.core.datastore.vaultPreferencesDataStore
 import com.aurora.calculatorvault.core.guide.GuidePreferences
+import com.aurora.calculatorvault.core.guide.GuideType
 import com.aurora.calculatorvault.core.monitoring.BuglyInitializer
 import com.aurora.calculatorvault.core.security.Pbkdf2PasswordHasher
 import com.aurora.calculatorvault.core.security.recovery.AndroidKeystorePasswordRecoveryCipher
@@ -375,6 +376,10 @@ class CalculatorVaultApp : Application() {
 
     val guidePreferences by lazy {
         GuidePreferences(vaultPreferencesDataStore)
+    }
+
+    internal fun acknowledgeGuide(type: GuideType) {
+        applicationScope.launch { guidePreferences.markShown(type) }
     }
 
     val loginPromptPreferences by lazy {

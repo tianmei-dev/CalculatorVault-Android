@@ -6,18 +6,19 @@
     <string name="splash_subtitle">正在读取本地初始化状态</string>
     <string name="startup_read_failed">无法读取本地初始化状态，请重试</string>
     <string name="retry">重试</string>
-    <string name="privacy_title">用户隐私保护提示</string>
-    <string name="privacy_intro">欢迎使用 "应用加密计算器"。我们依法保护您的个人信息，请阅读以下协议及隐私告知；如政策有更新，请重新选择是否同意：</string>
-    <string name="privacy_local_note">计算器密码、私密相册和应用锁配置主要保存在本地；首次启动会在本地记录设备试用时间和状态。微信登录由你主动发起，需处理必要的服务端账号和会话信息；设备试用联网校验启用后，可能向服务器发送 Android ID。取得当前版本隐私政策的有效同意前，不初始化需要同意的统计和异常 SDK，不上传设备试用标识。请查看完整《隐私政策》后选择是否同意。</string>
+    <string name="privacy_title">用户协议与隐私政策</string>
+    <string name="privacy_intro">欢迎使用应用加密计算器！我们重视您的个人信息及隐私保护。\n\n为提供应用保护、私密相册、账号及会员服务，我们将在相应场景下处理必要的个人信息，并在需要时申请相关权限。</string>
+    <string name="privacy_reading_prefix">请您仔细阅读</string>
+    <string name="privacy_reading_suffix">，了解详细规则。</string>
     <string name="user_agreement">用户协议</string>
     <string name="privacy_policy">隐私政策</string>
     <string name="children_privacy_policy">儿童个人信息保护规则</string>
     <string name="privacy_user_agreement_link">《用户协议》</string>
     <string name="privacy_policy_link">《隐私政策》</string>
-    <string name="privacy_children_policy_link">《儿童个人信息保护规则》</string>
+    <string name="privacy_children_policy_link">《儿童个人信息保护政策》</string>
     <string name="agree_and_continue">同意并继续</string>
     <string name="decline_and_use_calculator">不同意仅使用计算器</string>
-    <string name="privacy_calculator_notice">如您不同意相关协议，仍可使用基本计算器功能。</string>
+    <string name="privacy_calculator_notice">如您不同意，仍可使用基本计算器功能。</string>
     <string name="privacy_saving">正在保存…</string>
     <string name="privacy_save_failed">隐私协议状态保存失败，请重试</string>
     <string name="create_password_title">创建密码</string>
@@ -609,6 +610,7 @@
     <string name="guide_app_lock_title">给重要应用加一层保护</string>
     <string name="guide_app_lock_body">开启应用锁后，打开受保护的应用时，需要先验证隐私密码。</string>
     <string name="guide_app_lock_support">应用锁运行需要“使用情况访问”和“显示在其他应用上层”等系统权限，我们会在你真正开启应用锁时引导设置。</string>
+    <string name="guide_app_lock_tap_hint">点击这里，了解应用锁</string>
     <string name="guide_disguise_intro_title">创建一个新的伪装入口</string>
     <string name="guide_disguise_intro_body">你可以为应用创建新的桌面入口，并更换显示名称和图标，让入口看起来更自然。</string>
     <string name="guide_disguise_intro_support">伪装不会修改或删除原 App，原 App 仍可能显示在桌面、应用抽屉或系统应用列表中。</string>
@@ -622,4 +624,5 @@
     <string name="guide_private_album_title">把照片和视频放进隐私空间</string>
     <string name="guide_private_album_body">导入后，我们会先保存一份私密副本，你可以只在这里查看和管理。</string>
     <string name="guide_private_album_support">系统相册中的原文件不会自动删除。导入完成后，你可以自行选择是否将原文件从系统相册移除。</string>
+    <string name="guide_private_album_tap_hint">点击这里，了解私密相册</string>
 </resources>

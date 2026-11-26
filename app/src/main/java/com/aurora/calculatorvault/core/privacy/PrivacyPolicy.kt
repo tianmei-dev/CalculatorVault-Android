@@ -4,7 +4,7 @@ import com.aurora.calculatorvault.core.datastore.security.SecurityPreferences
 
 /** Exact-match migration: legacy, missing and unknown versions require explicit consent. */
 object PrivacyPolicy {
-    const val CURRENT_VERSION = "2026-10-28"
+    const val CURRENT_VERSION = "2026-11-26"
     fun hasValidConsent(value: SecurityPreferences): Boolean =
         !value.privacyDeclined && value.privacyAccepted && value.privacyVersion == CURRENT_VERSION &&
             (value.privacyAcceptedAt ?: 0L) > 0L

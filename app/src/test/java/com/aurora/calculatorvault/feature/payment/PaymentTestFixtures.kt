@@ -18,7 +18,7 @@ object PaymentFixtures {
     val plans = listOf(
         MembershipPlanOffer("MONTHLY", "月卡", 590, "5.90", 30, false),
         MembershipPlanOffer("YEARLY", "年卡", 1990, "19.90", 365, false),
-        MembershipPlanOffer("LIFETIME", "永久会员", 2990, "29.90", null, true),
+        MembershipPlanOffer("LIFETIME", "永久会员", 3990, "39.90", null, true),
     )
 
     /** Reserved `.example` names only (RFC 2606): never a real Yusen host, never opened. */
