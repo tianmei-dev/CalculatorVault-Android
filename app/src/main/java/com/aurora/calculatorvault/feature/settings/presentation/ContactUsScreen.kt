@@ -3,8 +3,12 @@ package com.aurora.calculatorvault.feature.settings.presentation
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +18,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -40,6 +47,7 @@ fun ContactUsScreen(
     val messageController = LocalAppMessageController.current
     val email = stringResource(R.string.contact_email)
     val emailCopied = stringResource(R.string.contact_email_copied)
+    val openAdminLogin by rememberUpdatedState(onAdminLogin)
 
     Column(
         modifier = Modifier
@@ -65,15 +73,34 @@ fun ContactUsScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
         ) {
             VaultCard(modifier = Modifier.fillMaxWidth()) {
-                VaultSettingItem(
-                    title = stringResource(R.string.settings_about_developer),
-                    subtitle = stringResource(R.string.developer_name),
-                    icon = VaultIcons.Info,
-                    onClick = {},
-                    enabled = false,
-                    showChevron = false,
-                    adaptiveHeight = true,
-                )
+                Box {
+                    VaultSettingItem(
+                        title = stringResource(R.string.settings_about_developer),
+                        subtitle = stringResource(R.string.developer_name),
+                        icon = VaultIcons.Info,
+                        onClick = {},
+                        enabled = false,
+                        showChevron = false,
+                        adaptiveHeight = true,
+                    )
+                    // Keep the read-only row styling and handle taps above its disabled clickable.
+                    Spacer(
+                        Modifier.matchParentSize().pointerInput(Unit) {
+                            var tapCount = 0
+                            var lastTapAt = 0L
+                            detectTapGestures {
+                                val tapAt = SystemClock.elapsedRealtime()
+                                tapCount = if (tapAt - lastTapAt > 1_000L) 1 else tapCount + 1
+                                lastTapAt = tapAt
+                                if (tapCount == 5) {
+                                    tapCount = 0
+                                    lastTapAt = 0L
+                                    openAdminLogin()
+                                }
+                            }
+                        },
+                    )
+                }
                 VaultSettingItem(
                     title = stringResource(R.string.settings_contact_email),
                     subtitle = email,
@@ -87,13 +114,6 @@ fun ContactUsScreen(
                             messageController.showInfo(emailCopied)
                         }
                     },
-                    adaptiveHeight = true,
-                )
-                VaultSettingItem(
-                    title = stringResource(R.string.admin_entry),
-                    subtitle = stringResource(R.string.admin_login_entry_hint),
-                    icon = VaultIcons.Security,
-                    onClick = onAdminLogin,
                     showDivider = false,
                     adaptiveHeight = true,
                 )

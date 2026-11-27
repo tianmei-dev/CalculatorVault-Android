@@ -1,6 +1,7 @@
 package com.aurora.calculatorvault.feature.admin.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -128,13 +129,11 @@ fun AdminLoginScreen(
                 )
             },
         )
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(appPagePadding()),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             VaultCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -253,6 +252,16 @@ fun AdminLoginScreen(
                         }
                     }
                 }
+            }
+            if (active == null) {
+                VaultIconButton(
+                    icon = VaultIcons.Close,
+                    contentDescription = stringResource(R.string.admin_close_login),
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(AppSpacing.xs),
+                )
             }
         }
     }

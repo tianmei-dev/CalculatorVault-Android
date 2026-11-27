@@ -10,12 +10,14 @@
     <string name="privacy_intro">欢迎使用应用加密计算器！我们重视您的个人信息及隐私保护。\n\n为提供应用保护、私密相册、账号及会员服务，我们将在相应场景下处理必要的个人信息，并在需要时申请相关权限。</string>
     <string name="privacy_reading_prefix">请您仔细阅读</string>
     <string name="privacy_reading_suffix">，了解详细规则。</string>
+    <string name="privacy_sdk_disclosure_prefix">本应用集成友盟统计（使用情况统计）、Bugly（崩溃与异常分析）、微信 OpenSDK（微信登录）。详情请查阅</string>
     <string name="user_agreement">用户协议</string>
     <string name="privacy_policy">隐私政策</string>
     <string name="children_privacy_policy">儿童个人信息保护规则</string>
     <string name="privacy_user_agreement_link">《用户协议》</string>
     <string name="privacy_policy_link">《隐私政策》</string>
     <string name="privacy_children_policy_link">《儿童个人信息保护政策》</string>
+    <string name="privacy_third_party_sdk_link">《第三方 SDK 目录》</string>
     <string name="agree_and_continue">同意并继续</string>
     <string name="decline_and_use_calculator">不同意仅使用计算器</string>
     <string name="privacy_calculator_notice">如您不同意，仍可使用基本计算器功能。</string>
@@ -286,11 +288,11 @@
     <string name="disguise_description">为私密入口准备低调、可信的外观。</string>
     <string name="lock_status_title">应用锁状态</string>
     <string name="lock_status_value">尚未启用 · 静态预览</string>
-    <string name="disguise_examples">伪装示例</string>
+    <string name="disguise_examples">自定义示例</string>
     <string name="example_notes">便签</string>
     <string name="example_weather">天气</string>
     <string name="example_focus">专注计时</string>
-    <string name="add_disguise">添加伪装应用</string>
+    <string name="add_disguise">创建自定义入口</string>
     <string name="search_apps">搜索私密应用</string>
     <string name="recent_opened">最近打开</string>
     <string name="my_apps">我的应用</string>
@@ -569,7 +571,7 @@
     <string name="disguise_shortcut_invalid_request">入口请求无效</string>
     <string name="disguise_shortcut_invalid_request_description">请重新从有效的桌面入口打开</string>
     <string name="disguise_shortcut_missing_title">该桌面入口已失效</string>
-    <string name="disguise_shortcut_missing_description">请返回应用加密计算器重新创建应用伪装</string>
+    <string name="disguise_shortcut_missing_description">请返回应用加密计算器重新创建自定义入口</string>
     <string name="disguise_shortcut_target_unavailable">目标应用暂时无法打开</string>
     <string name="disguise_shortcut_target_uninstalled">该应用可能已被卸载</string>
     <string name="disguise_shortcut_target_disabled">目标应用当前已停用</string>

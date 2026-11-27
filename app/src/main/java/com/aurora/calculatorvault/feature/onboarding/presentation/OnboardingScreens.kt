@@ -113,6 +113,7 @@ fun PrivacyConsentScreen(
     onOpenUserAgreement: () -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
     onOpenChildrenPrivacyPolicy: () -> Unit,
+    onOpenThirdPartySdkList: () -> Unit,
 ) {
     val polished = useVaultDarkVisuals()
     val palette = MaterialTheme.colorScheme
@@ -156,7 +157,7 @@ fun PrivacyConsentScreen(
             Spacer(Modifier.height(AppSpacing.md))
             Text(
                 text = buildAnnotatedString {
-                    fun appendAgreement(label: String, type: LegalDocumentType, onOpen: () -> Unit) {
+                    fun appendDocumentLink(label: String, type: LegalDocumentType, onOpen: () -> Unit) {
                         if (state.isSaving) {
                             withStyle(linkStyle) { append(label) }
                         } else {
@@ -167,24 +168,32 @@ fun PrivacyConsentScreen(
                     }
 
                     append(stringResource(R.string.privacy_reading_prefix))
-                    appendAgreement(
+                    appendDocumentLink(
                         stringResource(R.string.privacy_user_agreement_link),
                         LegalDocumentType.UserAgreement,
                         onOpenUserAgreement,
                     )
                     append("、")
-                    appendAgreement(
+                    appendDocumentLink(
                         stringResource(R.string.privacy_policy_link),
                         LegalDocumentType.PrivacyPolicy,
                         onOpenPrivacyPolicy,
                     )
                     append("及")
-                    appendAgreement(
+                    appendDocumentLink(
                         stringResource(R.string.privacy_children_policy_link),
                         LegalDocumentType.ChildrenPrivacyPolicy,
                         onOpenChildrenPrivacyPolicy,
                     )
                     append(stringResource(R.string.privacy_reading_suffix))
+                    append("\n\n")
+                    append(stringResource(R.string.privacy_sdk_disclosure_prefix))
+                    appendDocumentLink(
+                        stringResource(R.string.privacy_third_party_sdk_link),
+                        LegalDocumentType.ThirdPartySdkList,
+                        onOpenThirdPartySdkList,
+                    )
+                    append("。")
                 },
                 style = AppTextStyles.Body,
                 color = bodyColor,

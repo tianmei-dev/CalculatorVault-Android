@@ -12,7 +12,7 @@
     <string name="account_logout_placeholder">退出登录功能待接入</string>
     <string name="account_delete">注销账号</string>
     <string name="account_delete_title">确定注销账号？</string>
-    <string name="account_delete_message">账号注销后不可撤销，会员权益将立即终止。注销本身不自动退款（依法应退款的情形除外）。本机私密相册、应用锁与伪装配置、隐私空间密码及设备试用资格将保留在本设备。</string>
+    <string name="account_delete_message">账号注销后不可撤销，会员权益将立即终止。注销本身不自动退款（依法应退款的情形除外）。本机私密相册、应用锁与自定义入口配置、隐私空间密码及设备试用资格将保留在本设备。</string>
     <string name="account_delete_confirm">确定注销</string>
     <string name="account_delete_cancel">取消</string>
     <string name="account_delete_success">账号已注销</string>

@@ -10,6 +10,7 @@ sealed interface AppRoute {
     data object UserAgreement : AppRoute { override val path = "user_agreement" }
     data object PrivacyPolicy : AppRoute { override val path = "privacy_policy" }
     data object ChildrenPrivacyPolicy : AppRoute { override val path = "children_privacy_policy" }
+    data object ThirdPartySdkList : AppRoute { override val path = "third_party_sdk_list" }
     data object Calculator : AppRoute { override val path = "calculator" }
     data object CalculatorOnly : AppRoute { override val path = "calculator_only" }
     data object VaultMain : AppRoute { override val path = "vault_main" }

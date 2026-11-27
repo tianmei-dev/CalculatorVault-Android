@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="admin_entry">管理员</string>
     <string name="admin_login_title">管理员登录</string>
+    <string name="admin_close_login">关闭管理员登录</string>
     <string name="admin_login_hint">请输入管理员账号和密码</string>
     <string name="admin_login_entry_hint">管理员入口仅用于指定账号登录</string>
     <string name="admin_username">账号</string>

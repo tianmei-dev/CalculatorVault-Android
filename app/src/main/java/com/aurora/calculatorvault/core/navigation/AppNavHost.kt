@@ -30,6 +30,8 @@ import com.aurora.calculatorvault.core.security.SecureScreenEffect
 import com.aurora.calculatorvault.core.security.session.VaultSessionState
 import com.aurora.calculatorvault.feature.calculator.presentation.CalculatorScreen
 import com.aurora.calculatorvault.feature.calculator.presentation.CalculatorViewModel
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentScreen
+import com.aurora.calculatorvault.feature.legal.presentation.LegalDocumentType
 import com.aurora.calculatorvault.feature.onboarding.presentation.ConfirmPasswordScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.ChildrenPrivacyPolicyScreen
 import com.aurora.calculatorvault.feature.onboarding.presentation.CreatePasswordScreen
@@ -197,6 +199,11 @@ fun AppNavHost(
                     onOpenChildrenPrivacyPolicy = {
                         navController.navigate(AppRoute.ChildrenPrivacyPolicy.path)
                     },
+                    onOpenThirdPartySdkList = {
+                        navController.navigate(AppRoute.ThirdPartySdkList.path) {
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
         }
@@ -208,6 +215,12 @@ fun AppNavHost(
         }
         composable(AppRoute.ChildrenPrivacyPolicy.path) {
             ChildrenPrivacyPolicyScreen(onBack = navController::popBackStack)
+        }
+        composable(AppRoute.ThirdPartySdkList.path) {
+            LegalDocumentScreen(
+                type = LegalDocumentType.ThirdPartySdkList,
+                onBack = navController::popBackStack,
+            )
         }
         composable(AppRoute.CreatePassword.path) {
             if (onboardingState.step == OnboardingStep.CreatePassword) {
