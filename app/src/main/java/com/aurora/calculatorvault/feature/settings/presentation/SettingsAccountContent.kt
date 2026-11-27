@@ -74,7 +74,7 @@ internal fun SettingsAccountContent(
     val adminActive = state.visibleMembership is MembershipStatus.AdminFullAccess
     // Presentation only: consume the already selected visible membership and existing duration text.
     val title = when (val status = state.visibleMembership) {
-        MembershipStatus.AdminFullAccess -> R.string.admin_membership_title
+        MembershipStatus.AdminFullAccess -> R.string.account_vip_permanent
         MembershipStatus.NotSubscribed, MembershipStatus.TrialExpired -> R.string.account_open_vip
         is MembershipStatus.VipActive -> when (status.planType) {
             com.aurora.calculatorvault.feature.membership.domain.VipPlan.Monthly -> R.string.settings_membership_monthly
@@ -85,7 +85,7 @@ internal fun SettingsAccountContent(
         else -> membership.title
     }
     val detail = when {
-        adminActive -> stringResource(R.string.admin_membership_detail)
+        adminActive -> null
         state.visibleMembership == MembershipStatus.NotSubscribed ||
             state.visibleMembership == MembershipStatus.TrialExpired ->
             stringResource(R.string.settings_membership_free_detail)
@@ -106,7 +106,9 @@ internal fun SettingsAccountContent(
                 color = VaultMainColors.TextPrimary,
             )
             Text(stringResource(title), style = AppTextStyles.CardTitle, color = VaultMainColors.Highlight)
-            Text(detail, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
+            detail?.let {
+                Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
+            }
             state.membershipSyncHint?.let {
                 Text(it, style = AppTextStyles.BodySecondary, color = VaultMainColors.TextSecondary)
             }
